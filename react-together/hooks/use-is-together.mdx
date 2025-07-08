@@ -1,0 +1,505 @@
+---
+title: "useIsTogether"
+description: "Check if the user is connected to a React Together session. Perfect for conditional rendering and connection-aware features."
+---
+
+## Overview
+
+`useIsTogether` returns `true` when the user is currently connected to a React Together session, and `false` otherwise. This hook is essential for building connection-aware interfaces that adapt based on whether users are in a collaborative session.
+
+<Info>
+**Perfect for**: Conditional rendering of collaborative features, connection status indicators, session-dependent logic, and graceful offline/online state handling.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { useIsTogether } from 'react-together'
+
+function ConnectionStatus() {
+  const isTogether = useIsTogether()
+  
+  return (
+    <div>
+      {isTogether ? (
+        <span className="text-green-600">✓ Connected to session</span>
+      ) : (
+        <span className="text-gray-500">○ Not connected</span>
+      )}
+    </div>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useIsTogether(): boolean
+```
+
+## Return Value
+
+<ParamField path="isTogether" type="boolean">
+  `true` if the user is connected to a React Together session, `false` otherwise
+</ParamField>
+
+## Examples
+
+### Session-Dependent Feature Toggle
+
+Show different UI based on connection status:
+
+```tsx
+import { useIsTogether, useStateTogether } from 'react-together'
+
+function CollaborativeEditor() {
+  const isTogether = useIsTogether()
+  const [content, setContent] = useStateTogether('document', '')
+  
+  return (
+    <div className="editor">
+      <div className="status-bar">
+        {isTogether ? (
+          <span className="collaborative-mode">
+            🤝 Collaborative Mode - Changes sync in real-time
+          </span>
+        ) : (
+          <span className="offline-mode">
+            📝 Offline Mode - Changes saved locally
+          </span>
+        )}
+      </div>
+      
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder={
+          isTogether
+            ? "Start typing to collaborate..."
+            : "Connect to session to collaborate"
+        }
+        className={isTogether ? 'border-green-300' : 'border-gray-300'}
+      />
+      
+      {!isTogether && (
+        <div className="offline-notice">
+          <p>Join a session to enable real-time collaboration</p>
+          <button onClick={() => /* join session logic */ {}}>
+            Join Session
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Connection Status Dashboard
+
+Build a comprehensive connection monitoring component:
+
+```tsx
+import { useIsTogether, useConnectedUsers, useIsSynchronized } from 'react-together'
+
+function SessionDashboard() {
+  const isTogether = useIsTogether()
+  const connectedUsers = useConnectedUsers()
+  const isSynchronized = useIsSynchronized()
+  
+  if (!isTogether) {
+    return (
+      <div className="dashboard offline">
+        <h3>📶 Session Status</h3>
+        <div className="status-grid">
+          <div className="status-item">
+            <span className="label">Connection:</span>
+            <span className="value disconnected">Disconnected</span>
+          </div>
+          <div className="status-item">
+            <span className="label">Users:</span>
+            <span className="value">0</span>
+          </div>
+          <div className="status-item">
+            <span className="label">Sync Status:</span>
+            <span className="value">N/A</span>
+          </div>
+        </div>
+        
+        <div className="actions">
+          <button className="connect-btn">
+            Connect to Session
+          </button>
+        </div>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="dashboard online">
+      <h3>📶 Session Status</h3>
+      <div className="status-grid">
+        <div className="status-item">
+          <span className="label">Connection:</span>
+          <span className="value connected">✓ Connected</span>
+        </div>
+        <div className="status-item">
+          <span className="label">Users:</span>
+          <span className="value">{connectedUsers.length}</span>
+        </div>
+        <div className="status-item">
+          <span className="label">Sync Status:</span>
+          <span className={`value ${isSynchronized ? 'synced' : 'syncing'}`}>
+            {isSynchronized ? '✓ Synchronized' : '⏳ Synchronizing...'}
+          </span>
+        </div>
+      </div>
+      
+      <div className="user-list">
+        <h4>Connected Users:</h4>
+        <ul>
+          {connectedUsers.map(user => (
+            <li key={user.userId} className={user.isYou ? 'me' : ''}>
+              {user.nickname} {user.isYou && '(You)'}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+```
+
+### Smart Feature Loading
+
+Conditionally load collaborative features only when connected:
+
+```tsx
+import { Suspense, lazy } from 'react'
+import { useIsTogether } from 'react-together'
+
+// Lazy load collaborative components
+const CollaborativeCursors = lazy(() => import('./CollaborativeCursors'))
+const SharedCanvas = lazy(() => import('./SharedCanvas'))
+const UserAvatars = lazy(() => import('./UserAvatars'))
+
+function SmartCollaborativeApp() {
+  const isTogether = useIsTogether()
+  
+  return (
+    <div className="app">
+      <header>
+        <h1>My App</h1>
+        {isTogether && (
+          <Suspense fallback={<div>Loading collaboration features...</div>}>
+            <UserAvatars />
+          </Suspense>
+        )}
+      </header>
+      
+      <main>
+        {isTogether ? (
+          <Suspense fallback={<div>Loading shared workspace...</div>}>
+            <SharedCanvas />
+            <CollaborativeCursors />
+          </Suspense>
+        ) : (
+          <div className="solo-workspace">
+            <p>Working in solo mode</p>
+            <button onClick={() => /* create session */ {}}>
+              Start Collaborating
+            </button>
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
+```
+
+### Conditional Data Persistence
+
+Handle data differently based on connection status:
+
+```tsx
+import { useIsTogether, useStateTogether } from 'react-together'
+import { useEffect, useState } from 'react'
+
+function TodoApp() {
+  const isTogether = useIsTogether()
+  
+  // Use shared state when connected, local state when offline
+  const [sharedTodos, setSharedTodos] = useStateTogether('todos', [])
+  const [localTodos, setLocalTodos] = useState([])
+  
+  const todos = isTogether ? sharedTodos : localTodos
+  const setTodos = isTogether ? setSharedTodos : setLocalTodos
+  
+  // Save to localStorage when offline
+  useEffect(() => {
+    if (!isTogether) {
+      localStorage.setItem('offline-todos', JSON.stringify(localTodos))
+    }
+  }, [localTodos, isTogether])
+  
+  // Load from localStorage when going offline
+  useEffect(() => {
+    if (!isTogether) {
+      const saved = localStorage.getItem('offline-todos')
+      if (saved) {
+        setLocalTodos(JSON.parse(saved))
+      }
+    }
+  }, [isTogether])
+  
+  const addTodo = (text: string) => {
+    const newTodo = {
+      id: Date.now().toString(),
+      text,
+      completed: false,
+      createdAt: new Date().toISOString()
+    }
+    setTodos([...todos, newTodo])
+  }
+  
+  return (
+    <div className="todo-app">
+      <div className="header">
+        <h2>Todo List</h2>
+        <div className="mode-indicator">
+          {isTogether ? (
+            <span className="collaborative">
+              🤝 Collaborative Mode - {todos.length} shared todos
+            </span>
+          ) : (
+            <span className="offline">
+              💾 Offline Mode - {todos.length} local todos
+            </span>
+          )}
+        </div>
+      </div>
+      
+      <div className="todo-input">
+        <input
+          type="text"
+          placeholder={
+            isTogether
+              ? "Add a shared todo..."
+              : "Add a local todo..."
+          }
+          onKeyPress={(e) => {
+            if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+              addTodo(e.currentTarget.value.trim())
+              e.currentTarget.value = ''
+            }
+          }}
+        />
+      </div>
+      
+      <ul className="todo-list">
+        {todos.map(todo => (
+          <li key={todo.id} className={todo.completed ? 'completed' : ''}>
+            <input
+              type="checkbox"
+              checked={todo.completed}
+              onChange={(e) => {
+                const updated = todos.map(t =>
+                  t.id === todo.id ? { ...t, completed: e.target.checked } : t
+                )
+                setTodos(updated)
+              }}
+            />
+            <span>{todo.text}</span>
+            {!isTogether && (
+              <small className="offline-badge">Local</small>
+            )}
+          </li>
+        ))}
+      </ul>
+      
+      {!isTogether && todos.length > 0 && (
+        <div className="sync-prompt">
+          <p>You have {todos.length} local todos</p>
+          <button onClick={() => /* sync to session */ {}}>
+            Join Session to Share
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Progressive Enhancement Pattern
+
+Enhance basic functionality with collaborative features:
+
+```tsx
+import { useIsTogether, useConnectedUsers, useCursors } from 'react-together'
+
+function ProgressiveCollaborativeForm() {
+  const isTogether = useIsTogether()
+  const connectedUsers = useConnectedUsers()
+  const cursors = useCursors()
+  
+  return (
+    <div className="form-container" style={{ position: 'relative' }}>
+      <form className="contact-form">
+        <h2>Contact Form</h2>
+        
+        {/* Basic form works offline */}
+        <div className="field">
+          <label htmlFor="name">Name</label>
+          <input
+            id="name"
+            type="text"
+            placeholder="Your name"
+          />
+        </div>
+        
+        <div className="field">
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            placeholder="your@email.com"
+          />
+        </div>
+        
+        <div className="field">
+          <label htmlFor="message">Message</label>
+          <textarea
+            id="message"
+            placeholder="Your message..."
+            rows={4}
+          />
+        </div>
+        
+        <button type="submit">
+          Send Message
+        </button>
+      </form>
+      
+      {/* Enhanced with collaborative features when connected */}
+      {isTogether && (
+        <>
+          {/* Show live cursors */}
+          {Object.entries(cursors).map(([userId, position]) => (
+            <div
+              key={userId}
+              className="cursor"
+              style={{
+                position: 'absolute',
+                left: position.x,
+                top: position.y,
+                pointerEvents: 'none',
+                zIndex: 1000
+              }}
+            >
+              <div className="cursor-pointer">→</div>
+              <div className="cursor-label">
+                {connectedUsers.find(u => u.userId === userId)?.nickname}
+              </div>
+            </div>
+          ))}
+          
+          {/* Collaboration status */}
+          <div className="collaboration-status">
+            <p>
+              ✨ Enhanced with real-time collaboration
+            </p>
+            <p>
+              {connectedUsers.length} user(s) can see your cursor movements
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+### Connection State Management
+
+```tsx
+import { useIsTogether } from 'react-together'
+import { useEffect, useState } from 'react'
+
+function useConnectionHistory() {
+  const isTogether = useIsTogether()
+  const [connectionHistory, setConnectionHistory] = useState<Array<{
+    timestamp: Date
+    status: 'connected' | 'disconnected'
+  }>>([])
+  
+  useEffect(() => {
+    setConnectionHistory(prev => [
+      ...prev,
+      {
+        timestamp: new Date(),
+        status: isTogether ? 'connected' : 'disconnected'
+      }
+    ])
+  }, [isTogether])
+  
+  return { isTogether, connectionHistory }
+}
+```
+
+### Graceful Degradation
+
+```tsx
+import { useIsTogether } from 'react-together'
+
+function useCollaborativeFeatures() {
+  const isTogether = useIsTogether()
+  
+  return {
+    // Enable features based on connection
+    showCursors: isTogether,
+    enableRealTimeSync: isTogether,
+    showUserList: isTogether,
+    allowSessionSharing: isTogether,
+    
+    // Provide fallbacks
+    saveStrategy: isTogether ? 'realtime' : 'localStorage',
+    notificationLevel: isTogether ? 'minimal' : 'verbose'
+  }
+}
+```
+
+## Common Patterns
+
+- **Feature Flags**: Use as a feature flag for collaborative functionality
+- **Progressive Enhancement**: Start with basic features, enhance when connected
+- **Conditional Rendering**: Show different UI based on connection status
+- **Data Strategy**: Switch between shared and local data based on connection
+- **Performance**: Avoid loading collaborative features when not needed
+
+## Related Hooks
+
+- [`useIsSynchronized`](/docs/react-together/hooks/use-is-synchronized) - Check synchronization status
+- [`useConnectedUsers`](/docs/react-together/hooks/use-connected-users) - Get connected users when session is active
+- [`useCreateRandomSession`](/docs/react-together/hooks/use-create-random-session) - Create new sessions
+- [`useLeaveSession`](/docs/react-together/hooks/use-leave-session) - Leave current session
+
+## TypeScript Support
+
+`useIsTogether` is fully typed and returns a boolean value:
+
+```tsx
+import { useIsTogether } from 'react-together'
+
+const isTogether: boolean = useIsTogether()
+```
+
+## Technical Notes
+
+<Note>
+`useIsTogether` is an alias for `useIsJoined` from `@multisynq/react`. It returns `true` when the user has successfully joined a session and the connection is active.
+</Note>
+
+<Warning>
+Connection status can change during the session due to network issues. Always handle both connected and disconnected states gracefully in your UI.
+</Warning> 

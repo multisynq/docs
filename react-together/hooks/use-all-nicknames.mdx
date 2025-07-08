@@ -1,0 +1,591 @@
+---
+title: "useAllNicknames"
+description: "Access all user nicknames in the current React Together session for display and user identification"
+---
+
+# useAllNicknames
+
+The `useAllNicknames` hook returns an object containing all user nicknames in the current session. This is a read-only version of the [`useNicknames`](/react-together/hooks/use-nicknames) hook, perfect when you only need to display nicknames without the ability to modify them.
+
+If you need to read and modify nicknames, use [`useNicknames`](/react-together/hooks/use-nicknames) instead.
+
+## Basic Usage
+
+```tsx
+import { useAllNicknames, useConnectedUsers } from 'react-together'
+
+function UserList() {
+  const allNicknames = useAllNicknames()
+  const connectedUsers = useConnectedUsers()
+
+  return (
+    <div>
+      <h3>Connected Users</h3>
+      <ul>
+        {connectedUsers.map(({ userId, isYou }) => (
+          <li key={userId}>
+            {allNicknames[userId] || `User ${userId.slice(-4)}`}
+            {isYou && ' (You)'}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useAllNicknames(): Record<string, string>
+```
+
+## Return Value
+
+<ResponseField name="allNicknames" type="Record<string, string>">
+  An object mapping user IDs to their nicknames for all users in the current React Together session. Users without custom nicknames may not appear in this object.
+</ResponseField>
+
+## Examples
+
+### User Directory
+
+Create a comprehensive user directory showing all participants:
+
+```tsx
+import { useAllNicknames, useConnectedUsers } from 'react-together'
+
+export default function UserDirectory() {
+  const allNicknames = useAllNicknames()
+  const connectedUsers = useConnectedUsers()
+
+  const sortedUsers = connectedUsers.sort((a, b) => {
+    // Sort with current user first, then alphabetically by nickname
+    if (a.isYou) return -1
+    if (b.isYou) return 1
+    
+    const nicknameA = allNicknames[a.userId] || `User ${a.userId.slice(-4)}`
+    const nicknameB = allNicknames[b.userId] || `User ${b.userId.slice(-4)}`
+    
+    return nicknameA.localeCompare(nicknameB)
+  })
+
+  return (
+    <div className="p-6 max-w-md mx-auto">
+      <h2 className="text-2xl font-bold mb-6 text-center">User Directory</h2>
+      
+      <div className="space-y-3">
+        {sortedUsers.map(({ userId, isYou }) => {
+          const nickname = allNicknames[userId] || `User ${userId.slice(-4)}`
+          const avatarColor = `hsl(${userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360}, 70%, 50%)`
+          
+          return (
+            <div
+              key={userId}
+              className={`flex items-center p-3 rounded-lg border-2 transition-all ${
+                isYou 
+                  ? 'border-blue-300 bg-blue-50 shadow-md' 
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            >
+              {/* Avatar */}
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-3"
+                style={{ backgroundColor: avatarColor }}
+              >
+                {nickname.charAt(0).toUpperCase()}
+              </div>
+              
+              {/* User Info */}
+              <div className="flex-1">
+                <div className="font-semibold text-gray-900">
+                  {nickname}
+                  {isYou && <span className="ml-2 text-sm text-blue-600">(You)</span>}
+                </div>
+                <div className="text-sm text-gray-500">
+                  ID: {userId.slice(-8)}
+                </div>
+              </div>
+              
+              {/* Online Status */}
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="ml-2 text-sm text-green-600">Online</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      
+      <div className="mt-6 text-center text-sm text-gray-500">
+        {connectedUsers.length} user{connectedUsers.length !== 1 ? 's' : ''} online
+      </div>
+    </div>
+  )
+}
+```
+
+### Chat User Display
+
+Show user nicknames in a chat interface:
+
+```tsx
+import { useAllNicknames, useChat } from 'react-together'
+
+export default function ChatDisplay() {
+  const allNicknames = useAllNicknames()
+  const { messages } = useChat('chat-demo')
+
+  const formatTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    })
+  }
+
+  const getUserDisplayName = (userId: string) => {
+    return allNicknames[userId] || `User ${userId.slice(-4)}`
+  }
+
+  const getUserColor = (userId: string) => {
+    // Generate consistent color based on user ID
+    const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    return `hsl(${hash % 360}, 70%, 45%)`
+  }
+
+  return (
+    <div className="p-4 h-96 bg-gray-50 rounded-lg">
+      <h3 className="text-lg font-semibold mb-4">Chat Messages</h3>
+      
+      <div className="h-80 overflow-y-auto space-y-3">
+        {messages.length === 0 ? (
+          <div className="text-center text-gray-500 py-8">
+            No messages yet. Start the conversation!
+          </div>
+        ) : (
+          messages.map(({ id, senderId, message, sentAt }) => (
+            <div key={id} className="flex items-start space-x-3">
+              {/* Avatar */}
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                style={{ backgroundColor: getUserColor(senderId) }}
+              >
+                {getUserDisplayName(senderId).charAt(0).toUpperCase()}
+              </div>
+              
+              {/* Message Content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline space-x-2">
+                  <span 
+                    className="font-semibold text-sm"
+                    style={{ color: getUserColor(senderId) }}
+                  >
+                    {getUserDisplayName(senderId)}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {formatTime(sentAt)}
+                  </span>
+                </div>
+                <p className="text-gray-900 text-sm mt-1 break-words">
+                  {message}
+                </p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+### Attendance Tracker
+
+Track and display attendance for meetings or events:
+
+```tsx
+import { useAllNicknames, useConnectedUsers, useStateTogether } from 'react-together'
+import { useState, useEffect } from 'react'
+
+interface AttendanceRecord {
+  userId: string
+  joinedAt: number
+  totalTime: number
+  isPresent: boolean
+}
+
+export default function AttendanceTracker() {
+  const allNicknames = useAllNicknames()
+  const connectedUsers = useConnectedUsers()
+  const [attendance, setAttendance] = useStateTogether<Record<string, AttendanceRecord>>('attendance', {})
+  const [sessionStart] = useState(Date.now())
+
+  // Update attendance when users join/leave
+  useEffect(() => {
+    const currentUserIds = new Set(connectedUsers.map(u => u.userId))
+    
+    setAttendance(prev => {
+      const updated = { ...prev }
+      
+      // Mark existing users as present/absent
+      Object.keys(updated).forEach(userId => {
+        const isPresent = currentUserIds.has(userId)
+        if (updated[userId].isPresent !== isPresent) {
+          updated[userId] = {
+            ...updated[userId],
+            isPresent,
+            totalTime: isPresent 
+              ? updated[userId].totalTime 
+              : updated[userId].totalTime + (Date.now() - updated[userId].joinedAt)
+          }
+        }
+      })
+      
+      // Add new users
+      connectedUsers.forEach(({ userId }) => {
+        if (!updated[userId]) {
+          updated[userId] = {
+            userId,
+            joinedAt: Date.now(),
+            totalTime: 0,
+            isPresent: true
+          }
+        }
+      })
+      
+      return updated
+    })
+  }, [connectedUsers, setAttendance])
+
+  const formatDuration = (ms: number) => {
+    const seconds = Math.floor(ms / 1000)
+    const minutes = Math.floor(seconds / 60)
+    const hours = Math.floor(minutes / 60)
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m`
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`
+    } else {
+      return `${seconds}s`
+    }
+  }
+
+  const getCurrentSessionTime = (record: AttendanceRecord) => {
+    if (!record.isPresent) return record.totalTime
+    return record.totalTime + (Date.now() - record.joinedAt)
+  }
+
+  const sortedAttendance = Object.values(attendance).sort((a, b) => {
+    // Sort by presence (present first), then by total time
+    if (a.isPresent !== b.isPresent) {
+      return a.isPresent ? -1 : 1
+    }
+    return getCurrentSessionTime(b) - getCurrentSessionTime(a)
+  })
+
+  return (
+    <div className="p-6 max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6 text-center">Meeting Attendance</h2>
+      
+      {/* Session Info */}
+      <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+        <div className="text-center">
+          <div className="text-lg font-semibold text-blue-800">
+            Session Duration: {formatDuration(Date.now() - sessionStart)}
+          </div>
+          <div className="text-sm text-blue-600 mt-1">
+            {connectedUsers.length} currently present • {sortedAttendance.length} total participants
+          </div>
+        </div>
+      </div>
+
+      {/* Attendance List */}
+      <div className="space-y-3">
+        {sortedAttendance.length === 0 ? (
+          <div className="text-center text-gray-500 py-8">
+            No attendance records yet
+          </div>
+        ) : (
+          sortedAttendance.map((record) => {
+            const nickname = allNicknames[record.userId] || `User ${record.userId.slice(-4)}`
+            const currentTime = getCurrentSessionTime(record)
+            
+            return (
+              <div
+                key={record.userId}
+                className={`flex items-center justify-between p-4 rounded-lg border-2 ${
+                  record.isPresent 
+                    ? 'border-green-200 bg-green-50' 
+                    : 'border-gray-200 bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  {/* Status Indicator */}
+                  <div className={`w-3 h-3 rounded-full ${
+                    record.isPresent ? 'bg-green-500' : 'bg-gray-400'
+                  }`} />
+                  
+                  {/* User Info */}
+                  <div>
+                    <div className="font-semibold text-gray-900">
+                      {nickname}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {record.isPresent ? 'Present' : 'Left meeting'}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Time Info */}
+                <div className="text-right">
+                  <div className="font-semibold text-gray-900">
+                    {formatDuration(currentTime)}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {record.isPresent 
+                      ? `Joined ${formatDuration(Date.now() - record.joinedAt)} ago`
+                      : 'Disconnected'
+                    }
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+      
+      {/* Summary Stats */}
+      {sortedAttendance.length > 0 && (
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+          <h3 className="font-semibold mb-2">Session Statistics</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-gray-600">Average session time:</span>
+              <div className="font-semibold">
+                {formatDuration(
+                  sortedAttendance.reduce((sum, r) => sum + getCurrentSessionTime(r), 0) / sortedAttendance.length
+                )}
+              </div>
+            </div>
+            <div>
+              <span className="text-gray-600">Peak attendance:</span>
+              <div className="font-semibold">
+                {Math.max(connectedUsers.length, Object.values(attendance).filter(r => r.isPresent).length)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Leaderboard Display
+
+Show user rankings or scores using nicknames:
+
+```tsx
+import { useAllNicknames, useStateTogetherWithPerUserValues } from 'react-together'
+
+interface Score {
+  points: number
+  level: string
+  achievements: string[]
+}
+
+export default function Leaderboard() {
+  const allNicknames = useAllNicknames()
+  const [, , allScores] = useStateTogetherWithPerUserValues<Score>(
+    'game-scores',
+    { points: 0, level: 'Beginner', achievements: [] }
+  )
+
+  const sortedPlayers = Object.entries(allScores)
+    .map(([userId, score]) => ({
+      userId,
+      nickname: allNicknames[userId] || `Player ${userId.slice(-4)}`,
+      ...score
+    }))
+    .sort((a, b) => b.points - a.points)
+
+  const getRankEmoji = (index: number) => {
+    switch (index) {
+      case 0: return '🥇'
+      case 1: return '🥈'
+      case 2: return '🥉'
+      default: return `#${index + 1}`
+    }
+  }
+
+  const getLevelColor = (level: string) => {
+    const colors = {
+      'Beginner': 'bg-green-100 text-green-800',
+      'Intermediate': 'bg-blue-100 text-blue-800',
+      'Advanced': 'bg-purple-100 text-purple-800',
+      'Expert': 'bg-orange-100 text-orange-800',
+      'Master': 'bg-red-100 text-red-800'
+    }
+    return colors[level as keyof typeof colors] || 'bg-gray-100 text-gray-800'
+  }
+
+  return (
+    <div className="p-6 max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6 text-center">🏆 Leaderboard</h2>
+      
+      {sortedPlayers.length === 0 ? (
+        <div className="text-center text-gray-500 py-8">
+          No players yet. Join the game to see the leaderboard!
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {sortedPlayers.map((player, index) => (
+            <div
+              key={player.userId}
+              className={`flex items-center p-4 rounded-lg border-2 transition-all ${
+                index === 0 
+                  ? 'border-yellow-300 bg-yellow-50 shadow-lg' 
+                  : index <= 2
+                  ? 'border-gray-300 bg-gray-50 shadow-md'
+                  : 'border-gray-200 bg-white'
+              }`}
+            >
+              {/* Rank */}
+              <div className="text-2xl font-bold mr-4 w-12 text-center">
+                {getRankEmoji(index)}
+              </div>
+              
+              {/* Player Info */}
+              <div className="flex-1">
+                <div className="flex items-center space-x-3">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {player.nickname}
+                  </h3>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getLevelColor(player.level)}`}>
+                    {player.level}
+                  </span>
+                </div>
+                
+                <div className="flex items-center space-x-4 mt-2">
+                  <div className="text-sm text-gray-600">
+                    <span className="font-semibold text-2xl text-gray-900">
+                      {player.points.toLocaleString()}
+                    </span> points
+                  </div>
+                  
+                  {player.achievements.length > 0 && (
+                    <div className="flex items-center space-x-1">
+                      <span className="text-sm text-gray-600">Achievements:</span>
+                      <div className="flex space-x-1">
+                        {player.achievements.slice(0, 3).map((achievement, i) => (
+                          <span key={i} className="text-sm" title={achievement}>
+                            🏆
+                          </span>
+                        ))}
+                        {player.achievements.length > 3 && (
+                          <span className="text-xs text-gray-500">
+                            +{player.achievements.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Position Change (mock data) */}
+              {index < sortedPlayers.length - 1 && (
+                <div className="text-right">
+                  <div className="text-green-600 text-sm font-medium">
+                    ↗ +2
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    vs last week
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Summary */}
+      {sortedPlayers.length > 0 && (
+        <div className="mt-6 p-4 bg-blue-50 rounded-lg text-center">
+          <div className="text-sm text-blue-800">
+            Total players: <span className="font-semibold">{sortedPlayers.length}</span>
+            {sortedPlayers.length > 0 && (
+              <>
+                <span className="mx-2">•</span>
+                Average score: <span className="font-semibold">
+                  {Math.round(sortedPlayers.reduce((sum, p) => sum + p.points, 0) / sortedPlayers.length).toLocaleString()}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+### Data Access
+- **Combine with useConnectedUsers** - Use together to get complete user information
+- **Handle missing nicknames** - Always provide fallback display names for users without custom nicknames
+- **Cache locally** - The hook automatically handles caching, but avoid unnecessary re-renders
+
+### Performance
+- **Read-only access** - This hook is optimized for reading nicknames only
+- **Efficient filtering** - When displaying large user lists, consider pagination or filtering
+- **Memo components** - Use React.memo for user list items to prevent unnecessary re-renders
+
+### User Experience
+- **Consistent display** - Use the same fallback pattern throughout your app
+- **Visual hierarchy** - Highlight current user or important users in lists
+- **Accessibility** - Provide proper ARIA labels and semantic markup
+
+## Common Patterns
+
+### User Mentions
+Reference users by their display names in text:
+```tsx
+const getUserName = (userId: string) => allNicknames[userId] || `User ${userId.slice(-4)}`
+```
+
+### User Lists
+Display comprehensive user information:
+```tsx
+connectedUsers.map(user => ({ ...user, displayName: allNicknames[user.userId] || 'Anonymous' }))
+```
+
+### Message Attribution
+Show who sent messages in chat interfaces:
+```tsx
+const senderName = allNicknames[message.senderId] || 'Unknown User'
+```
+
+## Related Hooks
+
+- [`useNicknames`](/react-together/hooks/use-nicknames) - For reading and modifying nicknames
+- [`useConnectedUsers`](/react-together/hooks/use-connected-users) - Get information about connected users
+- [`useMyId`](/react-together/hooks/use-my-id) - Get the current user's ID
+
+## TypeScript Support
+
+This hook returns a strongly-typed object:
+
+```tsx
+const allNicknames: Record<string, string> = useAllNicknames()
+
+// Safe access with optional chaining
+const displayName = allNicknames[userId] ?? `User ${userId.slice(-4)}`
+
+// Type-safe iteration
+Object.entries(allNicknames).forEach(([userId, nickname]) => {
+  console.log(`${userId}: ${nickname}`)
+})
+``` 

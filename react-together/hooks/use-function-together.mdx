@@ -1,0 +1,582 @@
+---
+title: "useFunctionTogether"
+description: "Synchronize function execution across all users in real-time collaborative applications"
+---
+
+# useFunctionTogether
+
+The `useFunctionTogether` hook allows all users to execute the same function simultaneously with the same arguments. When any user calls the synchronized function, all users that are rendering this hook with the same `rtKey` will execute their local version of the function at the same time.
+
+<Note>
+Only the function arguments are guaranteed to be the same across every user. If the function captures local variables, those may differ between users. For perfectly synchronized state with stronger guarantees, consider using the underlying [@multisynq/react](https://www.npmjs.com/package/@multisynq/react) library.
+</Note>
+
+## Basic Usage
+
+```tsx
+import { useFunctionTogether } from 'react-together'
+
+export default function NotificationBell() {
+  const ring = useFunctionTogether('bell', () => {
+    // This will execute on all connected users
+    new Notification('Bell has been rung!')
+  })
+
+  return (
+    <button onClick={() => ring()}>
+      Ring Bell for Everyone 🔔
+    </button>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useFunctionTogether<T extends (...args: any[]) => any>(
+  rtKey: string,
+  fn: T
+): T
+```
+
+## Parameters
+
+<ParamField path="rtKey" type="string" required>
+  The key used to identify this function across all users in the session.
+</ParamField>
+
+<ParamField path="fn" type="T extends (...args: any[]) => any" required>
+  The function to be synchronized. This function will be executed by all users when any user calls the returned synchronized function.
+</ParamField>
+
+## Return Value
+
+<ResponseField name="synqFn" type="T">
+  The synchronized function. When called, it will execute the original function on all users with the same arguments.
+</ResponseField>
+
+## Examples
+
+### Meditation Bell
+
+Create a meditation bell that rings for all participants simultaneously:
+
+```tsx
+import { useCallback, useState } from 'react'
+import { useFunctionTogether } from 'react-together'
+
+export function MeditationBell() {
+  const [isRinging, setIsRinging] = useState(false)
+
+  const ringBell = useFunctionTogether(
+    'meditation-bell',
+    useCallback(() => {
+      if (isRinging) return
+
+      // Play sound effect (assuming you have an audio file)
+      const audio = new Audio('/bell-sound.mp3')
+      audio.play().catch(() => {
+        // Handle audio play failure gracefully
+        console.log('Could not play audio')
+      })
+
+      // Visual feedback
+      setIsRinging(true)
+      setTimeout(() => setIsRinging(false), 3000)
+    }, [isRinging])
+  )
+
+  return (
+    <div className="flex flex-col items-center p-8">
+      <button
+        onClick={() => ringBell()}
+        disabled={isRinging}
+        className={`text-6xl transition-all duration-300 ${
+          isRinging 
+            ? 'scale-110 cursor-not-allowed opacity-50' 
+            : 'scale-100 hover:scale-105 cursor-pointer'
+        }`}
+        aria-label="Ring meditation bell"
+      >
+        🔔
+      </button>
+      
+      {isRinging && (
+        <div className="mt-4 text-2xl text-gray-600 italic animate-pulse">
+          Ding...
+        </div>
+      )}
+      
+      <p className="mt-4 text-gray-500 text-center">
+        Click to ring the bell for all participants
+      </p>
+    </div>
+  )
+}
+```
+
+### Collaborative Animations
+
+Synchronize animations across all users for presentations or demos:
+
+```tsx
+import { useState, useCallback } from 'react'
+import { useFunctionTogether } from 'react-together'
+
+interface AnimationState {
+  isPlaying: boolean
+  currentSlide: number
+}
+
+export function PresentationController() {
+  const [animState, setAnimState] = useState<AnimationState>({
+    isPlaying: false,
+    currentSlide: 0
+  })
+
+  const nextSlide = useFunctionTogether(
+    'next-slide',
+    useCallback((slideNumber: number) => {
+      setAnimState(prev => ({
+        ...prev,
+        currentSlide: slideNumber,
+        isPlaying: true
+      }))
+      
+      // Reset animation state after animation completes
+      setTimeout(() => {
+        setAnimState(prev => ({ ...prev, isPlaying: false }))
+      }, 1000)
+    }, [])
+  )
+
+  const previousSlide = useFunctionTogether(
+    'prev-slide',
+    useCallback((slideNumber: number) => {
+      setAnimState(prev => ({
+        ...prev,
+        currentSlide: slideNumber,
+        isPlaying: true
+      }))
+      
+      setTimeout(() => {
+        setAnimState(prev => ({ ...prev, isPlaying: false }))
+      }, 1000)
+    }, [])
+  )
+
+  const slides = ['Slide 1', 'Slide 2', 'Slide 3', 'Slide 4', 'Slide 5']
+
+  return (
+    <div className="p-8 max-w-2xl mx-auto">
+      {/* Slide Display */}
+      <div className={`h-64 bg-blue-100 rounded-lg flex items-center justify-center mb-6 transition-all duration-1000 ${
+        animState.isPlaying ? 'scale-105 bg-blue-200' : 'scale-100'
+      }`}>
+        <h2 className="text-3xl font-bold text-blue-800">
+          {slides[animState.currentSlide]}
+        </h2>
+      </div>
+
+      {/* Controls */}
+      <div className="flex justify-between items-center">
+        <button
+          onClick={() => previousSlide(Math.max(0, animState.currentSlide - 1))}
+          disabled={animState.currentSlide === 0 || animState.isPlaying}
+          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          ← Previous
+        </button>
+
+        <div className="flex items-center gap-2">
+          {slides.map((_, index) => (
+            <div
+              key={index}
+              className={`w-3 h-3 rounded-full transition-all ${
+                index === animState.currentSlide ? 'bg-blue-600 scale-125' : 'bg-gray-300'
+              }`}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={() => nextSlide(Math.min(slides.length - 1, animState.currentSlide + 1))}
+          disabled={animState.currentSlide === slides.length - 1 || animState.isPlaying}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next →
+        </button>
+      </div>
+
+      <p className="text-center text-gray-500 mt-4">
+        Navigate slides for all viewers simultaneously
+      </p>
+    </div>
+  )
+}
+```
+
+### Game State Synchronization
+
+Synchronize game events like starting rounds or triggering special effects:
+
+```tsx
+import { useState, useCallback } from 'react'
+import { useFunctionTogether } from 'react-together'
+
+interface GameState {
+  isPlaying: boolean
+  score: number
+  timeLeft: number
+  powerUpActive: boolean
+}
+
+export function MultiplayerGameController() {
+  const [gameState, setGameState] = useState<GameState>({
+    isPlaying: false,
+    score: 0,
+    timeLeft: 60,
+    powerUpActive: false
+  })
+
+  const startGame = useFunctionTogether(
+    'start-game',
+    useCallback(() => {
+      setGameState({
+        isPlaying: true,
+        score: 0,
+        timeLeft: 60,
+        powerUpActive: false
+      })
+
+      // Start countdown timer
+      const timer = setInterval(() => {
+        setGameState(prev => {
+          if (prev.timeLeft <= 1) {
+            clearInterval(timer)
+            return { ...prev, isPlaying: false, timeLeft: 0 }
+          }
+          return { ...prev, timeLeft: prev.timeLeft - 1 }
+        })
+      }, 1000)
+    }, [])
+  )
+
+  const triggerPowerUp = useFunctionTogether(
+    'power-up',
+    useCallback((powerUpType: string) => {
+      if (!gameState.isPlaying) return
+
+      setGameState(prev => ({ ...prev, powerUpActive: true }))
+
+      // Visual effect based on power-up type
+      const colors = {
+        speed: 'bg-yellow-400',
+        shield: 'bg-blue-400',
+        double: 'bg-green-400'
+      }
+
+      // Add visual feedback
+      document.body.className = `${colors[powerUpType as keyof typeof colors]} transition-all duration-500`
+      
+      setTimeout(() => {
+        document.body.className = ''
+        setGameState(prev => ({ ...prev, powerUpActive: false }))
+      }, 3000)
+    }, [gameState.isPlaying])
+  )
+
+  const endGame = useFunctionTogether(
+    'end-game',
+    useCallback(() => {
+      setGameState(prev => ({ ...prev, isPlaying: false }))
+    }, [])
+  )
+
+  return (
+    <div className="p-8 max-w-md mx-auto">
+      {/* Game Display */}
+      <div className={`p-6 rounded-lg border-4 transition-all ${
+        gameState.isPlaying 
+          ? 'border-green-400 bg-green-50' 
+          : 'border-gray-300 bg-gray-50'
+      }`}>
+        <div className="text-center mb-4">
+          <h2 className="text-2xl font-bold mb-2">
+            {gameState.isPlaying ? 'Game Active!' : 'Game Stopped'}
+          </h2>
+          <div className="text-lg">
+            Score: <span className="font-mono">{gameState.score}</span>
+          </div>
+          {gameState.isPlaying && (
+            <div className="text-lg">
+              Time: <span className="font-mono">{gameState.timeLeft}s</span>
+            </div>
+          )}
+        </div>
+
+        {gameState.powerUpActive && (
+          <div className="text-center py-2 mb-4 bg-yellow-200 rounded animate-pulse">
+            <span className="text-lg font-bold">⚡ Power-Up Active! ⚡</span>
+          </div>
+        )}
+      </div>
+
+      {/* Controls */}
+      <div className="mt-6 space-y-3">
+        {!gameState.isPlaying ? (
+          <button
+            onClick={() => startGame()}
+            className="w-full py-3 bg-green-500 text-white font-bold rounded hover:bg-green-600"
+          >
+            Start Game for All Players
+          </button>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => triggerPowerUp('speed')}
+                disabled={gameState.powerUpActive}
+                className="py-2 px-3 bg-yellow-500 text-white rounded text-sm hover:bg-yellow-600 disabled:opacity-50"
+              >
+                Speed ⚡
+              </button>
+              <button
+                onClick={() => triggerPowerUp('shield')}
+                disabled={gameState.powerUpActive}
+                className="py-2 px-3 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 disabled:opacity-50"
+              >
+                Shield 🛡️
+              </button>
+              <button
+                onClick={() => triggerPowerUp('double')}
+                disabled={gameState.powerUpActive}
+                className="py-2 px-3 bg-green-500 text-white rounded text-sm hover:bg-green-600 disabled:opacity-50"
+              >
+                Double 💎
+              </button>
+            </div>
+            <button
+              onClick={() => endGame()}
+              className="w-full py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            >
+              End Game
+            </button>
+          </>
+        )}
+      </div>
+
+      <p className="text-center text-gray-500 mt-4 text-sm">
+        All actions will affect every connected player
+      </p>
+    </div>
+  )
+}
+```
+
+### Synchronized Notifications
+
+Create a notification system that shows messages to all users:
+
+```tsx
+import { useState, useCallback } from 'react'
+import { useFunctionTogether, useConnectedUsers } from 'react-together'
+
+interface Notification {
+  id: string
+  message: string
+  type: 'info' | 'success' | 'warning' | 'error'
+  timestamp: number
+}
+
+export function NotificationCenter() {
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const connectedUsers = useConnectedUsers()
+
+  const showNotification = useFunctionTogether(
+    'show-notification',
+    useCallback((message: string, type: 'info' | 'success' | 'warning' | 'error', sender: string) => {
+      const notification: Notification = {
+        id: `${Date.now()}-${Math.random()}`,
+        message: `${sender}: ${message}`,
+        type,
+        timestamp: Date.now()
+      }
+
+      setNotifications(prev => [notification, ...prev.slice(0, 4)]) // Keep only 5 notifications
+
+      // Auto-remove after 5 seconds
+      setTimeout(() => {
+        setNotifications(prev => prev.filter(n => n.id !== notification.id))
+      }, 5000)
+    }, [])
+  )
+
+  const clearAll = useFunctionTogether(
+    'clear-notifications',
+    useCallback(() => {
+      setNotifications([])
+    }, [])
+  )
+
+  const notificationStyles = {
+    info: 'bg-blue-100 border-blue-400 text-blue-800',
+    success: 'bg-green-100 border-green-400 text-green-800',
+    warning: 'bg-yellow-100 border-yellow-400 text-yellow-800',
+    error: 'bg-red-100 border-red-400 text-red-800'
+  }
+
+  const sendNotification = (message: string, type: 'info' | 'success' | 'warning' | 'error') => {
+    const myUser = connectedUsers.find(u => u.isYou)
+    const senderName = myUser?.nickname || 'Unknown User'
+    showNotification(message, type, senderName)
+  }
+
+  return (
+    <div className="p-6 max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6">Team Notification Center</h2>
+
+      {/* Notification Display */}
+      <div className="mb-6 h-64 overflow-y-auto">
+        {notifications.length === 0 ? (
+          <div className="text-center text-gray-500 py-8">
+            No notifications yet
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {notifications.map((notification) => (
+              <div
+                key={notification.id}
+                className={`p-3 rounded border-l-4 ${notificationStyles[notification.type]} animate-fade-in`}
+              >
+                <div className="flex justify-between items-start">
+                  <p className="flex-1">{notification.message}</p>
+                  <span className="text-xs opacity-75 ml-2">
+                    {new Date(notification.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <button
+          onClick={() => sendNotification('Meeting starting in 5 minutes!', 'info')}
+          className="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          📅 Meeting Reminder
+        </button>
+        <button
+          onClick={() => sendNotification('Great work everyone! 🎉', 'success')}
+          className="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"
+        >
+          🎉 Celebration
+        </button>
+        <button
+          onClick={() => sendNotification('Please review the latest changes', 'warning')}
+          className="py-2 px-4 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+        >
+          ⚠️ Review Request
+        </button>
+        <button
+          onClick={() => sendNotification('System maintenance in progress', 'error')}
+          className="py-2 px-4 bg-red-500 text-white rounded hover:bg-red-600"
+        >
+          🚨 System Alert
+        </button>
+      </div>
+
+      {/* Controls */}
+      <div className="flex justify-between">
+        <div className="text-sm text-gray-600">
+          {connectedUsers.length} user{connectedUsers.length !== 1 ? 's' : ''} connected
+        </div>
+        <button
+          onClick={() => clearAll()}
+          disabled={notifications.length === 0}
+          className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+        >
+          Clear All
+        </button>
+      </div>
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+### Function Design
+- **Keep functions side-effect focused** - Ideal for UI updates, animations, and notifications
+- **Use useCallback for optimization** - Wrap functions in `useCallback` to prevent unnecessary re-synchronizations
+- **Handle failures gracefully** - Always account for functions that might fail (like audio playback)
+
+### State Management
+- **Combine with state hooks** - Use alongside `useStateTogether` for state updates triggered by functions
+- **Avoid heavy computations** - Functions should be fast since they run on all users
+- **Consider network latency** - Some delay between users is normal
+
+### User Experience
+- **Provide visual feedback** - Show when functions are executing or have completed
+- **Disable during execution** - Prevent spam-clicking that could overwhelm users
+- **Clear naming** - Use descriptive `rtKey` names that indicate the function's purpose
+
+### Performance
+- **Debounce rapid calls** - For frequently called functions, consider local debouncing
+- **Minimal dependencies** - Keep function dependencies to a minimum to avoid re-creation
+- **Error boundaries** - Wrap components using synchronized functions in error boundaries
+
+## Common Patterns
+
+### Event Broadcasting
+Perfect for announcing events that all users should know about:
+```tsx
+const announceEvent = useFunctionTogether('announcements', (message: string) => {
+  // Show toast, notification, or modal to all users
+})
+```
+
+### Synchronized Media Control
+Control media playback across all users:
+```tsx
+const playVideo = useFunctionTogether('video-control', (action: 'play' | 'pause' | 'seek', time?: number) => {
+  // Control video player for all users
+})
+```
+
+### Collaborative Actions
+Trigger actions that affect shared collaborative spaces:
+```tsx
+const updateCanvas = useFunctionTogether('canvas-action', (action: string, data: any) => {
+  // Update shared drawing canvas
+})
+```
+
+## Related Hooks
+
+- [`useStateTogether`](/react-together/hooks/use-state-together) - For synchronized state management
+- [`useStateTogetherWithPerUserValues`](/react-together/hooks/use-state-together-with-per-user-values) - For per-user state tracking
+- [`useConnectedUsers`](/react-together/hooks/use-connected-users) - Get information about connected users
+
+## TypeScript Support
+
+This hook maintains full type safety for your functions:
+
+```tsx
+// Function with no parameters
+const simpleAction = useFunctionTogether('simple', () => {
+  console.log('Action triggered!')
+})
+
+// Function with typed parameters
+const typedAction = useFunctionTogether('typed', (message: string, count: number) => {
+  console.log(`Message: ${message}, Count: ${count}`)
+})
+
+// Function with return value (though return values are not synchronized)
+const calculator = useFunctionTogether('calc', (a: number, b: number): number => {
+  return a + b // Each user gets their own return value
+})

@@ -1,0 +1,913 @@
+---
+title: "useMyId"
+description: "Get the current user's unique identifier. Essential for user-specific functionality and personal state management."
+---
+
+## Overview
+
+`useMyId` returns the unique identifier of the current user when connected to a React Together session. This ID is persistent throughout the session and is essential for implementing user-specific features, personal data management, and identifying the current user in collaborative contexts.
+
+<Info>
+**Perfect for**: User avatars, personal settings, per-user data, user identification, access control, and distinguishing "self" from other users.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { useMyId } from 'react-together'
+
+function UserProfile() {
+  const myId = useMyId()
+  
+  return (
+    <div>
+      {myId ? (
+        <p>Your ID: {myId}</p>
+      ) : (
+        <p>Not connected to session</p>
+      )}
+    </div>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useMyId(): string | null
+```
+
+## Return Value
+
+<ParamField path="myId" type="string | null">
+  The unique identifier of the current user, or `null` if not connected to a session
+</ParamField>
+
+## Examples
+
+### User Avatar with Self-Identification
+
+Create a user list that highlights the current user:
+
+```tsx
+import { useMyId, useConnectedUsers } from 'react-together'
+
+function UserAvatarList() {
+  const myId = useMyId()
+  const connectedUsers = useConnectedUsers()
+  
+  return (
+    <div className="user-avatar-list">
+      <h3>Connected Users</h3>
+      <div className="avatar-grid">
+        {connectedUsers.map(user => (
+          <div
+            key={user.userId}
+            className={`user-avatar ${user.userId === myId ? 'me' : 'other'}`}
+          >
+            <div className="avatar-image">
+              {user.nickname.charAt(0).toUpperCase()}
+            </div>
+            <div className="user-info">
+              <span className="username">
+                {user.nickname}
+                {user.userId === myId && ' (You)'}
+              </span>
+              <span className="user-id">
+                ID: {user.userId.slice(0, 8)}...
+              </span>
+            </div>
+            {user.userId === myId && (
+              <div className="self-indicator">
+                👤 You
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+### Personal Settings Management
+
+Store and manage per-user settings:
+
+```tsx
+import { useMyId, useStateTogetherWithPerUserValues } from 'react-together'
+import { useState, useEffect } from 'react'
+
+interface UserSettings {
+  theme: 'light' | 'dark'
+  notifications: boolean
+  language: string
+  volume: number
+}
+
+function PersonalSettings() {
+  const myId = useMyId()
+  const [settings, setSettings, allSettings] = useStateTogetherWithPerUserValues<UserSettings>(
+    'user-settings',
+    {
+      theme: 'light',
+      notifications: true,
+      language: 'en',
+      volume: 0.8
+    }
+  )
+  
+  // Apply user's theme to the app
+  useEffect(() => {
+    if (myId && settings) {
+      document.body.className = `theme-${settings.theme}`
+    }
+  }, [settings?.theme, myId])
+  
+  const updateSetting = <K extends keyof UserSettings>(
+    key: K,
+    value: UserSettings[K]
+  ) => {
+    setSettings({ ...settings, [key]: value })
+  }
+  
+  if (!myId) {
+    return (
+      <div className="settings-panel">
+        <p>Connect to a session to access personal settings</p>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="settings-panel">
+      <div className="settings-header">
+        <h2>Personal Settings</h2>
+        <div className="user-info">
+          <span className="user-id">User ID: {myId.slice(0, 8)}...</span>
+        </div>
+      </div>
+      
+      <div className="settings-form">
+        <div className="setting-group">
+          <label htmlFor="theme">Theme</label>
+          <select
+            id="theme"
+            value={settings.theme}
+            onChange={(e) => updateSetting('theme', e.target.value as 'light' | 'dark')}
+          >
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+        
+        <div className="setting-group">
+          <label htmlFor="notifications">
+            <input
+              id="notifications"
+              type="checkbox"
+              checked={settings.notifications}
+              onChange={(e) => updateSetting('notifications', e.target.checked)}
+            />
+            Enable Notifications
+          </label>
+        </div>
+        
+        <div className="setting-group">
+          <label htmlFor="language">Language</label>
+          <select
+            id="language"
+            value={settings.language}
+            onChange={(e) => updateSetting('language', e.target.value)}
+          >
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+          </select>
+        </div>
+        
+        <div className="setting-group">
+          <label htmlFor="volume">Volume: {Math.round(settings.volume * 100)}%</label>
+          <input
+            id="volume"
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            value={settings.volume}
+            onChange={(e) => updateSetting('volume', parseFloat(e.target.value))}
+          />
+        </div>
+      </div>
+      
+      <div className="settings-info">
+        <p>
+          Your settings are synced across all your devices in this session.
+        </p>
+        <p>
+          Other users: {Object.keys(allSettings).length - 1} have their own settings.
+        </p>
+      </div>
+    </div>
+  )
+}
+```
+
+### User-Specific Workspace
+
+Create personalized workspaces for each user:
+
+```tsx
+import { useMyId, useStateTogetherWithPerUserValues } from 'react-together'
+
+interface UserWorkspace {
+  notes: string
+  bookmarks: Array<{ id: string; title: string; url: string }>
+  tasks: Array<{ id: string; text: string; completed: boolean }>
+}
+
+function PersonalWorkspace() {
+  const myId = useMyId()
+  const [workspace, setWorkspace] = useStateTogetherWithPerUserValues<UserWorkspace>(
+    'personal-workspace',
+    {
+      notes: '',
+      bookmarks: [],
+      tasks: []
+    }
+  )
+  
+  const addBookmark = (title: string, url: string) => {
+    const newBookmark = {
+      id: Date.now().toString(),
+      title,
+      url
+    }
+    setWorkspace({
+      ...workspace,
+      bookmarks: [...workspace.bookmarks, newBookmark]
+    })
+  }
+  
+  const addTask = (text: string) => {
+    const newTask = {
+      id: Date.now().toString(),
+      text,
+      completed: false
+    }
+    setWorkspace({
+      ...workspace,
+      tasks: [...workspace.tasks, newTask]
+    })
+  }
+  
+  const toggleTask = (taskId: string) => {
+    setWorkspace({
+      ...workspace,
+      tasks: workspace.tasks.map(task =>
+        task.id === taskId ? { ...task, completed: !task.completed } : task
+      )
+    })
+  }
+  
+  if (!myId) {
+    return (
+      <div className="workspace">
+        <div className="connect-prompt">
+          <h2>Personal Workspace</h2>
+          <p>Connect to a session to access your personal workspace</p>
+        </div>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="personal-workspace">
+      <div className="workspace-header">
+        <h2>My Workspace</h2>
+        <div className="user-badge">
+          <span className="user-icon">👤</span>
+          <span className="user-id">{myId.slice(0, 8)}...</span>
+        </div>
+      </div>
+      
+      <div className="workspace-grid">
+        {/* Personal Notes */}
+        <div className="workspace-section">
+          <h3>📝 My Notes</h3>
+          <textarea
+            value={workspace.notes}
+            onChange={(e) => setWorkspace({ ...workspace, notes: e.target.value })}
+            placeholder="Write your personal notes here..."
+            rows={8}
+          />
+        </div>
+        
+        {/* Personal Bookmarks */}
+        <div className="workspace-section">
+          <h3>🔖 My Bookmarks</h3>
+          <div className="bookmark-input">
+            <input
+              type="text"
+              placeholder="Bookmark title"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  const title = e.currentTarget.value
+                  const url = prompt('Enter URL:')
+                  if (title && url) {
+                    addBookmark(title, url)
+                    e.currentTarget.value = ''
+                  }
+                }
+              }}
+            />
+          </div>
+          <div className="bookmark-list">
+            {workspace.bookmarks.map(bookmark => (
+              <div key={bookmark.id} className="bookmark-item">
+                <a href={bookmark.url} target="_blank" rel="noopener noreferrer">
+                  {bookmark.title}
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Personal Tasks */}
+        <div className="workspace-section">
+          <h3>✅ My Tasks</h3>
+          <div className="task-input">
+            <input
+              type="text"
+              placeholder="Add a personal task..."
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                  addTask(e.currentTarget.value.trim())
+                  e.currentTarget.value = ''
+                }
+              }}
+            />
+          </div>
+          <div className="task-list">
+            {workspace.tasks.map(task => (
+              <div
+                key={task.id}
+                className={`task-item ${task.completed ? 'completed' : ''}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={task.completed}
+                  onChange={() => toggleTask(task.id)}
+                />
+                <span className="task-text">{task.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <div className="workspace-footer">
+        <p>
+          This workspace is private to user <code>{myId}</code> 
+          and syncs across all your devices in this session.
+        </p>
+      </div>
+    </div>
+  )
+}
+```
+
+### Chat System with User Identification
+
+Build a chat system that identifies the current user:
+
+```tsx
+import { useMyId, useChat, useConnectedUsers } from 'react-together'
+import { useState } from 'react'
+
+function PersonalizedChat() {
+  const myId = useMyId()
+  const { messages, sendMessage } = useChat()
+  const connectedUsers = useConnectedUsers()
+  const [messageText, setMessageText] = useState('')
+  
+  const handleSendMessage = () => {
+    if (messageText.trim() && myId) {
+      sendMessage(messageText.trim())
+      setMessageText('')
+    }
+  }
+  
+  const getUserNickname = (userId: string) => {
+    const user = connectedUsers.find(u => u.userId === userId)
+    return user?.nickname || `User ${userId.slice(0, 8)}`
+  }
+  
+  if (!myId) {
+    return (
+      <div className="chat-container">
+        <div className="chat-disabled">
+          <p>Connect to a session to join the chat</p>
+        </div>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="personalized-chat">
+      <div className="chat-header">
+        <h3>Team Chat</h3>
+        <div className="current-user">
+          <span className="user-indicator">You: {getUserNickname(myId)}</span>
+          <span className="user-id">({myId.slice(0, 8)}...)</span>
+        </div>
+      </div>
+      
+      <div className="chat-messages">
+        {messages.map((message, index) => {
+          const isMyMessage = message.senderId === myId
+          
+          return (
+            <div
+              key={index}
+              className={`message ${isMyMessage ? 'my-message' : 'other-message'}`}
+            >
+              <div className="message-header">
+                <span className="sender-name">
+                  {isMyMessage ? 'You' : getUserNickname(message.senderId)}
+                </span>
+                <span className="message-time">
+                  {new Date(message.timestamp).toLocaleTimeString()}
+                </span>
+              </div>
+              <div className="message-content">
+                {message.text}
+              </div>
+              {isMyMessage && (
+                <div className="message-indicator">
+                  <span className="my-message-badge">Your message</span>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      
+      <div className="chat-input">
+        <div className="input-container">
+          <input
+            type="text"
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleSendMessage()
+              }
+            }}
+            placeholder={`Message as ${getUserNickname(myId)}...`}
+          />
+          <button
+            onClick={handleSendMessage}
+            disabled={!messageText.trim()}
+          >
+            Send
+          </button>
+        </div>
+        <div className="typing-indicator">
+          Sending as: <strong>{getUserNickname(myId)}</strong> ({myId.slice(0, 8)}...)
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Access Control and Permissions
+
+Implement user-based access control:
+
+```tsx
+import { useMyId, useStateTogether } from 'react-together'
+import { useState, useEffect } from 'react'
+
+interface UserPermissions {
+  [userId: string]: {
+    role: 'admin' | 'editor' | 'viewer'
+    permissions: string[]
+  }
+}
+
+function AccessControlledEditor() {
+  const myId = useMyId()
+  const [content, setContent] = useStateTogether('shared-document', '')
+  const [permissions, setPermissions] = useStateTogether<UserPermissions>('user-permissions', {})
+  const [isAdmin, setIsAdmin] = useState(false)
+  
+  // Initialize permissions for new users
+  useEffect(() => {
+    if (myId && !permissions[myId]) {
+      // First user becomes admin, others become editors
+      const isFirstUser = Object.keys(permissions).length === 0
+      const newPermissions = {
+        ...permissions,
+        [myId]: {
+          role: isFirstUser ? 'admin' : 'editor',
+          permissions: isFirstUser 
+            ? ['read', 'write', 'admin', 'manage-users']
+            : ['read', 'write']
+        }
+      }
+      setPermissions(newPermissions)
+    }
+  }, [myId, permissions, setPermissions])
+  
+  // Update admin status
+  useEffect(() => {
+    if (myId && permissions[myId]) {
+      setIsAdmin(permissions[myId].role === 'admin')
+    }
+  }, [myId, permissions])
+  
+  const canEdit = myId && permissions[myId]?.permissions.includes('write')
+  const canManageUsers = myId && permissions[myId]?.permissions.includes('manage-users')
+  
+  const updateUserRole = (userId: string, role: 'admin' | 'editor' | 'viewer') => {
+    if (!canManageUsers) return
+    
+    const rolePermissions = {
+      admin: ['read', 'write', 'admin', 'manage-users'],
+      editor: ['read', 'write'],
+      viewer: ['read']
+    }
+    
+    setPermissions({
+      ...permissions,
+      [userId]: {
+        role,
+        permissions: rolePermissions[role]
+      }
+    })
+  }
+  
+  if (!myId) {
+    return (
+      <div className="access-controlled-editor">
+        <div className="access-denied">
+          <h2>Access Denied</h2>
+          <p>You must be connected to a session to access this document</p>
+        </div>
+      </div>
+    )
+  }
+  
+  const userRole = permissions[myId]?.role || 'viewer'
+  
+  return (
+    <div className="access-controlled-editor">
+      <div className="editor-header">
+        <div className="document-info">
+          <h2>Shared Document</h2>
+          <div className="user-status">
+            <span className="current-user">
+              You: {myId.slice(0, 8)}...
+            </span>
+            <span className={`role-badge ${userRole}`}>
+              {userRole.toUpperCase()}
+            </span>
+          </div>
+        </div>
+        
+        {canManageUsers && (
+          <div className="admin-controls">
+            <h4>User Management</h4>
+            <div className="user-permissions">
+              {Object.entries(permissions).map(([userId, userPerm]) => (
+                <div key={userId} className="user-permission-item">
+                  <span className="user-id">
+                    {userId.slice(0, 8)}... {userId === myId && '(You)'}
+                  </span>
+                  <select
+                    value={userPerm.role}
+                    onChange={(e) => updateUserRole(userId, e.target.value as any)}
+                    disabled={userId === myId} // Can't change own role
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="editor">Editor</option>
+                    <option value="viewer">Viewer</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      
+      <div className="editor-body">
+        <textarea
+          value={content}
+          onChange={(e) => canEdit ? setContent(e.target.value) : undefined}
+          disabled={!canEdit}
+          className={`document-editor ${!canEdit ? 'read-only' : ''}`}
+          placeholder={
+            canEdit
+              ? "Start typing..."
+              : "You have read-only access to this document"
+          }
+          rows={15}
+        />
+        
+        {!canEdit && (
+          <div className="read-only-notice">
+            <p>
+              You have {userRole} access. Contact an admin for edit permissions.
+            </p>
+          </div>
+        )}
+      </div>
+      
+      <div className="editor-footer">
+        <div className="permissions-info">
+          <h4>Your Permissions:</h4>
+          <ul>
+            {permissions[myId]?.permissions.map(perm => (
+              <li key={perm} className="permission-item">
+                ✓ {perm.replace('-', ' ').toUpperCase()}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### User Progress Tracking
+
+Track individual user progress in a collaborative app:
+
+```tsx
+import { useMyId, useStateTogetherWithPerUserValues } from 'react-together'
+import { useState, useEffect } from 'react'
+
+interface UserProgress {
+  level: number
+  score: number
+  completedTasks: string[]
+  lastActive: string
+  achievements: string[]
+}
+
+function UserProgressTracker() {
+  const myId = useMyId()
+  const [progress, setProgress, allProgress] = useStateTogetherWithPerUserValues<UserProgress>(
+    'user-progress',
+    {
+      level: 1,
+      score: 0,
+      completedTasks: [],
+      lastActive: new Date().toISOString(),
+      achievements: []
+    }
+  )
+  
+  // Update last active time
+  useEffect(() => {
+    if (myId) {
+      const interval = setInterval(() => {
+        setProgress({
+          ...progress,
+          lastActive: new Date().toISOString()
+        })
+      }, 60000) // Update every minute
+      
+      return () => clearInterval(interval)
+    }
+  }, [myId, progress, setProgress])
+  
+  const completeTask = (taskId: string, points: number) => {
+    if (!progress.completedTasks.includes(taskId)) {
+      const newScore = progress.score + points
+      const newLevel = Math.floor(newScore / 1000) + 1
+      const newAchievements = [...progress.achievements]
+      
+      // Check for achievements
+      if (newLevel > progress.level) {
+        newAchievements.push(`Level ${newLevel} Reached`)
+      }
+      if (newScore >= 5000 && !newAchievements.includes('High Scorer')) {
+        newAchievements.push('High Scorer')
+      }
+      
+      setProgress({
+        ...progress,
+        score: newScore,
+        level: newLevel,
+        completedTasks: [...progress.completedTasks, taskId],
+        achievements: newAchievements,
+        lastActive: new Date().toISOString()
+      })
+    }
+  }
+  
+  const getLeaderboard = () => {
+    return Object.entries(allProgress)
+      .map(([userId, userProgress]) => ({
+        userId,
+        ...userProgress,
+        isMe: userId === myId
+      }))
+      .sort((a, b) => b.score - a.score)
+  }
+  
+  if (!myId) {
+    return (
+      <div className="progress-tracker">
+        <p>Connect to a session to track your progress</p>
+      </div>
+    )
+  }
+  
+  const leaderboard = getLeaderboard()
+  const myRank = leaderboard.findIndex(user => user.userId === myId) + 1
+  
+  return (
+    <div className="user-progress-tracker">
+      <div className="my-progress">
+        <h2>My Progress</h2>
+        <div className="progress-card">
+          <div className="user-info">
+            <span className="user-id">ID: {myId.slice(0, 8)}...</span>
+            <span className="rank">Rank: #{myRank}</span>
+          </div>
+          
+          <div className="stats-grid">
+            <div className="stat">
+              <span className="stat-label">Level</span>
+              <span className="stat-value">{progress.level}</span>
+            </div>
+            <div className="stat">
+              <span className="stat-label">Score</span>
+              <span className="stat-value">{progress.score.toLocaleString()}</span>
+            </div>
+            <div className="stat">
+              <span className="stat-label">Tasks</span>
+              <span className="stat-value">{progress.completedTasks.length}</span>
+            </div>
+          </div>
+          
+          <div className="level-progress">
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${((progress.score % 1000) / 1000) * 100}%`
+                }}
+              />
+            </div>
+            <span className="progress-text">
+              {progress.score % 1000}/1000 to Level {progress.level + 1}
+            </span>
+          </div>
+          
+          {progress.achievements.length > 0 && (
+            <div className="achievements">
+              <h4>Achievements</h4>
+              <div className="achievement-list">
+                {progress.achievements.map((achievement, index) => (
+                  <span key={index} className="achievement-badge">
+                    🏆 {achievement}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        <div className="task-actions">
+          <h3>Complete Tasks</h3>
+          <div className="task-buttons">
+            <button onClick={() => completeTask('easy-task', 100)}>
+              Easy Task (+100 pts)
+            </button>
+            <button onClick={() => completeTask('medium-task', 250)}>
+              Medium Task (+250 pts)
+            </button>
+            <button onClick={() => completeTask('hard-task', 500)}>
+              Hard Task (+500 pts)
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div className="leaderboard">
+        <h3>Leaderboard</h3>
+        <div className="leaderboard-list">
+          {leaderboard.map((user, index) => (
+            <div
+              key={user.userId}
+              className={`leaderboard-item ${user.isMe ? 'my-entry' : ''}`}
+            >
+              <span className="rank">#{index + 1}</span>
+              <span className="user">
+                {user.userId.slice(0, 8)}... {user.isMe && '(You)'}
+              </span>
+              <span className="level">Lv.{user.level}</span>
+              <span className="score">{user.score.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+### Safe ID Usage
+
+Always check for null before using the ID:
+
+```tsx
+import { useMyId } from 'react-together'
+
+function SafeIdUsage() {
+  const myId = useMyId()
+  
+  // Always check for null
+  if (!myId) {
+    return <div>Not connected to session</div>
+  }
+  
+  // Safe to use myId here
+  return <div>Your ID: {myId}</div>
+}
+```
+
+### ID-Based State Management
+
+Use the ID for user-specific state keys:
+
+```tsx
+import { useMyId, useStateTogether } from 'react-together'
+
+function UserSpecificState() {
+  const myId = useMyId()
+  
+  // Create user-specific state key
+  const stateKey = myId ? `user-data-${myId}` : null
+  const [userData, setUserData] = useStateTogether(stateKey || 'default', {})
+  
+  return (
+    <div>
+      {myId ? (
+        <div>User data for {myId}: {JSON.stringify(userData)}</div>
+      ) : (
+        <div>No user ID available</div>
+      )}
+    </div>
+  )
+}
+```
+
+## Common Patterns
+
+- **User Identification**: Distinguish the current user from others
+- **Personal Data**: Store user-specific information and settings
+- **Access Control**: Implement user-based permissions and roles
+- **Progress Tracking**: Track individual user progress and achievements
+- **UI Personalization**: Customize interface based on user identity
+
+## Related Hooks
+
+- [`useConnectedUsers`](/docs/react-together/hooks/use-connected-users) - Get all users including yourself
+- [`useStateTogetherWithPerUserValues`](/docs/react-together/hooks/use-state-together-with-per-user-values) - Store per-user data
+- [`useNicknames`](/docs/react-together/hooks/use-nicknames) - User display names
+- [`useIsTogether`](/docs/react-together/hooks/use-is-together) - Check connection status
+
+## TypeScript Support
+
+`useMyId` is fully typed and returns a string or null:
+
+```tsx
+import { useMyId } from 'react-together'
+
+const myId: string | null = useMyId()
+
+// Type guard for safe usage
+if (myId) {
+  const userId: string = myId // Now guaranteed to be string
+}
+```
+
+## Technical Notes
+
+<Note>
+`useMyId` is an alias for `useViewId` from `@multisynq/react`. The ID is stable throughout a session but may change between different sessions.
+</Note>
+
+<Warning>
+Always check for `null` before using the ID. The hook returns `null` when not connected to a session, which can cause runtime errors if not handled properly.
+</Warning> 

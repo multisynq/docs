@@ -1,0 +1,538 @@
+---
+title: "useStateTogether"
+description: "Synchronize state across all users in real-time. Works exactly like React's useState but keeps all users in sync."
+---
+
+## Overview
+
+`useStateTogether` is the core hook of React Together. It creates state that is automatically synchronized across all users in your session. It works exactly like React's `useState`, but any state changes are instantly shared with all connected users.
+
+<Info>
+**Perfect for**: Shared counters, form data, game state, collaborative editing, or any state that should be the same for all users.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { useStateTogether } from 'react-together'
+
+function SharedCounter() {
+  const [count, setCount] = useStateTogether('counter', 0)
+  
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(count + 1)}>+</button>
+      <button onClick={() => setCount(count - 1)}>-</button>
+    </div>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useStateTogether<T>(
+  key: string,
+  initialValue: T,
+  options?: UseStateTogetherOptions
+): [T, Dispatch<SetStateAction<T>>]
+```
+
+## Parameters
+
+<ParamField path="key" type="string" required>
+  Unique identifier for this shared state. All users with the same key will share the same state.
+</ParamField>
+
+<ParamField path="initialValue" type="T" required>
+  Initial value when the state is first created. This only applies when no user has set this state yet.
+</ParamField>
+
+<ParamField path="options" type="UseStateTogetherOptions">
+  Configuration options for the shared state behavior
+</ParamField>
+
+### Options
+
+<ParamField path="options.resetOnDisconnect" type="boolean" default="false">
+  Whether to reset to initial value when all users disconnect
+</ParamField>
+
+<ParamField path="options.throttleDelay" type="number" default="100">
+  Milliseconds to throttle state updates (prevents excessive network traffic)
+</ParamField>
+
+## Return Value
+
+Returns a tuple identical to `useState`:
+
+<ParamField path="[0]" type="T">
+  The current state value, synchronized across all users
+</ParamField>
+
+<ParamField path="[1]" type="Dispatch<SetStateAction<T>>">
+  Function to update the state. Accepts new value or updater function.
+</ParamField>
+
+## Examples
+
+### Simple Counter
+
+```tsx
+function Counter() {
+  const [count, setCount] = useStateTogether('counter', 0)
+  
+  return (
+    <div>
+      <h2>Shared Counter: {count}</h2>
+      <button onClick={() => setCount(c => c + 1)}>Increment</button>
+      <button onClick={() => setCount(0)}>Reset</button>
+    </div>
+  )
+}
+```
+
+### Shared Text Input
+
+```tsx
+function SharedTextEditor() {
+  const [text, setText] = useStateTogether('document', '')
+  
+  return (
+    <div>
+      <h3>Collaborative Document</h3>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Start typing... others will see your changes in real-time!"
+        rows={10}
+        cols={50}
+      />
+      <p>Characters: {text.length}</p>
+    </div>
+  )
+}
+```
+
+### Complex Object State
+
+```tsx
+interface UserPreferences {
+  theme: 'light' | 'dark'
+  fontSize: number
+  showNotifications: boolean
+}
+
+function SharedSettings() {
+  const [preferences, setPreferences] = useStateTogether<UserPreferences>(
+    'preferences',
+    {
+      theme: 'light',
+      fontSize: 14,
+      showNotifications: true
+    }
+  )
+  
+  const updateTheme = (theme: 'light' | 'dark') => {
+    setPreferences(prev => ({ ...prev, theme }))
+  }
+  
+  const updateFontSize = (fontSize: number) => {
+    setPreferences(prev => ({ ...prev, fontSize }))
+  }
+  
+  return (
+    <div style={{ 
+      backgroundColor: preferences.theme === 'dark' ? '#333' : '#fff',
+      color: preferences.theme === 'dark' ? '#fff' : '#000',
+      fontSize: preferences.fontSize
+    }}>
+      <h3>Shared Settings</h3>
+      
+      <div>
+        <label>Theme:</label>
+        <select 
+          value={preferences.theme} 
+          onChange={(e) => updateTheme(e.target.value as 'light' | 'dark')}
+        >
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+      
+      <div>
+        <label>Font Size:</label>
+        <input
+          type="range"
+          min="10"
+          max="24"
+          value={preferences.fontSize}
+          onChange={(e) => updateFontSize(parseInt(e.target.value))}
+        />
+        <span>{preferences.fontSize}px</span>
+      </div>
+      
+      <div>
+        <label>
+          <input
+            type="checkbox"
+            checked={preferences.showNotifications}
+            onChange={(e) => setPreferences(prev => ({ 
+              ...prev, 
+              showNotifications: e.target.checked 
+            }))}
+          />
+          Show Notifications
+        </label>
+      </div>
+    </div>
+  )
+}
+```
+
+### Array State Management
+
+```tsx
+interface TodoItem {
+  id: string
+  text: string
+  completed: boolean
+  createdBy: string
+}
+
+function CollaborativeTodoList() {
+  const [todos, setTodos] = useStateTogether<TodoItem[]>('todos', [])
+  const [newTodo, setNewTodo] = useState('')
+  
+  const addTodo = () => {
+    if (newTodo.trim()) {
+      const todo: TodoItem = {
+        id: crypto.randomUUID(),
+        text: newTodo.trim(),
+        completed: false,
+        createdBy: 'current-user' // In real app, get from user context
+      }
+      setTodos(prevTodos => [...prevTodos, todo])
+      setNewTodo('')
+    }
+  }
+  
+  const toggleTodo = (id: string) => {
+    setTodos(prevTodos => 
+      prevTodos.map(todo => 
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      )
+    )
+  }
+  
+  const deleteTodo = (id: string) => {
+    setTodos(prevTodos => prevTodos.filter(todo => todo.id !== id))
+  }
+  
+  return (
+    <div>
+      <h3>Collaborative Todo List</h3>
+      
+      <div>
+        <input
+          value={newTodo}
+          onChange={(e) => setNewTodo(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && addTodo()}
+          placeholder="Add a new todo..."
+        />
+        <button onClick={addTodo}>Add</button>
+      </div>
+      
+      <ul>
+        {todos.map(todo => (
+          <li key={todo.id}>
+            <input
+              type="checkbox"
+              checked={todo.completed}
+              onChange={() => toggleTodo(todo.id)}
+            />
+            <span style={{ 
+              textDecoration: todo.completed ? 'line-through' : 'none' 
+            }}>
+              {todo.text}
+            </span>
+            <button onClick={() => deleteTodo(todo.id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+      
+      <p>Total: {todos.length} | Completed: {todos.filter(t => t.completed).length}</p>
+    </div>
+  )
+}
+```
+
+## Advanced Usage
+
+### With Custom Options
+
+```tsx
+function PersistentCounter() {
+  const [count, setCount] = useStateTogether('persistent-counter', 0, {
+    resetOnDisconnect: false,  // Keep state when users leave
+    throttleDelay: 200         // Reduce update frequency
+  })
+  
+  return (
+    <div>
+      <p>Persistent Count: {count}</p>
+      <button onClick={() => setCount(c => c + 1)}>+</button>
+    </div>
+  )
+}
+```
+
+### Multiple Shared States
+
+```tsx
+function GameState() {
+  const [score, setScore] = useStateTogether('game-score', 0)
+  const [level, setLevel] = useStateTogether('game-level', 1)
+  const [players, setPlayers] = useStateTogether<string[]>('players', [])
+  
+  const levelUp = () => {
+    if (score >= level * 100) {
+      setLevel(l => l + 1)
+      setScore(0) // Reset score for new level
+    }
+  }
+  
+  return (
+    <div>
+      <h3>Game Status</h3>
+      <p>Level: {level}</p>
+      <p>Score: {score} / {level * 100}</p>
+      <p>Players: {players.length}</p>
+      
+      <button onClick={() => setScore(s => s + 10)}>
+        Score Points (+10)
+      </button>
+      
+      <button onClick={levelUp} disabled={score < level * 100}>
+        Level Up
+      </button>
+    </div>
+  )
+}
+```
+
+### Functional Updates
+
+```tsx
+function StateUpdater() {
+  const [data, setData] = useStateTogether('complex-data', { 
+    users: [], 
+    lastUpdate: Date.now() 
+  })
+  
+  // Always use functional updates for complex state
+  const addUser = (username: string) => {
+    setData(prevData => ({
+      ...prevData,
+      users: [...prevData.users, username],
+      lastUpdate: Date.now()
+    }))
+  }
+  
+  const removeUser = (username: string) => {
+    setData(prevData => ({
+      ...prevData,
+      users: prevData.users.filter(u => u !== username),
+      lastUpdate: Date.now()
+    }))
+  }
+  
+  return (
+    <div>
+      <h3>User Management</h3>
+      <p>Last Updated: {new Date(data.lastUpdate).toLocaleTimeString()}</p>
+      <ul>
+        {data.users.map(user => (
+          <li key={user}>
+            {user}
+            <button onClick={() => removeUser(user)}>Remove</button>
+          </li>
+        ))}
+      </ul>
+      <button onClick={() => addUser(`User${Date.now()}`)}>
+        Add Random User
+      </button>
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Unique Keys" icon="key">
+    Choose descriptive, unique keys for each shared state
+    ```tsx
+    // Good
+    const [gameScore, setGameScore] = useStateTogether('game-score', 0)
+    const [playerName, setPlayerName] = useStateTogether('player-name', '')
+    
+    // Avoid
+    const [data1, setData1] = useStateTogether('data', 0)
+    const [data2, setData2] = useStateTogether('data', '') // Same key!
+    ```
+  </Card>
+  
+  <Card title="Use Functional Updates" icon="refresh">
+    Always use functional updates for complex state
+    ```tsx
+    // Good - functional update
+    setTodos(prev => [...prev, newTodo])
+    
+    // Risky - might overwrite concurrent changes
+    setTodos([...todos, newTodo])
+    ```
+  </Card>
+  
+  <Card title="Consider Performance" icon="gauge">
+    Use throttling for frequently updated state
+    ```tsx
+    const [mousePos, setMousePos] = useStateTogether('mouse', { x: 0, y: 0 }, {
+      throttleDelay: 50 // Update max 20 times per second
+    })
+    ```
+  </Card>
+  
+  <Card title="Initialize Properly" icon="play">
+    Provide sensible initial values
+    ```tsx
+    // Good - proper defaults
+    const [config, setConfig] = useStateTogether('config', {
+      theme: 'light',
+      language: 'en'
+    })
+    
+    // Avoid - undefined state
+    const [config, setConfig] = useStateTogether('config', undefined)
+    ```
+  </Card>
+</CardGroup>
+
+## Common Patterns
+
+### Reset Functionality
+
+```tsx
+function ResettableCounter() {
+  const [count, setCount] = useStateTogether('counter', 0)
+  const initialValue = 0
+  
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(c => c + 1)}>+</button>
+      <button onClick={() => setCount(initialValue)}>Reset</button>
+    </div>
+  )
+}
+```
+
+### Conditional Updates
+
+```tsx
+function ConditionalUpdates() {
+  const [value, setValue] = useStateTogether('value', 0)
+  
+  const incrementIfValid = () => {
+    setValue(prev => {
+      // Only update if certain conditions are met
+      if (prev < 100) {
+        return prev + 1
+      }
+      return prev // No change
+    })
+  }
+  
+  return (
+    <div>
+      <p>Value: {value}</p>
+      <button onClick={incrementIfValid} disabled={value >= 100}>
+        Increment (max 100)
+      </button>
+    </div>
+  )
+}
+```
+
+## TypeScript Support
+
+`useStateTogether` is fully typed and provides excellent TypeScript support:
+
+```tsx
+// Type is inferred from initial value
+const [count, setCount] = useStateTogether('counter', 0) // number
+
+// Explicit typing
+const [user, setUser] = useStateTogether<User | null>('current-user', null)
+
+// Complex types
+interface GameState {
+  level: number
+  score: number
+  players: Player[]
+}
+
+const [game, setGame] = useStateTogether<GameState>('game', {
+  level: 1,
+  score: 0,
+  players: []
+})
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="State not synchronizing">
+    - Ensure all components use the same `key` parameter
+    - Verify the `ReactTogether` provider wraps all components
+    - Check that all users are in the same session
+  </Accordion>
+  
+  <Accordion title="Frequent re-renders">
+    - Increase `throttleDelay` in options
+    - Use `useMemo` or `useCallback` for expensive computations
+    - Consider breaking large state objects into smaller pieces
+  </Accordion>
+  
+  <Accordion title="State resets unexpectedly">
+    - Check the `resetOnDisconnect` option
+    - Ensure initial values are consistent across components
+    - Verify the key string is exactly the same in all uses
+  </Accordion>
+  
+  <Accordion title="Performance issues">
+    - Use appropriate throttling for frequently updated state
+    - Avoid storing large objects or arrays in shared state
+    - Consider using `useStateTogetherWithPerUserValues` for user-specific data
+  </Accordion>
+</AccordionGroup>
+
+## Related Hooks
+
+<CardGroup cols={2}>
+  <Card title="useStateTogetherWithPerUserValues" icon="users" href="/react-together/hooks/use-state-together-with-per-user-values">
+    For state that varies per user while staying synchronized
+  </Card>
+  <Card title="useConnectedUsers" icon="user-group" href="/react-together/hooks/use-connected-users">
+    Get information about all connected users
+  </Card>
+  <Card title="useFunctionTogether" icon="code" href="/react-together/hooks/use-function-together">
+    Execute functions synchronously across all users
+  </Card>
+  <Card title="useChat" icon="comments" href="/react-together/hooks/use-chat">
+    Add real-time chat functionality
+  </Card>
+</CardGroup>
+
+`useStateTogether` is the foundation of React Together. Once you understand how it works, you can build any kind of collaborative feature by combining it with other hooks and components!

@@ -1,0 +1,767 @@
+---
+title: "useLeaveSession"
+description: "Leave the current React Together session while preserving local state"
+---
+
+# useLeaveSession
+
+The `useLeaveSession` hook returns a function that, when called, disconnects the user from the current React Together session. If the user is not connected to any session, calling this function has no effect.
+
+When leaving a session, state from [`useStateTogether`](/react-together/hooks/use-state-together) and [`useStateTogetherWithPerUserValues`](/react-together/hooks/use-state-together-with-per-user-values) will be preserved locally. Additionally, any session parameters in the window URL will be automatically removed.
+
+## Basic Usage
+
+```tsx
+import { useLeaveSession } from 'react-together'
+
+function DisconnectButton() {
+  const leaveSession = useLeaveSession()
+
+  return (
+    <button onClick={() => leaveSession()}>
+      Leave Session
+    </button>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useLeaveSession(): () => void
+```
+
+## Return Value
+
+<ResponseField name="leaveSession" type="() => void">
+  A function that, when called, disconnects the user from the current React Together session.
+</ResponseField>
+
+## Examples
+
+### Confirmation Dialog
+
+Add a confirmation dialog before leaving the session:
+
+```tsx
+import { useLeaveSession, useIsTogether, useConnectedUsers } from 'react-together'
+import { useState } from 'react'
+
+export default function LeaveWithConfirmation() {
+  const leaveSession = useLeaveSession()
+  const isTogether = useIsTogether()
+  const connectedUsers = useConnectedUsers()
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  const handleLeave = () => {
+    setShowConfirm(false)
+    leaveSession()
+  }
+
+  if (!isTogether) {
+    return null
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setShowConfirm(true)}
+        className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-all"
+      >
+        Leave Session
+      </button>
+
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Leave Session?</h3>
+            
+            <div className="mb-4 space-y-2">
+              <p className="text-gray-600">
+                You are about to leave the collaborative session.
+              </p>
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Don't worry!</strong> Your local changes will be saved and you can rejoin anytime.
+                </p>
+              </div>
+              {connectedUsers.length > 1 && (
+                <p className="text-sm text-gray-500">
+                  {connectedUsers.length - 1} other user(s) will remain in the session.
+                </p>
+              )}
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLeave}
+                className="flex-1 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-all"
+              >
+                Leave Session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Session Control Panel
+
+Create a comprehensive session control interface:
+
+```tsx
+import { 
+  useLeaveSession, 
+  useIsTogether, 
+  useConnectedUsers, 
+  useJoinUrl,
+  useCreateRandomSession 
+} from 'react-together'
+import { useState, useEffect } from 'react'
+
+export default function SessionControlPanel() {
+  const leaveSession = useLeaveSession()
+  const createRandomSession = useCreateRandomSession()
+  const isTogether = useIsTogether()
+  const connectedUsers = useConnectedUsers()
+  const joinUrl = useJoinUrl()
+  const [sessionDuration, setSessionDuration] = useState(0)
+  const [sessionStart] = useState(Date.now())
+
+  useEffect(() => {
+    if (!isTogether) {
+      setSessionDuration(0)
+      return
+    }
+
+    const interval = setInterval(() => {
+      setSessionDuration(Date.now() - sessionStart)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [isTogether, sessionStart])
+
+  const formatDuration = (ms: number) => {
+    const seconds = Math.floor(ms / 1000) % 60
+    const minutes = Math.floor(ms / 60000) % 60
+    const hours = Math.floor(ms / 3600000)
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`
+    } else {
+      return `${seconds}s`
+    }
+  }
+
+  const handleLeaveSession = () => {
+    if (window.confirm('Are you sure you want to leave the session?')) {
+      leaveSession()
+    }
+  }
+
+  const shareSession = () => {
+    if (joinUrl) {
+      navigator.clipboard.writeText(joinUrl)
+      alert('Session URL copied to clipboard!')
+    }
+  }
+
+  return (
+    <div className="p-6 bg-white rounded-lg shadow-lg max-w-lg mx-auto">
+      <h2 className="text-xl font-semibold mb-6 text-center">Session Control</h2>
+      
+      {!isTogether ? (
+        <div className="text-center space-y-4">
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="text-3xl mb-2">🚫</div>
+            <p className="text-gray-600">Not connected to any session</p>
+          </div>
+          
+          <button
+            onClick={() => createRandomSession()}
+            className="w-full py-3 px-4 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-all"
+          >
+            🚀 Start New Session
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Session Status */}
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="font-semibold text-green-800">Session Active</span>
+              </div>
+              <span className="text-sm text-green-600">{formatDuration(sessionDuration)}</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-green-700">Participants:</span>
+                <div className="font-semibold text-green-900">{connectedUsers.length}</div>
+              </div>
+              <div>
+                <span className="text-green-700">Your Status:</span>
+                <div className="font-semibold text-green-900">Connected</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Participants List */}
+          <div>
+            <h3 className="font-semibold text-gray-900 mb-3">
+              Participants ({connectedUsers.length})
+            </h3>
+            <div className="space-y-2">
+              {connectedUsers.map(({ userId, nickname, isYou }) => (
+                <div key={userId} className="flex items-center space-x-3 p-2 bg-gray-50 rounded">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="flex-1">
+                    {nickname || `User ${userId.slice(-4)}`}
+                    {isYou && <span className="text-blue-600 font-medium"> (You)</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="space-y-3">
+            <button
+              onClick={shareSession}
+              className="w-full py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all"
+            >
+              📤 Share Session
+            </button>
+            
+            <button
+              onClick={handleLeaveSession}
+              className="w-full py-2 px-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all"
+            >
+              🚪 Leave Session
+            </button>
+          </div>
+
+          {/* Session Info */}
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-2">Session URL</h4>
+            <div className="text-xs font-mono text-gray-600 break-all">
+              {joinUrl}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Auto-Leave on Inactivity
+
+Automatically leave sessions after a period of inactivity:
+
+```tsx
+import { useLeaveSession, useIsTogether } from 'react-together'
+import { useState, useEffect, useRef } from 'react'
+
+interface AutoLeaveProps {
+  inactivityTimeout?: number // milliseconds
+  warningTimeout?: number   // milliseconds before showing warning
+}
+
+export default function AutoLeaveManager({ 
+  inactivityTimeout = 30 * 60 * 1000, // 30 minutes
+  warningTimeout = 5 * 60 * 1000      // 5 minutes
+}: AutoLeaveProps) {
+  const leaveSession = useLeaveSession()
+  const isTogether = useIsTogether()
+  const [showWarning, setShowWarning] = useState(false)
+  const [timeLeft, setTimeLeft] = useState(0)
+  const lastActivity = useRef(Date.now())
+  const warningTimer = useRef<NodeJS.Timeout>()
+  const leaveTimer = useRef<NodeJS.Timeout>()
+
+  const resetActivity = () => {
+    lastActivity.current = Date.now()
+    setShowWarning(false)
+    
+    // Clear existing timers
+    if (warningTimer.current) clearTimeout(warningTimer.current)
+    if (leaveTimer.current) clearTimeout(leaveTimer.current)
+    
+    if (isTogether) {
+      // Set warning timer
+      warningTimer.current = setTimeout(() => {
+        setShowWarning(true)
+        
+        // Set auto-leave timer
+        leaveTimer.current = setTimeout(() => {
+          leaveSession()
+          setShowWarning(false)
+        }, warningTimeout)
+      }, inactivityTimeout - warningTimeout)
+    }
+  }
+
+  const stayInSession = () => {
+    resetActivity()
+  }
+
+  const leaveNow = () => {
+    leaveSession()
+    setShowWarning(false)
+  }
+
+  useEffect(() => {
+    const handleActivity = () => resetActivity()
+    
+    // Listen for user activity
+    document.addEventListener('mousedown', handleActivity)
+    document.addEventListener('keydown', handleActivity)
+    document.addEventListener('scroll', handleActivity)
+    document.addEventListener('touchstart', handleActivity)
+    
+    resetActivity()
+    
+    return () => {
+      document.removeEventListener('mousedown', handleActivity)
+      document.removeEventListener('keydown', handleActivity)
+      document.removeEventListener('scroll', handleActivity)
+      document.removeEventListener('touchstart', handleActivity)
+      
+      if (warningTimer.current) clearTimeout(warningTimer.current)
+      if (leaveTimer.current) clearTimeout(leaveTimer.current)
+    }
+  }, [isTogether])
+
+  // Update countdown
+  useEffect(() => {
+    if (!showWarning) return
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - lastActivity.current
+      const remaining = inactivityTimeout + warningTimeout - elapsed
+      setTimeLeft(Math.max(0, Math.ceil(remaining / 1000)))
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [showWarning, inactivityTimeout, warningTimeout])
+
+  // Auto-leave component
+  if (!isTogether || !showWarning) return null
+
+  return (
+    <div className="fixed top-4 right-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded shadow-lg z-50 max-w-sm">
+      <div className="flex items-start">
+        <div className="flex-shrink-0">
+          <div className="text-2xl">⚠️</div>
+        </div>
+        <div className="ml-3 flex-1">
+          <h3 className="text-sm font-medium text-yellow-800">
+            Leaving due to inactivity
+          </h3>
+          <div className="mt-2 text-sm text-yellow-700">
+            <p>You'll be automatically disconnected in:</p>
+            <p className="font-mono font-bold text-lg">{timeLeft} seconds</p>
+          </div>
+          <div className="mt-4 flex space-x-2">
+            <button
+              onClick={stayInSession}
+              className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition-all"
+            >
+              Stay
+            </button>
+            <button
+              onClick={leaveNow}
+              className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition-all"
+            >
+              Leave Now
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Leave with State Save
+
+Save important state before leaving the session:
+
+```tsx
+import { useLeaveSession, useStateTogether } from 'react-together'
+import { useState } from 'react'
+
+interface WorkData {
+  title: string
+  content: string
+  lastModified: number
+}
+
+export default function LeaveWithSave() {
+  const leaveSession = useLeaveSession()
+  const [workData, setWorkData] = useStateTogether<WorkData>('work-data', {
+    title: '',
+    content: '',
+    lastModified: Date.now()
+  })
+  const [isSaving, setIsSaving] = useState(false)
+
+  const saveAndLeave = async () => {
+    setIsSaving(true)
+    
+    try {
+      // Save to local storage as backup
+      const backupData = {
+        ...workData,
+        savedAt: Date.now(),
+        sessionId: window.location.search // Include session info
+      }
+      
+      localStorage.setItem('workBackup', JSON.stringify(backupData))
+      
+      // Simulate additional save operations (e.g., to a server)
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Leave the session
+      leaveSession()
+      
+      alert('Work saved successfully! You can continue later.')
+      
+    } catch (error) {
+      console.error('Failed to save work:', error)
+      alert('Failed to save work. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const quickLeave = () => {
+    if (window.confirm('Leave without saving? Your local changes will be preserved.')) {
+      leaveSession()
+    }
+  }
+
+  return (
+    <div className="p-6 bg-white rounded-lg shadow-lg max-w-md mx-auto">
+      <h3 className="text-lg font-semibold mb-4">Leave Session</h3>
+      
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+        <p className="text-sm text-blue-800 mb-2">
+          <strong>Current work:</strong> {workData.title || 'Untitled'}
+        </p>
+        <p className="text-xs text-blue-600">
+          Last modified: {new Date(workData.lastModified).toLocaleString()}
+        </p>
+      </div>
+      
+      <div className="space-y-3">
+        <button
+          onClick={saveAndLeave}
+          disabled={isSaving}
+          className="w-full py-3 px-4 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        >
+          {isSaving ? (
+            <span className="flex items-center justify-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Saving...
+            </span>
+          ) : (
+            '💾 Save & Leave'
+          )}
+        </button>
+        
+        <button
+          onClick={quickLeave}
+          className="w-full py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all"
+        >
+          🚪 Leave Without Saving
+        </button>
+      </div>
+      
+      <div className="mt-4 p-3 bg-gray-50 rounded">
+        <p className="text-xs text-gray-600">
+          <strong>Note:</strong> Your local changes will be preserved even if you don't explicitly save them.
+        </p>
+      </div>
+    </div>
+  )
+}
+```
+
+### Leave Feedback
+
+Collect feedback when users leave sessions:
+
+```tsx
+import { useLeaveSession, useConnectedUsers } from 'react-together'
+import { useState } from 'react'
+
+interface FeedbackData {
+  rating: number
+  reason: string
+  comments: string
+}
+
+const LEAVE_REASONS = [
+  'Session completed',
+  'Technical issues',
+  'Need a break',
+  'No longer needed',
+  'Switching devices',
+  'Other'
+]
+
+export default function LeaveWithFeedback() {
+  const leaveSession = useLeaveSession()
+  const connectedUsers = useConnectedUsers()
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [feedback, setFeedback] = useState<FeedbackData>({
+    rating: 5,
+    reason: '',
+    comments: ''
+  })
+
+  const submitFeedback = async () => {
+    try {
+      // Submit feedback (replace with actual endpoint)
+      console.log('Feedback submitted:', feedback)
+      
+      // Store feedback locally as well
+      const feedbackHistory = JSON.parse(localStorage.getItem('sessionFeedback') || '[]')
+      feedbackHistory.push({
+        ...feedback,
+        timestamp: Date.now(),
+        sessionDuration: Date.now() - performance.timeOrigin
+      })
+      localStorage.setItem('sessionFeedback', JSON.stringify(feedbackHistory))
+      
+      leaveSession()
+    } catch (error) {
+      console.error('Failed to submit feedback:', error)
+      // Still leave the session even if feedback fails
+      leaveSession()
+    }
+  }
+
+  const quickLeave = () => {
+    if (window.confirm('Leave without providing feedback?')) {
+      leaveSession()
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setShowFeedback(true)}
+        className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-all"
+      >
+        Leave Session
+      </button>
+
+      {showFeedback && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Session Feedback</h3>
+            
+            <div className="space-y-4">
+              {/* Rating */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  How was your session experience?
+                </label>
+                <div className="flex space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setFeedback(prev => ({ ...prev, rating: star }))}
+                      className={`text-2xl ${
+                        star <= feedback.rating ? 'text-yellow-500' : 'text-gray-300'
+                      }`}
+                    >
+                      ⭐
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reason */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reason for leaving
+                </label>
+                <select
+                  value={feedback.reason}
+                  onChange={(e) => setFeedback(prev => ({ ...prev, reason: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select a reason</option>
+                  {LEAVE_REASONS.map((reason) => (
+                    <option key={reason} value={reason}>{reason}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Comments */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Additional comments (optional)
+                </label>
+                <textarea
+                  value={feedback.comments}
+                  onChange={(e) => setFeedback(prev => ({ ...prev, comments: e.target.value }))}
+                  placeholder="Any suggestions or issues?"
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                />
+              </div>
+
+              {/* Session Info */}
+              <div className="p-3 bg-gray-50 rounded text-sm text-gray-600">
+                <p>Session had {connectedUsers.length} participant(s)</p>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={() => setShowFeedback(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={quickLeave}
+                className="px-4 py-2 text-gray-500 hover:text-gray-700 transition-all"
+              >
+                Skip
+              </button>
+              <button
+                onClick={submitFeedback}
+                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-all"
+              >
+                Submit & Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+### User Experience
+- **Confirmation dialogs** - Always confirm before leaving to prevent accidental disconnections
+- **State preservation** - Inform users that their local state will be preserved
+- **Clear feedback** - Provide immediate visual feedback when leaving
+- **Graceful handling** - Handle edge cases like already being disconnected
+
+### Data Management
+- **Save critical data** - Save important work before leaving
+- **Local storage backup** - Consider backing up data to local storage
+- **State synchronization** - Ensure state is properly synchronized before leaving
+
+### Session Management
+- **URL cleanup** - The hook automatically removes session parameters from the URL
+- **Connection state** - Monitor connection state to provide accurate user feedback
+- **Error handling** - Handle network errors gracefully during disconnection
+
+## State Behavior
+
+When leaving a session:
+
+### Preserved State
+- State from `useStateTogether` hooks remains in local memory
+- State from `useStateTogetherWithPerUserValues` keeps your user's value
+- Local component state is unaffected
+
+### Cleaned Up
+- Session parameters are removed from the URL
+- Network connections are closed
+- Real-time synchronization stops
+
+### Example State Transition
+```tsx
+// Before leaving
+const [count] = useStateTogether('counter', 0) // count = 5 (synchronized)
+
+leaveSession()
+
+// After leaving
+const [count] = useStateTogether('counter', 0) // count = 5 (local only)
+```
+
+## Common Patterns
+
+### Quick Leave
+```tsx
+const handleQuickLeave = () => {
+  leaveSession()
+  // State is preserved locally
+}
+```
+
+### Confirmed Leave
+```tsx
+const handleConfirmedLeave = () => {
+  if (confirm('Leave session?')) {
+    leaveSession()
+  }
+}
+```
+
+### Save and Leave
+```tsx
+const handleSaveAndLeave = async () => {
+  await saveWorkToServer()
+  leaveSession()
+}
+```
+
+## Related Hooks
+
+- [`useIsTogether`](/react-together/hooks/use-is-together) - Check if user is in a session
+- [`useCreateRandomSession`](/react-together/hooks/use-create-random-session) - Create new sessions
+- [`useConnectedUsers`](/react-together/hooks/use-connected-users) - See who's in the session
+- [`useJoinUrl`](/react-together/hooks/use-join-url) - Get the session join URL
+
+## TypeScript Support
+
+This hook has a simple, type-safe signature:
+
+```tsx
+const leaveSession: () => void = useLeaveSession()
+
+// Safe to call anytime
+const handleLeave = () => {
+  leaveSession() // Type-safe, no parameters needed
+}
+
+// Can be used in async contexts
+const handleAsyncLeave = async () => {
+  await performCleanup()
+  leaveSession()
+}
+```
+
+<Note>
+Calling `leaveSession()` when not connected to any session has no effect and will not throw an error.
+</Note> 

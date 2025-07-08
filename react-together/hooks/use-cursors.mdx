@@ -1,0 +1,856 @@
+---
+title: "useCursors"
+description: "Track and display real-time cursor positions of all users in your collaborative application, perfect for collaborative editing and design tools."
+---
+
+## Overview
+
+`useCursors` enables real-time cursor tracking and display in collaborative applications. It automatically captures mouse movements and broadcasts cursor positions to all connected users, making it perfect for collaborative editing, design tools, presentations, and any application where user awareness is important.
+
+<Info>
+**Perfect for**: Collaborative editors, design tools, presentation software, drawing applications, code editors, interactive dashboards, and any feature requiring real-time user cursor awareness.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { useCursors } from 'react-together'
+
+function CursorTracker() {
+  const { myCursor, allCursors } = useCursors({ deleteOnLeave: true })
+
+  return (
+    <div className="relative w-full h-screen bg-gray-50">
+      {/* Render other users' cursors */}
+      {Object.entries(allCursors).map(([userId, cursor]) => {
+        if (!cursor) return null
+        
+        return (
+          <div
+            key={userId}
+            className="fixed w-3 h-3 bg-blue-500 rounded-full pointer-events-none z-50"
+            style={{
+              left: cursor.pageX,
+              top: cursor.pageY,
+              transform: 'translate(-50%, -50%)',
+              transition: 'all 0.1s linear',
+            }}
+          />
+        )
+      })}
+      
+      {/* Display current user's cursor position */}
+      <div className="absolute top-4 left-4 bg-white p-4 rounded shadow">
+        {myCursor ? (
+          <p>Your cursor: {myCursor.pageX}, {myCursor.pageY}</p>
+        ) : (
+          <p>Move your cursor to share your position</p>
+        )}
+        <p>Active cursors: {Object.keys(allCursors).length}</p>
+      </div>
+    </div>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useCursors(options?: UseCursorsOptions): {
+  myCursor: Cursor | null
+  allCursors: Record<string, Cursor>
+}
+```
+
+## Parameters
+
+<ParamField path="options" type="UseCursorsOptions" default="{}">
+  Optional configuration object for cursor behavior
+</ParamField>
+
+### UseCursorsOptions
+
+<ParamField path="deleteOnLeave" type="boolean" default="false">
+  Whether to remove the cursor when the user's mouse leaves the window
+</ParamField>
+
+<ParamField path="omitMyValue" type="boolean" default="true">
+  Whether to exclude the current user's cursor from allCursors
+</ParamField>
+
+<ParamField path="throttleDelay" type="number" default="50">
+  Delay in milliseconds between cursor position updates (50ms = 20 updates per second)
+</ParamField>
+
+## Return Value
+
+<ParamField path="myCursor" type="Cursor | null">
+  The current user's cursor position, or null if not tracking
+</ParamField>
+
+<ParamField path="allCursors" type="Record<string, Cursor>">
+  Object mapping user IDs to their cursor positions
+</ParamField>
+
+### Cursor Interface
+
+<ParamField path="clientX" type="number">
+  X-coordinate relative to the viewport (window)
+</ParamField>
+
+<ParamField path="clientY" type="number">
+  Y-coordinate relative to the viewport (window)
+</ParamField>
+
+<ParamField path="pageX" type="number">
+  X-coordinate relative to the document (including scroll)
+</ParamField>
+
+<ParamField path="pageY" type="number">
+  Y-coordinate relative to the document (including scroll)
+</ParamField>
+
+<ParamField path="percentX" type="number">
+  X-coordinate as percentage of document width (0-100)
+</ParamField>
+
+<ParamField path="percentY" type="number">
+  Y-coordinate as percentage of document height (0-100)
+</ParamField>
+
+## Examples
+
+### Collaborative Design Tool
+
+```tsx
+import { useCursors, useNicknames, useConnectedUsers } from 'react-together'
+import { useState } from 'react'
+
+function CollaborativeDesignTool() {
+  const { myCursor, allCursors } = useCursors({ 
+    deleteOnLeave: true,
+    throttleDelay: 16 // ~60fps for smooth design work
+  })
+  const [, , allNicknames] = useNicknames()
+  const connectedUsers = useConnectedUsers()
+  const [selectedTool, setSelectedTool] = useState('cursor')
+
+  const getCursorColor = (userId: string) => {
+    const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
+    return colors[userId.charCodeAt(0) % colors.length]
+  }
+
+  return (
+    <div className="relative w-full h-screen bg-white overflow-hidden">
+      {/* Toolbar */}
+      <div className="absolute top-4 left-4 z-40 bg-white border rounded-lg shadow-lg p-2 flex gap-2">
+        {['cursor', 'pen', 'eraser', 'text'].map((tool) => (
+          <button
+            key={tool}
+            onClick={() => setSelectedTool(tool)}
+            className={`px-3 py-2 rounded text-sm font-medium ${
+              selectedTool === tool 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-100 hover:bg-gray-200'
+            }`}
+          >
+            {tool.charAt(0).toUpperCase() + tool.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* User List */}
+      <div className="absolute top-4 right-4 z-40 bg-white border rounded-lg shadow-lg p-3">
+        <h3 className="font-semibold mb-2">Active Users</h3>
+        <div className="space-y-1">
+          {connectedUsers.map(({ userId, isYou }) => (
+            <div key={userId} className="flex items-center space-x-2">
+              <div 
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: getCursorColor(userId) }}
+              />
+              <span className="text-sm">
+                {allNicknames[userId] || userId}
+                {isYou && ' (You)'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Canvas Area */}
+      <div className="w-full h-full relative">
+        {/* Other users' cursors */}
+        {Object.entries(allCursors).map(([userId, cursor]) => {
+          if (!cursor) return null
+          
+          const color = getCursorColor(userId)
+          const nickname = allNicknames[userId] || userId
+          
+          return (
+            <div key={userId}>
+              {/* Cursor */}
+              <div
+                className="fixed pointer-events-none z-30"
+                style={{
+                  left: cursor.clientX,
+                  top: cursor.clientY,
+                  transition: 'all 0.1s linear',
+                }}
+              >
+                {/* Cursor icon */}
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M5.65376 12.3673H5.46026L5.31717 12.4976L0.500002 16.8829L0.500002 1.19841L11.7841 12.3673H5.65376Z"
+                    fill={color}
+                    stroke="white"
+                    strokeWidth="1"
+                  />
+                </svg>
+                
+                {/* User label */}
+                <div
+                  className="absolute top-6 left-2 px-2 py-1 rounded text-xs text-white whitespace-nowrap"
+                  style={{ backgroundColor: color }}
+                >
+                  {nickname}
+                </div>
+              </div>
+
+              {/* Tool indicator */}
+              {selectedTool !== 'cursor' && (
+                <div
+                  className="fixed w-8 h-8 rounded-full border-2 pointer-events-none z-20 opacity-50"
+                  style={{
+                    left: cursor.clientX - 16,
+                    top: cursor.clientY - 16,
+                    borderColor: color,
+                    transition: 'all 0.1s linear',
+                  }}
+                />
+              )}
+            </div>
+          )
+        })}
+
+        {/* Canvas content would go here */}
+        <div className="flex items-center justify-center h-full text-gray-400">
+          <p>Design canvas - move your cursor to see real-time collaboration</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Code Editor with Cursor Tracking
+
+```tsx
+import { useCursors, useNicknames, useStateTogether } from 'react-together'
+import { useRef, useEffect } from 'react'
+
+interface CursorPosition {
+  line: number
+  column: number
+  userId: string
+}
+
+function CollaborativeCodeEditor() {
+  const { allCursors } = useCursors({ 
+    deleteOnLeave: true,
+    throttleDelay: 100 // Slower updates for text editing
+  })
+  const [, , allNicknames] = useNicknames()
+  const [code, setCode] = useStateTogether('code-content', '// Start coding together!\n\n')
+  const [editorCursors, setEditorCursors] = useStateTogether<CursorPosition[]>('editor-cursors', [])
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const getUserColor = (userId: string) => {
+    const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6']
+    return colors[userId.charCodeAt(0) % colors.length]
+  }
+
+  const getLineColumn = (text: string, position: number) => {
+    const lines = text.slice(0, position).split('\n')
+    return {
+      line: lines.length - 1,
+      column: lines[lines.length - 1].length
+    }
+  }
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCode(e.target.value)
+    
+    // Update cursor position in text
+    const { selectionStart } = e.target
+    const { line, column } = getLineColumn(e.target.value, selectionStart)
+    
+    // Update editor cursor position for current user
+    // Implementation would depend on your user identification system
+  }
+
+  return (
+    <div className="relative w-full h-screen bg-gray-900 text-white flex">
+      {/* Editor Sidebar */}
+      <div className="w-64 bg-gray-800 p-4 border-r border-gray-700">
+        <h3 className="font-semibold mb-4">Collaborative Users</h3>
+        <div className="space-y-2">
+          {Object.entries(allCursors).map(([userId, cursor]) => {
+            if (!cursor) return null
+            
+            return (
+              <div key={userId} className="flex items-center space-x-2">
+                <div 
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: getUserColor(userId) }}
+                />
+                <span className="text-sm">
+                  {allNicknames[userId] || userId}
+                </span>
+                <span className="text-xs text-gray-400">
+                  ({Math.round(cursor.percentX)}%, {Math.round(cursor.percentY)}%)
+                </span>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="mt-6">
+          <h4 className="font-medium mb-2">Mouse Positions</h4>
+          <div className="space-y-1 text-xs">
+            {Object.entries(allCursors).map(([userId, cursor]) => {
+              if (!cursor) return null
+              
+              return (
+                <div key={userId} className="text-gray-400">
+                  {allNicknames[userId] || userId}: 
+                  {cursor.pageX}, {cursor.pageY}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Code Editor */}
+      <div className="flex-1 relative">
+        {/* Line numbers and editor */}
+        <div className="h-full flex">
+          <div className="w-12 bg-gray-850 text-gray-500 text-sm font-mono p-2 select-none">
+            {code.split('\n').map((_, index) => (
+              <div key={index} className="text-right pr-2">
+                {index + 1}
+              </div>
+            ))}
+          </div>
+          
+          <div className="flex-1 relative">
+            <textarea
+              ref={textareaRef}
+              value={code}
+              onChange={handleTextareaChange}
+              className="w-full h-full p-4 bg-transparent text-white font-mono text-sm resize-none focus:outline-none"
+              placeholder="Start typing..."
+              spellCheck={false}
+            />
+            
+            {/* Cursor overlays for other users */}
+            {Object.entries(allCursors).map(([userId, cursor]) => {
+              if (!cursor) return null
+              
+              return (
+                <div
+                  key={userId}
+                  className="absolute pointer-events-none"
+                  style={{
+                    left: cursor.clientX - 256, // Offset for sidebar
+                    top: cursor.clientY - 100, // Approximate offset
+                    zIndex: 10,
+                  }}
+                >
+                  <div 
+                    className="w-0.5 h-5 animate-pulse"
+                    style={{ backgroundColor: getUserColor(userId) }}
+                  />
+                  <div 
+                    className="text-xs px-1 py-0.5 rounded text-white whitespace-nowrap"
+                    style={{ backgroundColor: getUserColor(userId) }}
+                  >
+                    {allNicknames[userId] || userId}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Presentation Mode with Pointer
+
+```tsx
+import { useCursors, useNicknames, useStateTogether } from 'react-together'
+
+interface Slide {
+  id: string
+  title: string
+  content: string
+}
+
+function CollaborativePresentation() {
+  const { myCursor, allCursors } = useCursors({ 
+    deleteOnLeave: true,
+    omitMyValue: false // Include presenter's cursor
+  })
+  const [, , allNicknames] = useNicknames()
+  const [slides] = useStateTogether<Slide[]>('presentation-slides', [
+    { id: '1', title: 'Welcome', content: 'Welcome to our presentation!' },
+    { id: '2', title: 'Overview', content: 'Here is an overview of what we will cover.' },
+    { id: '3', title: 'Details', content: 'Let us dive into the details.' }
+  ])
+  const [currentSlide, setCurrentSlide] = useStateTogether('current-slide', 0)
+  const [isPresenting, setIsPresenting] = useStateTogether('presentation-mode', false)
+
+  const currentSlideData = slides[currentSlide]
+
+  return (
+    <div className="relative w-full h-screen bg-gray-100">
+      {/* Presentation Controls */}
+      <div className="absolute top-4 left-4 z-50 bg-white rounded-lg shadow-lg p-3">
+        <div className="flex gap-2 mb-2">
+          <button
+            onClick={() => setCurrentSlide(Math.max(0, currentSlide - 1))}
+            disabled={currentSlide === 0}
+            className="px-3 py-1 bg-blue-500 text-white rounded disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => setCurrentSlide(Math.min(slides.length - 1, currentSlide + 1))}
+            disabled={currentSlide === slides.length - 1}
+            className="px-3 py-1 bg-blue-500 text-white rounded disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+        
+        <div className="text-sm text-gray-600">
+          Slide {currentSlide + 1} of {slides.length}
+        </div>
+        
+        <button
+          onClick={() => setIsPresenting(!isPresenting)}
+          className={`mt-2 px-3 py-1 rounded text-sm ${
+            isPresenting 
+              ? 'bg-red-500 text-white' 
+              : 'bg-green-500 text-white'
+          }`}
+        >
+          {isPresenting ? 'Stop Presenting' : 'Start Presenting'}
+        </button>
+      </div>
+
+      {/* Attendee List */}
+      <div className="absolute top-4 right-4 z-50 bg-white rounded-lg shadow-lg p-3">
+        <h3 className="font-semibold mb-2">Attendees</h3>
+        <div className="space-y-1">
+          {Object.entries(allCursors).map(([userId, cursor]) => {
+            if (!cursor) return null
+            
+            return (
+              <div key={userId} className="flex items-center space-x-2 text-sm">
+                <div className="w-2 h-2 bg-green-500 rounded-full" />
+                <span>{allNicknames[userId] || userId}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Slide Content */}
+      <div className="flex items-center justify-center h-full p-8">
+        <div className="bg-white rounded-lg shadow-xl p-12 max-w-4xl w-full">
+          <h1 className="text-4xl font-bold mb-8 text-center">
+            {currentSlideData?.title}
+          </h1>
+          <p className="text-xl text-gray-700 text-center leading-relaxed">
+            {currentSlideData?.content}
+          </p>
+        </div>
+      </div>
+
+      {/* Collaborative Cursors */}
+      {isPresenting && Object.entries(allCursors).map(([userId, cursor]) => {
+        if (!cursor) return null
+        
+        const isPresenter = userId === 'presenter-id' // Your logic here
+        
+        return (
+          <div key={userId}>
+            {/* Laser pointer effect */}
+            <div
+              className={`fixed pointer-events-none z-40 ${
+                isPresenter ? 'w-4 h-4 bg-red-500' : 'w-3 h-3 bg-blue-500'
+              } rounded-full opacity-80`}
+              style={{
+                left: cursor.clientX - (isPresenter ? 8 : 6),
+                top: cursor.clientY - (isPresenter ? 8 : 6),
+                transition: 'all 0.1s linear',
+                boxShadow: isPresenter ? '0 0 20px rgba(239, 68, 68, 0.5)' : 'none'
+              }}
+            />
+            
+            {/* User label */}
+            <div
+              className={`fixed pointer-events-none z-40 px-2 py-1 rounded text-xs text-white ${
+                isPresenter ? 'bg-red-500' : 'bg-blue-500'
+              }`}
+              style={{
+                left: cursor.clientX + 10,
+                top: cursor.clientY - 25,
+                transition: 'all 0.1s linear',
+              }}
+            >
+              {allNicknames[userId] || userId}
+              {isPresenter && ' (Presenter)'}
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Cursor trails for dramatic effect */}
+      {isPresenting && (
+        <style jsx>{`
+          @keyframes cursorTrail {
+            0% { opacity: 0.8; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.3); }
+          }
+        `}</style>
+      )}
+    </div>
+  )
+}
+```
+
+### Gaming/Interactive Experience
+
+```tsx
+import { useCursors, useConnectedUsers, useStateTogether } from 'react-together'
+import { useState, useEffect } from 'react'
+
+interface GameState {
+  score: Record<string, number>
+  targets: { id: string; x: number; y: number; size: number }[]
+}
+
+function CursorGame() {
+  const { myCursor, allCursors } = useCursors({ 
+    deleteOnLeave: true,
+    throttleDelay: 16 // 60fps for smooth gaming
+  })
+  const connectedUsers = useConnectedUsers()
+  const [gameState, setGameState] = useStateTogether<GameState>('cursor-game', {
+    score: {},
+    targets: []
+  })
+  const [isPlaying, setIsPlaying] = useStateTogether('game-playing', false)
+  const [timeLeft, setTimeLeft] = useState(30)
+
+  // Generate random targets
+  const generateTarget = () => ({
+    id: Math.random().toString(36).substr(2, 9),
+    x: Math.random() * (window.innerWidth - 100) + 50,
+    y: Math.random() * (window.innerHeight - 100) + 50,
+    size: Math.random() * 30 + 20
+  })
+
+  // Game logic
+  useEffect(() => {
+    if (!isPlaying) return
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          setIsPlaying(false)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    const targetGenerator = setInterval(() => {
+      setGameState(prev => ({
+        ...prev,
+        targets: [...prev.targets.slice(-4), generateTarget()] // Keep max 5 targets
+      }))
+    }, 1500)
+
+    return () => {
+      clearInterval(timer)
+      clearInterval(targetGenerator)
+    }
+  }, [isPlaying])
+
+  // Check for target hits
+  useEffect(() => {
+    if (!myCursor || !isPlaying) return
+
+    const currentUser = connectedUsers.find(u => u.isYou)
+    if (!currentUser) return
+
+    gameState.targets.forEach(target => {
+      const distance = Math.sqrt(
+        Math.pow(myCursor.clientX - target.x, 2) + 
+        Math.pow(myCursor.clientY - target.y, 2)
+      )
+
+      if (distance < target.size / 2) {
+        // Hit! Remove target and add score
+        setGameState(prev => ({
+          targets: prev.targets.filter(t => t.id !== target.id),
+          score: {
+            ...prev.score,
+            [currentUser.userId]: (prev.score[currentUser.userId] || 0) + 10
+          }
+        }))
+      }
+    })
+  }, [myCursor, gameState.targets, isPlaying, connectedUsers])
+
+  const startGame = () => {
+    setIsPlaying(true)
+    setTimeLeft(30)
+    setGameState({
+      score: {},
+      targets: [generateTarget(), generateTarget()]
+    })
+  }
+
+  const topPlayers = Object.entries(gameState.score)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 3)
+
+  return (
+    <div className="relative w-full h-screen bg-gradient-to-br from-purple-400 to-pink-400 overflow-hidden">
+      {/* Game UI */}
+      <div className="absolute top-4 left-4 z-50 bg-white rounded-lg shadow-lg p-4">
+        <h2 className="font-bold text-lg mb-2">Cursor Target Game</h2>
+        
+        {!isPlaying ? (
+          <button
+            onClick={startGame}
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+          >
+            Start Game
+          </button>
+        ) : (
+          <div>
+            <p className="text-lg font-semibold">Time: {timeLeft}s</p>
+            <p>Move your cursor to hit targets!</p>
+          </div>
+        )}
+
+        {topPlayers.length > 0 && (
+          <div className="mt-4">
+            <h3 className="font-semibold mb-2">Leaderboard</h3>
+            {topPlayers.map(([userId, score], index) => (
+              <div key={userId} className="flex justify-between">
+                <span>#{index + 1} User {userId.slice(0, 6)}</span>
+                <span className="font-semibold">{score}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Connected Users */}
+      <div className="absolute top-4 right-4 z-50 bg-white rounded-lg shadow-lg p-3">
+        <h3 className="font-semibold mb-2">Players ({connectedUsers.length})</h3>
+        {connectedUsers.map(({ userId, isYou }) => (
+          <div key={userId} className="flex items-center justify-between">
+            <span className="text-sm">
+              {isYou ? 'You' : `User ${userId.slice(0, 6)}`}
+            </span>
+            <span className="font-semibold">
+              {gameState.score[userId] || 0}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Game Targets */}
+      {isPlaying && gameState.targets.map(target => (
+        <div
+          key={target.id}
+          className="absolute bg-yellow-400 rounded-full border-4 border-yellow-600 animate-pulse"
+          style={{
+            left: target.x - target.size / 2,
+            top: target.y - target.size / 2,
+            width: target.size,
+            height: target.size,
+          }}
+        />
+      ))}
+
+      {/* Player Cursors */}
+      {Object.entries(allCursors).map(([userId, cursor]) => {
+        if (!cursor) return null
+        
+        const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6']
+        const color = colors[userId.charCodeAt(0) % colors.length]
+        
+        return (
+          <div
+            key={userId}
+            className="fixed pointer-events-none z-40"
+            style={{
+              left: cursor.clientX,
+              top: cursor.clientY,
+              transition: 'all 0.05s linear',
+            }}
+          >
+            {/* Cursor */}
+            <div
+              className="w-4 h-4 rounded-full border-2 border-white"
+              style={{ backgroundColor: color }}
+            />
+            
+            {/* Trail effect */}
+            <div
+              className="absolute inset-0 w-4 h-4 rounded-full animate-ping"
+              style={{ backgroundColor: color, opacity: 0.3 }}
+            />
+            
+            {/* Score display */}
+            <div
+              className="absolute top-6 left-2 px-1 py-0.5 rounded text-xs text-white"
+              style={{ backgroundColor: color }}
+            >
+              {gameState.score[userId] || 0}
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Game Over */}
+      {!isPlaying && timeLeft === 0 && topPlayers.length > 0 && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 text-center">
+            <h2 className="text-2xl font-bold mb-4">Game Over!</h2>
+            <h3 className="text-lg mb-4">Final Scores:</h3>
+            {topPlayers.map(([userId, score], index) => (
+              <div key={userId} className="text-lg mb-2">
+                #{index + 1} User {userId.slice(0, 6)}: {score} points
+              </div>
+            ))}
+            <button
+              onClick={startGame}
+              className="mt-4 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded"
+            >
+              Play Again
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+### Performance Optimization
+
+```tsx
+// Adjust throttle delay based on use case
+const { myCursor, allCursors } = useCursors({
+  throttleDelay: 16,  // 60fps for smooth gaming/design
+  throttleDelay: 50,  // 20fps for general use (default)
+  throttleDelay: 100, // 10fps for text editing
+})
+
+// Use deleteOnLeave for better UX
+const { myCursor, allCursors } = useCursors({
+  deleteOnLeave: true, // Remove cursor when mouse leaves window
+})
+```
+
+### Cursor Visualization
+
+```tsx
+// Smooth cursor transitions
+<div
+  style={{
+    left: cursor.clientX,
+    top: cursor.clientY,
+    transition: 'all 0.1s linear', // Smooth movement
+  }}
+/>
+
+// Custom cursor shapes based on tools/modes
+const CursorIcon = ({ tool }: { tool: string }) => {
+  switch (tool) {
+    case 'pen':
+      return <PenIcon />
+    case 'eraser':
+      return <EraserIcon />
+    default:
+      return <DefaultCursorIcon />
+  }
+}
+```
+
+### Coordinate Systems
+
+```tsx
+// Use appropriate coordinates for your use case
+const cursor = allCursors[userId]
+
+// For fixed positioning relative to viewport
+style={{ left: cursor.clientX, top: cursor.clientY }}
+
+// For absolute positioning relative to document
+style={{ left: cursor.pageX, top: cursor.pageY }}
+
+// For responsive layouts using percentages
+style={{ 
+  left: `${cursor.percentX}%`, 
+  top: `${cursor.percentY}%` 
+}}
+```
+
+## Related Hooks
+
+- [`useNicknames`](/react-together/hooks/use-nicknames) - Display user names with cursors
+- [`useConnectedUsers`](/react-together/hooks/use-connected-users) - Get connected user information
+- [`useStateTogetherWithPerUserValues`](/react-together/hooks/use-state-together-with-per-user-values) - Share per-user data
+- [`useHoveringUsers`](/react-together/hooks/use-hovering-users) - Track hover interactions
+
+## TypeScript Support
+
+The hook provides full TypeScript support with detailed interfaces:
+
+```tsx
+interface Cursor {
+  clientX: number    // Viewport coordinates
+  clientY: number
+  pageX: number      // Document coordinates  
+  pageY: number
+  percentX: number   // Percentage coordinates
+  percentY: number
+}
+
+interface UseCursorsOptions {
+  deleteOnLeave?: boolean    // default: false
+  omitMyValue?: boolean      // default: true  
+  throttleDelay?: number     // default: 50
+}
+
+const {
+  myCursor,    // Cursor | null
+  allCursors   // Record<string, Cursor>
+} = useCursors(options)
+```

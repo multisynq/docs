@@ -1,0 +1,726 @@
+---
+title: "useIsSynchronized"
+description: "Check if your local state is synchronized with the shared model. Essential for building responsive real-time interfaces."
+---
+
+## Overview
+
+`useIsSynchronized` returns `true` when your local React Together state is fully synchronized with the shared model, and `false` when synchronization is in progress or when not connected to a session. This hook is crucial for showing loading states and ensuring users know when their changes are fully propagated.
+
+<Info>
+**Perfect for**: Loading indicators, sync status displays, preventing actions during sync, optimistic UI patterns, and debugging synchronization issues.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { useIsSynchronized } from 'react-together'
+
+function SyncStatus() {
+  const isSynchronized = useIsSynchronized()
+  
+  return (
+    <div className="sync-indicator">
+      {isSynchronized ? (
+        <span className="text-green-600">✓ Synchronized</span>
+      ) : (
+        <span className="text-yellow-600">⏳ Synchronizing...</span>
+      )}
+    </div>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useIsSynchronized(): boolean
+```
+
+## Return Value
+
+<ParamField path="isSynchronized" type="boolean">
+  `true` if connected to a session and all state is synchronized with the model, `false` during sync or when disconnected
+</ParamField>
+
+## How It Works
+
+The hook returns `true` when all of these conditions are met:
+
+1. **Connected to session** - User is in a React Together session
+2. **Has participants** - At least one user (including yourself) has state
+3. **Model synchronized** - The underlying Croquet model is caught up with events
+
+## Examples
+
+### Synchronization Loading Indicator
+
+Show a loading state while state synchronization is in progress:
+
+```tsx
+import { useIsSynchronized, useStateTogether } from 'react-together'
+
+function CollaborativeCounter() {
+  const isSynchronized = useIsSynchronized()
+  const [count, setCount] = useStateTogether('counter', 0)
+  
+  return (
+    <div className="counter-widget">
+      <div className="header">
+        <h3>Shared Counter</h3>
+        <div className="sync-status">
+          {isSynchronized ? (
+            <span className="status-badge synchronized">
+              ✓ Live
+            </span>
+          ) : (
+            <span className="status-badge synchronizing">
+              <span className="spinner"></span>
+              Syncing...
+            </span>
+          )}
+        </div>
+      </div>
+      
+      <div className="counter-display">
+        <span className={isSynchronized ? 'count' : 'count syncing'}>
+          {count}
+        </span>
+      </div>
+      
+      <div className="counter-controls">
+        <button
+          onClick={() => setCount(count - 1)}
+          disabled={!isSynchronized}
+          className={!isSynchronized ? 'disabled' : ''}
+        >
+          -
+        </button>
+        <button
+          onClick={() => setCount(count + 1)}
+          disabled={!isSynchronized}
+          className={!isSynchronized ? 'disabled' : ''}
+        >
+          +
+        </button>
+      </div>
+      
+      {!isSynchronized && (
+        <div className="sync-notice">
+          Waiting for synchronization...
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Advanced Connection Dashboard
+
+Build a comprehensive status dashboard:
+
+```tsx
+import { 
+  useIsSynchronized, 
+  useIsTogether, 
+  useConnectedUsers,
+  useStateTogether
+} from 'react-together'
+import { useEffect, useState } from 'react'
+
+function ConnectionDashboard() {
+  const isTogether = useIsTogether()
+  const isSynchronized = useIsSynchronized()
+  const connectedUsers = useConnectedUsers()
+  const [testData, setTestData] = useStateTogether('test', 'initial')
+  
+  const [syncHistory, setSyncHistory] = useState<Array<{
+    timestamp: Date
+    synchronized: boolean
+  }>>([])
+  
+  // Track sync state changes
+  useEffect(() => {
+    setSyncHistory(prev => [
+      ...prev.slice(-9), // Keep last 10 entries
+      {
+        timestamp: new Date(),
+        synchronized: isSynchronized
+      }
+    ])
+  }, [isSynchronized])
+  
+  const getStatusColor = () => {
+    if (!isTogether) return 'gray'
+    if (isSynchronized) return 'green'
+    return 'yellow'
+  }
+  
+  const getStatusText = () => {
+    if (!isTogether) return 'Disconnected'
+    if (isSynchronized) return 'Synchronized'
+    return 'Synchronizing'
+  }
+  
+  return (
+    <div className="connection-dashboard">
+      <div className="dashboard-header">
+        <h2>Real-time Status</h2>
+        <div 
+          className={`status-indicator ${getStatusColor()}`}
+          title={getStatusText()}
+        >
+          <div className="status-dot"></div>
+          {getStatusText()}
+        </div>
+      </div>
+      
+      <div className="metrics-grid">
+        <div className="metric">
+          <label>Connection</label>
+          <span className={isTogether ? 'connected' : 'disconnected'}>
+            {isTogether ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+        
+        <div className="metric">
+          <label>Synchronization</label>
+          <span className={isSynchronized ? 'synced' : 'syncing'}>
+            {isSynchronized ? 'Complete' : 'In Progress'}
+          </span>
+        </div>
+        
+        <div className="metric">
+          <label>Connected Users</label>
+          <span>{connectedUsers.length}</span>
+        </div>
+        
+        <div className="metric">
+          <label>Model State</label>
+          <span className={isSynchronized ? 'current' : 'updating'}>
+            {isSynchronized ? 'Current' : 'Updating'}
+          </span>
+        </div>
+      </div>
+      
+      {/* Sync History */}
+      <div className="sync-history">
+        <h4>Synchronization History</h4>
+        <div className="history-timeline">
+          {syncHistory.map((entry, index) => (
+            <div
+              key={index}
+              className={`history-entry ${entry.synchronized ? 'synced' : 'syncing'}`}
+              title={entry.timestamp.toLocaleTimeString()}
+            >
+              <div className="entry-dot"></div>
+              <span className="entry-time">
+                {entry.timestamp.toLocaleTimeString()}
+              </span>
+              <span className="entry-status">
+                {entry.synchronized ? 'Synced' : 'Syncing'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Test Data Area */}
+      <div className="test-area">
+        <h4>Test Synchronization</h4>
+        <div className="test-controls">
+          <input
+            type="text"
+            value={testData}
+            onChange={(e) => setTestData(e.target.value)}
+            placeholder="Type to test sync..."
+            disabled={!isSynchronized}
+          />
+          <button
+            onClick={() => setTestData(`Updated at ${new Date().toLocaleTimeString()}`)}
+            disabled={!isSynchronized}
+          >
+            Update Test Data
+          </button>
+        </div>
+        {!isSynchronized && (
+          <p className="sync-warning">
+            Changes disabled while synchronizing...
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+### Optimistic UI with Sync Feedback
+
+Show immediate feedback while ensuring sync status is clear:
+
+```tsx
+import { useIsSynchronized, useStateTogether } from 'react-together'
+import { useState, useEffect } from 'react'
+
+interface TodoItem {
+  id: string
+  text: string
+  completed: boolean
+  createdAt: string
+}
+
+function OptimisticTodoList() {
+  const isSynchronized = useIsSynchronized()
+  const [todos, setTodos] = useStateTogether<TodoItem[]>('todos', [])
+  const [pendingChanges, setPendingChanges] = useState<Set<string>>(new Set())
+  
+  // Clear pending changes when synchronized
+  useEffect(() => {
+    if (isSynchronized) {
+      setPendingChanges(new Set())
+    }
+  }, [isSynchronized])
+  
+  const addTodo = (text: string) => {
+    const newTodo: TodoItem = {
+      id: Date.now().toString(),
+      text,
+      completed: false,
+      createdAt: new Date().toISOString()
+    }
+    
+    // Optimistically update
+    setTodos([...todos, newTodo])
+    
+    // Track as pending
+    setPendingChanges(prev => new Set([...prev, newTodo.id]))
+  }
+  
+  const toggleTodo = (id: string) => {
+    setTodos(todos.map(todo =>
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    ))
+    setPendingChanges(prev => new Set([...prev, id]))
+  }
+  
+  const deleteTodo = (id: string) => {
+    setTodos(todos.filter(todo => todo.id !== id))
+    setPendingChanges(prev => new Set([...prev, id]))
+  }
+  
+  return (
+    <div className="optimistic-todo-list">
+      <div className="header">
+        <h2>Collaborative Todo List</h2>
+        <div className="sync-status">
+          {isSynchronized ? (
+            <span className="status-synced">
+              ✓ All changes saved
+            </span>
+          ) : (
+            <span className="status-syncing">
+              <span className="pulse-icon">⏳</span>
+              Saving changes...
+            </span>
+          )}
+        </div>
+      </div>
+      
+      <div className="add-todo">
+        <input
+          type="text"
+          placeholder="Add a new todo..."
+          onKeyPress={(e) => {
+            if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+              addTodo(e.currentTarget.value.trim())
+              e.currentTarget.value = ''
+            }
+          }}
+        />
+      </div>
+      
+      <div className="todo-list">
+        {todos.map(todo => {
+          const isPending = pendingChanges.has(todo.id)
+          
+          return (
+            <div
+              key={todo.id}
+              className={`todo-item ${todo.completed ? 'completed' : ''} ${isPending ? 'pending' : ''}`}
+            >
+              <input
+                type="checkbox"
+                checked={todo.completed}
+                onChange={() => toggleTodo(todo.id)}
+              />
+              <span className="todo-text">{todo.text}</span>
+              
+              {isPending && !isSynchronized && (
+                <span className="pending-indicator" title="Syncing change...">
+                  ⏳
+                </span>
+              )}
+              
+              <button
+                onClick={() => deleteTodo(todo.id)}
+                className="delete-btn"
+                title="Delete todo"
+              >
+                ×
+              </button>
+            </div>
+          )
+        })}
+      </div>
+      
+      {pendingChanges.size > 0 && !isSynchronized && (
+        <div className="pending-summary">
+          {pendingChanges.size} change(s) pending synchronization...
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Form Submission with Sync Validation
+
+Prevent form submission until changes are synchronized:
+
+```tsx
+import { useIsSynchronized, useStateTogether } from 'react-together'
+import { useState } from 'react'
+
+function CollaborativeForm() {
+  const isSynchronized = useIsSynchronized()
+  const [formData, setFormData] = useStateTogether('form', {
+    name: '',
+    email: '',
+    message: ''
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!isSynchronized) {
+      alert('Please wait for synchronization to complete before submitting.')
+      return
+    }
+    
+    setIsSubmitting(true)
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      alert('Form submitted successfully!')
+      setFormData({ name: '', email: '', message: '' })
+    } catch (error) {
+      alert('Submission failed. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+  
+  const updateField = (field: keyof typeof formData, value: string) => {
+    setFormData({ ...formData, [field]: value })
+  }
+  
+  const canSubmit = isSynchronized && !isSubmitting && 
+    formData.name && formData.email && formData.message
+  
+  return (
+    <div className="collaborative-form">
+      <div className="form-header">
+        <h2>Contact Form</h2>
+        <div className="sync-indicator">
+          {isSynchronized ? (
+            <span className="synced">✓ Ready to submit</span>
+          ) : (
+            <span className="syncing">⏳ Synchronizing changes...</span>
+          )}
+        </div>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="form-body">
+        <div className="field">
+          <label htmlFor="name">Name *</label>
+          <input
+            id="name"
+            type="text"
+            value={formData.name}
+            onChange={(e) => updateField('name', e.target.value)}
+            className={!isSynchronized ? 'syncing' : ''}
+            required
+          />
+        </div>
+        
+        <div className="field">
+          <label htmlFor="email">Email *</label>
+          <input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => updateField('email', e.target.value)}
+            className={!isSynchronized ? 'syncing' : ''}
+            required
+          />
+        </div>
+        
+        <div className="field">
+          <label htmlFor="message">Message *</label>
+          <textarea
+            id="message"
+            value={formData.message}
+            onChange={(e) => updateField('message', e.target.value)}
+            className={!isSynchronized ? 'syncing' : ''}
+            rows={4}
+            required
+          />
+        </div>
+        
+        <div className="form-actions">
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className={canSubmit ? 'ready' : 'disabled'}
+          >
+            {isSubmitting ? (
+              <>
+                <span className="spinner"></span>
+                Submitting...
+              </>
+            ) : !isSynchronized ? (
+              'Waiting for sync...'
+            ) : (
+              'Submit Form'
+            )}
+          </button>
+          
+          {!isSynchronized && (
+            <p className="sync-warning">
+              Form submission is disabled while synchronizing changes with other users.
+            </p>
+          )}
+        </div>
+      </form>
+    </div>
+  )
+}
+```
+
+### Real-time Collaboration Editor
+
+Show sync status in a collaborative text editor:
+
+```tsx
+import { useIsSynchronized, useStateTogether, useConnectedUsers } from 'react-together'
+import { useState, useRef, useEffect } from 'react'
+
+function CollaborativeEditor() {
+  const isSynchronized = useIsSynchronized()
+  const [content, setContent] = useStateTogether('document', '')
+  const connectedUsers = useConnectedUsers()
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  
+  // Update last sync time when synchronized
+  useEffect(() => {
+    if (isSynchronized) {
+      setLastSyncTime(new Date())
+    }
+  }, [isSynchronized])
+  
+  const formatSyncTime = (time: Date | null) => {
+    if (!time) return 'Never'
+    const now = new Date()
+    const diff = now.getTime() - time.getTime()
+    
+    if (diff < 1000) return 'Just now'
+    if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
+    return time.toLocaleTimeString()
+  }
+  
+  return (
+    <div className="collaborative-editor">
+      <div className="editor-header">
+        <div className="document-title">
+          <h2>Shared Document</h2>
+          <span className="character-count">
+            {content.length} characters
+          </span>
+        </div>
+        
+        <div className="editor-status">
+          <div className="sync-status">
+            <div className={`sync-indicator ${isSynchronized ? 'synced' : 'syncing'}`}>
+              <div className="status-dot"></div>
+              <span className="status-text">
+                {isSynchronized ? 'Synchronized' : 'Synchronizing...'}
+              </span>
+            </div>
+            <div className="last-sync">
+              Last sync: {formatSyncTime(lastSyncTime)}
+            </div>
+          </div>
+          
+          <div className="user-indicator">
+            <span className="user-count">
+              {connectedUsers.length} user(s) editing
+            </span>
+            <div className="user-avatars">
+              {connectedUsers.slice(0, 3).map(user => (
+                <div
+                  key={user.userId}
+                  className={`user-avatar ${user.isYou ? 'you' : ''}`}
+                  title={user.nickname}
+                >
+                  {user.nickname.charAt(0).toUpperCase()}
+                </div>
+              ))}
+              {connectedUsers.length > 3 && (
+                <div className="user-avatar overflow">
+                  +{connectedUsers.length - 3}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="editor-body">
+        <textarea
+          ref={textareaRef}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          className={`document-textarea ${!isSynchronized ? 'syncing' : ''}`}
+          placeholder="Start typing to collaborate with others..."
+          rows={20}
+        />
+        
+        {!isSynchronized && (
+          <div className="sync-overlay">
+            <div className="sync-message">
+              <span className="spinner"></span>
+              Synchronizing your changes...
+            </div>
+          </div>
+        )}
+      </div>
+      
+      <div className="editor-footer">
+        <div className="sync-info">
+          {isSynchronized ? (
+            <span className="sync-complete">
+              ✓ All changes synchronized across {connectedUsers.length} user(s)
+            </span>
+          ) : (
+            <span className="sync-pending">
+              ⏳ Synchronizing changes with other users...
+            </span>
+          )}
+        </div>
+        
+        <div className="auto-save-info">
+          Changes are automatically saved and shared in real-time
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+### Debounced Sync Indicator
+
+Avoid flickering sync indicators with proper debouncing:
+
+```tsx
+import { useIsSynchronized } from 'react-together'
+import { useState, useEffect } from 'react'
+
+function useDebouncedSyncStatus(delay = 100) {
+  const isSynchronized = useIsSynchronized()
+  const [debouncedSynced, setDebouncedSynced] = useState(isSynchronized)
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSynced(isSynchronized)
+    }, delay)
+    
+    return () => clearTimeout(timer)
+  }, [isSynchronized, delay])
+  
+  return debouncedSynced
+}
+```
+
+### Sync State Management
+
+Track sync state changes for analytics:
+
+```tsx
+import { useIsSynchronized } from 'react-together'
+import { useEffect, useRef } from 'react'
+
+function useSyncAnalytics() {
+  const isSynchronized = useIsSynchronized()
+  const lastSyncRef = useRef<boolean>(isSynchronized)
+  const syncStartTimeRef = useRef<Date | null>(null)
+  
+  useEffect(() => {
+    if (lastSyncRef.current !== isSynchronized) {
+      if (!isSynchronized) {
+        // Sync started
+        syncStartTimeRef.current = new Date()
+      } else if (syncStartTimeRef.current) {
+        // Sync completed
+        const duration = new Date().getTime() - syncStartTimeRef.current.getTime()
+        console.log(`Synchronization completed in ${duration}ms`)
+        syncStartTimeRef.current = null
+      }
+      
+      lastSyncRef.current = isSynchronized
+    }
+  }, [isSynchronized])
+  
+  return isSynchronized
+}
+```
+
+## Common Patterns
+
+- **Loading States**: Show spinners or disabled states while not synchronized
+- **Optimistic Updates**: Update UI immediately, show pending state until synced
+- **Form Validation**: Prevent submission until changes are synchronized
+- **Auto-save Indicators**: Show when documents are being saved/synced
+- **Conflict Resolution**: Handle cases where sync takes longer than expected
+
+## Related Hooks
+
+- [`useIsTogether`](/docs/react-together/hooks/use-is-together) - Check if connected to session
+- [`useStateTogether`](/docs/react-together/hooks/use-state-together) - The state being synchronized
+- [`useConnectedUsers`](/docs/react-together/hooks/use-connected-users) - Other users in the session
+- [`useNicknames`](/docs/react-together/hooks/use-nicknames) - User identification during sync
+
+## TypeScript Support
+
+`useIsSynchronized` is fully typed and returns a boolean value:
+
+```tsx
+import { useIsSynchronized } from 'react-together'
+
+const isSynchronized: boolean = useIsSynchronized()
+```
+
+## Technical Notes
+
+<Note>
+The hook checks three conditions: session connection, presence of at least one user with state, and model synchronization with the Croquet reflector. Heavy model processing can temporarily cause `false` returns.
+</Note>
+
+<Warning>
+Synchronization status can change rapidly during heavy usage. Use debouncing techniques to avoid UI flickering and provide smooth user experiences.
+</Warning> 

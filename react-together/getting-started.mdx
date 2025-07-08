@@ -1,0 +1,518 @@
+---
+title: "Getting Started with React Together"
+description: "Add real-time multi-user interaction to any React app with React Together. No backend or net-code required!"
+---
+
+## Overview
+
+**React Together** makes it incredibly easy to add real-time collaborative features to your React applications. With just a few hooks, you can synchronize state across multiple users, create live cursors, build real-time chat, and much more.
+
+<CardGroup cols={2}>
+  <Card title="✨ Easy to Use" icon="magic-wand-sparkles">
+    Simple hooks that work like built-in React state
+  </Card>
+  <Card title="🚀 No Backend Required" icon="server">
+    Built on Multisynq infrastructure - just add your API key
+  </Card>
+  <Card title="🎯 Real-time Sync" icon="refresh">
+    Automatic synchronization across all connected users
+  </Card>
+  <Card title="⚡ Fast Setup" icon="bolt">
+    Get collaborative features working in minutes
+  </Card>
+</CardGroup>
+
+## Quick Example
+
+Here's how easy it is to create a synchronized counter:
+
+```tsx
+import { useStateTogether } from 'react-together'
+
+export function SynchronizedCounter() {
+  const [count, setCount] = useStateTogether('counter', 0)
+
+  return (
+    <button onClick={() => setCount(count + 1)}>
+      Count: {count}
+    </button>
+  )
+}
+```
+
+That's it! This counter will stay synchronized across all users in real-time.
+
+## Installation
+
+Install React Together using your preferred package manager:
+
+<CodeGroup>
+
+```bash npm
+npm install react-together
+```
+
+```bash yarn
+yarn add react-together
+```
+
+```bash pnpm
+pnpm add react-together
+```
+
+```bash bun
+bun add react-together
+```
+
+</CodeGroup>
+
+## Basic Setup
+
+### 1. Get Your API Key
+
+<Card title="Get API Key" icon="key" href="https://multisynq.io/coder">
+  Sign up for free at multisynq.io to get your API key
+</Card>
+
+### 2. Wrap Your App
+
+Wrap your React app with the `ReactTogether` provider:
+
+```tsx
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { ReactTogether } from 'react-together'
+import App from './App'
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <ReactTogether
+    apiKey="your_api_key_here"
+    appId="com.example.myapp"
+    sessionParams={{
+      name: "my-session",
+      password: "optional-password"
+    }}
+  >
+    <App />
+  </ReactTogether>
+)
+```
+
+### 3. Use React Together Hooks
+
+Now you can use React Together hooks anywhere in your app:
+
+```tsx
+import { useStateTogether, useConnectedUsers } from 'react-together'
+
+function App() {
+  const [message, setMessage] = useStateTogether('message', 'Hello World!')
+  const connectedUsers = useConnectedUsers()
+
+  return (
+    <div>
+      <h1>{message}</h1>
+      <input 
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Type a message..."
+      />
+      <p>Connected users: {connectedUsers.length}</p>
+    </div>
+  )
+}
+```
+
+## Core Hooks
+
+### `useStateTogether`
+
+Synchronize state across all users - works just like `useState`:
+
+```tsx
+import { useStateTogether } from 'react-together'
+
+function SharedCounter() {
+  const [count, setCount] = useStateTogether('counter', 0)
+  
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(count + 1)}>+</button>
+      <button onClick={() => setCount(count - 1)}>-</button>
+      <button onClick={() => setCount(0)}>Reset</button>
+    </div>
+  )
+}
+```
+
+### `useConnectedUsers`
+
+Get information about all connected users:
+
+```tsx
+import { useConnectedUsers } from 'react-together'
+
+function UserList() {
+  const users = useConnectedUsers()
+  
+  return (
+    <div>
+      <h3>Connected Users ({users.length})</h3>
+      <ul>
+        {users.map(user => (
+          <li key={user.id}>
+            {user.nickname || `User ${user.id.slice(0, 8)}`}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+```
+
+### `useCursors`
+
+Display live mouse cursors for all users:
+
+```tsx
+import { useCursors } from 'react-together'
+
+function LiveCursors() {
+  const cursors = useCursors()
+  
+  return (
+    <div style={{ position: 'relative', height: '100vh' }}>
+      {/* Your app content */}
+      
+      {/* Live cursors */}
+      {cursors.map(cursor => (
+        <div
+          key={cursor.userId}
+          style={{
+            position: 'absolute',
+            left: cursor.x,
+            top: cursor.y,
+            pointerEvents: 'none',
+            backgroundColor: cursor.color,
+            borderRadius: '50%',
+            width: 12,
+            height: 12,
+            transform: 'translate(-50%, -50%)'
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+```
+
+## Configuration Options
+
+### ReactTogether Provider Props
+
+<ParamField path="apiKey" type="string" required>
+  Your Multisynq API key from [multisynq.io/coder](https://multisynq.io/coder)
+</ParamField>
+
+<ParamField path="appId" type="string" required>
+  Unique identifier for your app (e.g., "com.example.myapp")
+</ParamField>
+
+<ParamField path="sessionParams" type="object">
+  Session configuration options
+</ParamField>
+
+<ParamField path="sessionParams.name" type="string">
+  Session name to join. If not provided, will auto-generate from URL parameters.
+</ParamField>
+
+<ParamField path="sessionParams.password" type="string">
+  Optional session password for private rooms
+</ParamField>
+
+<ParamField path="userInfo" type="object">
+  Information about the current user
+</ParamField>
+
+<ParamField path="userInfo.nickname" type="string">
+  Display name for the current user
+</ParamField>
+
+<ParamField path="userInfo.color" type="string">
+  Color to represent this user (for cursors, etc.)
+</ParamField>
+
+### Example with All Options
+
+```tsx
+<ReactTogether
+  apiKey="your_api_key_here"
+  appId="com.example.myapp"
+  sessionParams={{
+    name: "room-123",
+    password: "secret"
+  }}
+  userInfo={{
+    nickname: "John Doe",
+    color: "#ff6b6b"
+  }}
+>
+  <App />
+</ReactTogether>
+```
+
+## Complete Examples
+
+### Real-time Todo List
+
+```tsx
+import { useStateTogether } from 'react-together'
+import { useState } from 'react'
+
+interface Todo {
+  id: string
+  text: string
+  completed: boolean
+  createdBy: string
+}
+
+function TodoApp() {
+  const [todos, setTodos] = useStateTogether<Todo[]>('todos', [])
+  const [newTodo, setNewTodo] = useState('')
+
+  const addTodo = () => {
+    if (newTodo.trim()) {
+      const todo: Todo = {
+        id: crypto.randomUUID(),
+        text: newTodo,
+        completed: false,
+        createdBy: 'current-user' // In real app, get from user context
+      }
+      setTodos([...todos, todo])
+      setNewTodo('')
+    }
+  }
+
+  const toggleTodo = (id: string) => {
+    setTodos(todos.map(todo => 
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    ))
+  }
+
+  const deleteTodo = (id: string) => {
+    setTodos(todos.filter(todo => todo.id !== id))
+  }
+
+  return (
+    <div>
+      <h1>Collaborative Todo List</h1>
+      
+      <div>
+        <input
+          value={newTodo}
+          onChange={(e) => setNewTodo(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && addTodo()}
+          placeholder="Add a new todo..."
+        />
+        <button onClick={addTodo}>Add</button>
+      </div>
+
+      <ul>
+        {todos.map(todo => (
+          <li key={todo.id} style={{ 
+            textDecoration: todo.completed ? 'line-through' : 'none' 
+          }}>
+            <input
+              type="checkbox"
+              checked={todo.completed}
+              onChange={() => toggleTodo(todo.id)}
+            />
+            <span>{todo.text}</span>
+            <button onClick={() => deleteTodo(todo.id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+```
+
+### Live Drawing Canvas
+
+```tsx
+import { useStateTogether, useCursors } from 'react-together'
+import { useRef, useEffect } from 'react'
+
+interface DrawPoint {
+  x: number
+  y: number
+  color: string
+}
+
+function DrawingCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [strokes, setStrokes] = useStateTogether<DrawPoint[][]>('strokes', [])
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [currentStroke, setCurrentStroke] = useState<DrawPoint[]>([])
+  const cursors = useCursors()
+
+  const startDrawing = (e: React.MouseEvent) => {
+    setIsDrawing(true)
+    const rect = canvasRef.current?.getBoundingClientRect()
+    if (rect) {
+      const point = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        color: '#000'
+      }
+      setCurrentStroke([point])
+    }
+  }
+
+  const draw = (e: React.MouseEvent) => {
+    if (!isDrawing) return
+    
+    const rect = canvasRef.current?.getBoundingClientRect()
+    if (rect) {
+      const point = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        color: '#000'
+      }
+      setCurrentStroke(prev => [...prev, point])
+    }
+  }
+
+  const stopDrawing = () => {
+    if (isDrawing && currentStroke.length > 0) {
+      setStrokes(prev => [...prev, currentStroke])
+      setCurrentStroke([])
+    }
+    setIsDrawing(false)
+  }
+
+  // Render canvas
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const ctx = canvas?.getContext('2d')
+    if (!canvas || !ctx) return
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    // Draw completed strokes
+    strokes.forEach(stroke => {
+      if (stroke.length > 1) {
+        ctx.beginPath()
+        ctx.moveTo(stroke[0].x, stroke[0].y)
+        stroke.forEach(point => ctx.lineTo(point.x, point.y))
+        ctx.strokeStyle = stroke[0].color
+        ctx.stroke()
+      }
+    })
+
+    // Draw current stroke
+    if (currentStroke.length > 1) {
+      ctx.beginPath()
+      ctx.moveTo(currentStroke[0].x, currentStroke[0].y)
+      currentStroke.forEach(point => ctx.lineTo(point.x, point.y))
+      ctx.strokeStyle = '#000'
+      ctx.stroke()
+    }
+  }, [strokes, currentStroke])
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <canvas
+        ref={canvasRef}
+        width={800}
+        height={600}
+        style={{ border: '1px solid #ccc', cursor: 'crosshair' }}
+        onMouseDown={startDrawing}
+        onMouseMove={draw}
+        onMouseUp={stopDrawing}
+        onMouseLeave={stopDrawing}
+      />
+      
+      {/* Live cursors */}
+      {cursors.map(cursor => (
+        <div
+          key={cursor.userId}
+          style={{
+            position: 'absolute',
+            left: cursor.x,
+            top: cursor.y,
+            width: 10,
+            height: 10,
+            borderRadius: '50%',
+            backgroundColor: cursor.color || '#ff6b6b',
+            pointerEvents: 'none',
+            transform: 'translate(-50%, -50%)'
+          }}
+        />
+      ))}
+      
+      <button onClick={() => setStrokes([])}>
+        Clear Canvas
+      </button>
+    </div>
+  )
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Explore All Hooks" icon="hook" href="/react-together/hooks">
+    Discover all available React Together hooks
+  </Card>
+  <Card title="Pre-built Components" icon="puzzle-piece" href="/react-together/components">
+    Use ready-made collaborative components
+  </Card>
+  <Card title="UI Library Integration" icon="paintbrush" href="/react-together/integrations">
+    Integrate with Ant Design, PrimeReact, and more
+  </Card>
+  <Card title="Examples & Demos" icon="rocket" href="https://react-together.dev">
+    See React Together in action
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Components not synchronizing">
+    - Verify your API key is correct
+    - Check that all users are in the same session (same `appId` and session `name`)
+    - Ensure the `ReactTogether` provider wraps all components using hooks
+  </Accordion>
+  
+  <Accordion title="API key errors">
+    - Get your API key from [multisynq.io/coder](https://multisynq.io/coder)
+    - Make sure you're not hitting rate limits
+    - Check your network connection
+  </Accordion>
+  
+  <Accordion title="TypeScript issues">
+    - React Together is built with TypeScript and provides full type safety
+    - Import types when needed: `import type { CursorData } from 'react-together'`
+  </Accordion>
+</AccordionGroup>
+
+## Community & Support
+
+<CardGroup cols={2}>
+  <Card title="Discord Community" icon="discord" href="https://multisynq.io/discord">
+    Join our active Discord for support and to share what you're building
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/multisynq/react-together">
+    Star the repo, report issues, and contribute
+  </Card>
+  <Card title="Twitter" icon="twitter" href="https://twitter.com/Multisynq">
+    Follow for updates and announcements
+  </Card>
+  <Card title="Documentation" icon="book" href="https://react-together.dev">
+    Full documentation and interactive examples
+  </Card>
+</CardGroup>
+
+React Together makes building collaborative React apps incredibly simple. With just a few hooks, you can add real-time features that would normally require complex backend infrastructure. Get started today and build something amazing!

@@ -1,0 +1,526 @@
+---
+title: "Hello World Tutorial"
+description: "Build your first Multisynq application - a synchronized counter that updates in real-time across all users"
+---
+
+## Introduction
+
+Welcome to your first Multisynq application! This tutorial will guide you through building a simple but powerful real-time counter that synchronizes perfectly across all users. When one user clicks the counter, it resets for everyone instantly.
+
+<CardGroup cols={2}>
+  <Card title="Live Demo" icon="rocket" href="https://codepen.io/multisynq/pen/yyyMqKb">
+    Try the working example on CodePen
+  </Card>
+  <Card title="Fork & Edit" icon="code-branch" href="https://codepen.io/multisynq/pen/yyyMqKb">
+    Create your own copy to experiment
+  </Card>
+</CardGroup>
+
+## What You'll Learn
+
+By the end of this tutorial, you'll understand:
+
+1. **How to include the Multisynq client library** in your application
+2. **The Model-View architecture** that powers Multisynq apps
+3. **Event-driven communication** between models and views
+4. **Session sharing** using QR codes and URLs
+
+## Try It Live
+
+<iframe 
+  height="400" 
+  style={{width: '100%'}} 
+  scrolling="no" 
+  title="Multisynq Hello World" 
+  src="https://codepen.io/multisynq/embed/yyyMqKb?default-tab=result" 
+  frameborder="no" 
+  loading="lazy" 
+  allowtransparency="true" 
+  allowfullscreen="true">
+</iframe>
+
+<Tip>
+**Test Real-time Sync**: Click the QR code in the demo above to open a second instance. Notice how both counters stay perfectly synchronized!
+</Tip>
+
+## Understanding the Session Badge
+
+![Session Badge](https://quickchart.io/qr?text=https://codepen.io/multisynq/full/yyyMqKb)
+
+The **session badge** (colored rectangle with QR code) indicates which session you're in. Users seeing the same badge colors and code word are guaranteed to be synchronized. Any change to the model code creates a new session with a different badge.
+
+## Setting Up Multisynq
+
+### 1. Include the Client Library
+
+Add the Multisynq client library to your HTML:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest"></script>
+```
+
+### 2. Get Your API Key
+
+<Card title="Get API Key" icon="key" href="https://multisynq.io/coder">
+  Sign up for free at multisynq.io to get your API key
+</Card>
+
+## Building the Application
+
+Every Multisynq application consists of two parts:
+
+<CardGroup cols={2}>
+  <Card title="Model" icon="gear">
+    **Handles computation and state**
+    - Runs identically on all instances
+    - Manages application logic
+    - Never directly accesses the view
+  </Card>
+  <Card title="View" icon="eye">
+    **Handles UI and user input**
+    - Processes user interactions
+    - Updates the display
+    - Can read from model (read-only)
+  </Card>
+</CardGroup>
+
+<Warning>
+**Critical Rules**:
+- Models **MUST NEVER** communicate directly with views
+- Views **MUST NEVER** write directly to models
+- All communication happens through publish/subscribe events
+</Warning>
+
+## The Model Code
+
+Our counter model is surprisingly simple:
+
+```javascript
+class MyModel extends Multisynq.Model {
+    init() {
+        this.count = 0;
+        this.subscribe("counter", "reset", this.resetCounter);
+        this.future(1000).tick();
+    }
+
+    resetCounter() {
+        this.count = 0;
+        this.publish("counter", "changed");
+    }
+
+    tick() {
+        this.count++;
+        this.publish("counter", "changed");
+        this.future(1000).tick();
+    }
+}
+
+MyModel.register("MyModel");
+```
+
+### Breaking Down the Model
+
+#### `init()` - Model Initialization
+```javascript
+init() {
+    this.count = 0;
+    this.subscribe("counter", "reset", this.resetCounter);
+    this.future(1000).tick();
+}
+```
+
+<Accordion title="Model Initialization Details">
+- **`this.count = 0`**: Initialize our counter state
+- **`this.subscribe("counter", "reset", this.resetCounter)`**: Listen for reset events from the view
+- **`this.future(1000).tick()`**: Schedule the first tick in 1 second
+
+**Important**: `init()` only runs once when a session starts. After that, the model state is automatically saved and restored for new users joining.
+</Accordion>
+
+#### `resetCounter()` - Handle Reset Events
+```javascript
+resetCounter() {
+    this.count = 0;
+    this.publish("counter", "changed");
+}
+```
+
+When a user clicks the counter, this method:
+1. Resets the count to 0
+2. Notifies all views that the counter changed
+
+#### `tick()` - The Heartbeat
+```javascript
+tick() {
+    this.count++;
+    this.publish("counter", "changed");
+    this.future(1000).tick();
+}
+```
+
+This method runs every second:
+1. Increments the counter
+2. Notifies views of the change
+3. Schedules the next tick
+
+<Info>
+**Future Messages**: `this.future(1000).tick()` is a powerful Multisynq feature that schedules method calls in the future. This ensures perfect synchronization across all users.
+</Info>
+
+#### `register()` - Class Registration
+```javascript
+MyModel.register("MyModel");
+```
+
+<Warning>
+Every model class **must** be registered so Multisynq can instantiate it.
+</Warning>
+
+## The View Code
+
+The view handles user interface and interactions:
+
+```javascript
+class MyView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.model = model;
+        countDisplay.onclick = event => this.counterReset();
+        this.subscribe("counter", "changed", this.counterChanged);
+        this.counterChanged();
+    }
+
+    counterReset() {
+        this.publish("counter", "reset");
+    }
+
+    counterChanged() {
+        countDisplay.textContent = this.model.count;
+    }
+}
+```
+
+### Breaking Down the View
+
+#### `constructor(model)` - View Setup
+```javascript
+constructor(model) {
+    super(model);
+    this.model = model;
+    countDisplay.onclick = event => this.counterReset();
+    this.subscribe("counter", "changed", this.counterChanged);
+    this.counterChanged();
+}
+```
+
+<Accordion title="Constructor Details">
+- **`super(model)`**: Call the parent View constructor
+- **`this.model = model`**: Store model reference for read-only access
+- **`countDisplay.onclick = ...`**: Set up click handler
+- **`this.subscribe("counter", "changed", ...)`**: Listen for counter changes
+- **`this.counterChanged()`**: Update display immediately
+</Accordion>
+
+#### `counterReset()` - Handle User Clicks
+```javascript
+counterReset() {
+    this.publish("counter", "reset");
+}
+```
+
+When the user clicks, publish a reset event that the model will receive.
+
+#### `counterChanged()` - Update Display
+```javascript
+counterChanged() {
+    countDisplay.textContent = this.model.count;
+}
+```
+
+Update the displayed number when the model changes.
+
+## HTML Structure
+
+The HTML is minimal:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multisynq Hello World</title>
+</head>
+<body>
+    <h1>Multisynq Hello World</h1>
+    <div id="countDisplay">0</div>
+    <p>Click the counter to reset it!</p>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest"></script>
+    <script>
+        // Model and View code goes here
+        
+        // Start the application
+        Multisynq.Session.join({
+            apiKey: "your_api_key_here",
+            appId: "com.example.hello-world",
+            name: Multisynq.App.autoSession(),
+            password: Multisynq.App.autoPassword(),
+            model: MyModel,
+            view: MyView
+        });
+    </script>
+</body>
+</html>
+```
+
+## Starting Your Session
+
+The magic happens with `Multisynq.Session.join()`:
+
+```javascript
+Multisynq.Session.join({
+    apiKey: "your_api_key_here",
+    appId: "com.example.hello-world", 
+    name: Multisynq.App.autoSession(),
+    password: Multisynq.App.autoPassword(),
+    model: MyModel,
+    view: MyView
+});
+```
+
+### Session Parameters
+
+<ParamField path="apiKey" type="string" required>
+  Your API key from [multisynq.io/coder](https://multisynq.io/coder)
+</ParamField>
+
+<ParamField path="appId" type="string" required>
+  Unique identifier for your app (e.g., "com.example.hello-world")
+</ParamField>
+
+<ParamField path="name" type="string">
+  Session name. Use `Multisynq.App.autoSession()` for auto-generated names
+</ParamField>
+
+<ParamField path="password" type="string">
+  Session password. Use `Multisynq.App.autoPassword()` for auto-generated passwords
+</ParamField>
+
+<ParamField path="model" type="class" required>
+  Your Model class
+</ParamField>
+
+<ParamField path="view" type="class" required>
+  Your View class
+</ParamField>
+
+### What Happens When You Join
+
+1. **Connect** to a nearby Multisynq reflector
+2. **Initialize or restore** the model state
+3. **Create** your view instance
+4. **Start** the event loop
+5. **Begin** synchronization with other users
+
+## Testing Your App
+
+### 1. **Single User Testing**
+Start by testing the basic functionality with one browser tab.
+
+### 2. **Multi-User Testing**
+Open your app in multiple browser tabs or devices to test synchronization.
+
+### 3. **QR Code Sharing**
+Use QR codes to easily share sessions with mobile devices.
+
+<Tip>
+**Mobile Testing**: The QR code feature makes it incredibly easy to test your app on mobile devices. Just scan the code with your phone's camera!
+</Tip>
+
+## Common Patterns
+
+### Automatic Helpers
+
+Multisynq provides helpful utilities:
+
+```javascript
+// Generate random session names
+name: Multisynq.App.autoSession(), // Returns something like "abc12"
+
+// Generate random passwords  
+password: Multisynq.App.autoPassword(), // Returns a secure password
+```
+
+### Event Scoping
+
+Use meaningful scope names for your events:
+
+```javascript
+// Good: Descriptive scopes
+this.subscribe("game", "playerJoined", this.handlePlayerJoined);
+this.subscribe("ui", "buttonClicked", this.handleButtonClick);
+
+// Avoid: Generic scopes
+this.subscribe("events", "something", this.handleSomething);
+```
+
+### State Management
+
+Keep your model state simple and serializable:
+
+```javascript
+// Good: Simple data types
+this.count = 0;
+this.players = [];
+this.gameState = "waiting";
+
+// Avoid: Complex objects or functions
+this.domElement = document.getElementById("something"); // No!
+this.callback = () => {}; // No!
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Simple Animation" icon="play" href="/tutorials/simple-animation">
+    Learn about continuous animations and multiple models
+  </Card>
+  <Card title="Multi-user Chat" icon="comments" href="/tutorials/multiuser-chat">
+    Build a real-time chat application
+  </Card>
+  <Card title="Model-View Architecture" icon="sitemap" href="/concepts/model-view-synchronizer">
+    Understand the core concepts in depth
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/session">
+    Explore the complete Multisynq API
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Counter not updating">
+    - Check that your API key is valid
+    - Ensure `MyModel.register("MyModel")` is called
+    - Verify the model's `tick()` method is being called
+  </Accordion>
+  
+  <Accordion title="Multiple users not synchronized">
+    - Confirm all users have the same `appId`
+    - Check that all users joined the same session name
+    - Ensure the model code is identical across all instances
+  </Accordion>
+  
+  <Accordion title="QR code not working">
+    - Verify the QR code generation service is accessible
+    - Check that the URL in the QR code is correct
+    - Test the URL manually in a browser
+  </Accordion>
+</AccordionGroup>
+
+## Complete Example
+
+Here's the full working example you can copy and paste:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multisynq Hello World</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        #countDisplay {
+            font-size: 72px;
+            color: #007bff;
+            cursor: pointer;
+            user-select: none;
+            padding: 20px;
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            display: inline-block;
+            margin: 20px;
+        }
+        #countDisplay:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>Multisynq Hello World</h1>
+    <p>Counter updates every second. Click to reset!</p>
+    <div id="countDisplay">0</div>
+    <p><small>Open this page in multiple tabs to see real-time sync!</small></p>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest"></script>
+    <script>
+        class MyModel extends Multisynq.Model {
+            init() {
+                this.count = 0;
+                this.subscribe("counter", "reset", this.resetCounter);
+                this.future(1000).tick();
+            }
+
+            resetCounter() {
+                this.count = 0;
+                this.publish("counter", "changed");
+            }
+
+            tick() {
+                this.count++;
+                this.publish("counter", "changed");
+                this.future(1000).tick();
+            }
+        }
+
+        MyModel.register("MyModel");
+
+        class MyView extends Multisynq.View {
+            constructor(model) {
+                super(model);
+                this.model = model;
+                countDisplay.onclick = event => this.counterReset();
+                this.subscribe("counter", "changed", this.counterChanged);
+                this.counterChanged();
+            }
+
+            counterReset() {
+                this.publish("counter", "reset");
+            }
+
+            counterChanged() {
+                countDisplay.textContent = this.model.count;
+            }
+        }
+
+        // Start the application
+        Multisynq.Session.join({
+            apiKey: "your_api_key_here", // Get your free key at multisynq.io/coder
+            appId: "com.example.hello-world",
+            name: Multisynq.App.autoSession(),
+            password: Multisynq.App.autoPassword(),
+            model: MyModel,
+            view: MyView
+        });
+    </script>
+</body>
+</html>
+```
+
+<Note>
+Don't forget to replace `"your_api_key_here"` with your actual API key from [multisynq.io/coder](https://multisynq.io/coder)!
+</Note>
+
+## Summary
+
+Congratulations! You've built your first Multisynq application. You learned:
+
+- ✅ How to structure a Multisynq app with Models and Views  
+- ✅ Event-driven communication using publish/subscribe
+- ✅ Future messages for time-based events
+- ✅ Session management and sharing
+- ✅ Real-time synchronization across multiple users
+
+This simple counter demonstrates all the core concepts you'll use in more complex Multisynq applications. The same patterns scale from simple demos to full-featured collaborative applications!

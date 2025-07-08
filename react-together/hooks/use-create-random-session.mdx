@@ -1,0 +1,695 @@
+---
+title: "useCreateRandomSession"
+description: "Create and connect to a new React Together session with randomly generated credentials"
+---
+
+# useCreateRandomSession
+
+The `useCreateRandomSession` hook returns a function that, when called, connects the user to a new React Together session with a randomly generated name and password. This is perfect for quickly starting new collaborative sessions without having to manually specify session details.
+
+## Basic Usage
+
+```tsx
+import { useCreateRandomSession } from 'react-together'
+
+function QuickStart() {
+  const createRandomSession = useCreateRandomSession()
+
+  return (
+    <button onClick={() => createRandomSession()}>
+      Start New Session
+    </button>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useCreateRandomSession(): () => void
+```
+
+## Return Value
+
+<ResponseField name="createRandomSession" type="() => void">
+  A function that, when called, connects the user to a new React Together session with randomly generated credentials.
+</ResponseField>
+
+## Examples
+
+### Quick Session Launcher
+
+Create a simple interface for starting new sessions:
+
+```tsx
+import { useCreateRandomSession, useIsTogether, useJoinUrl } from 'react-together'
+import { useState } from 'react'
+
+export default function SessionLauncher() {
+  const createRandomSession = useCreateRandomSession()
+  const isTogether = useIsTogether()
+  const joinUrl = useJoinUrl()
+  const [isCreating, setIsCreating] = useState(false)
+
+  const handleCreateSession = async () => {
+    setIsCreating(true)
+    try {
+      await createRandomSession()
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const copyJoinUrl = () => {
+    if (joinUrl) {
+      navigator.clipboard.writeText(joinUrl)
+      alert('Join URL copied to clipboard!')
+    }
+  }
+
+  return (
+    <div className="p-6 max-w-md mx-auto">
+      <h2 className="text-2xl font-bold mb-6 text-center">Session Control</h2>
+      
+      {!isTogether ? (
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">
+            Start a new collaborative session instantly
+          </p>
+          <button
+            onClick={handleCreateSession}
+            disabled={isCreating}
+            className="w-full py-3 px-6 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {isCreating ? (
+              <span className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creating Session...
+              </span>
+            ) : (
+              '🚀 Create New Session'
+            )}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+              <span className="text-green-800 font-semibold">Session Active!</span>
+            </div>
+            <p className="text-green-700 text-sm mt-2">
+              Your collaborative session is now running
+            </p>
+          </div>
+          
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Share this URL with others:
+              </label>
+              <div className="flex">
+                <input
+                  type="text"
+                  value={joinUrl || ''}
+                  readOnly
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md text-sm bg-gray-50"
+                />
+                <button
+                  onClick={copyJoinUrl}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-r-md hover:bg-gray-600 text-sm"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Meeting Room Creator
+
+Create a more sophisticated meeting room interface:
+
+```tsx
+import { useCreateRandomSession, useIsTogether, useConnectedUsers } from 'react-together'
+import { useState } from 'react'
+
+export default function MeetingRoomCreator() {
+  const createRandomSession = useCreateRandomSession()
+  const isTogether = useIsTogether()
+  const connectedUsers = useConnectedUsers()
+  const [isCreating, setIsCreating] = useState(false)
+  const [meetingTitle, setMeetingTitle] = useState('')
+
+  const handleCreateMeeting = async () => {
+    if (!meetingTitle.trim()) {
+      alert('Please enter a meeting title')
+      return
+    }
+    
+    setIsCreating(true)
+    try {
+      await createRandomSession()
+      // Store meeting title in local storage for this session
+      localStorage.setItem('meetingTitle', meetingTitle)
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const storedTitle = localStorage.getItem('meetingTitle') || 'Collaborative Session'
+
+  return (
+    <div className="p-6 max-w-2xl mx-auto">
+      <h1 className="text-3xl font-bold mb-8 text-center">Meeting Rooms</h1>
+      
+      {!isTogether ? (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">Create New Meeting</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Meeting Title
+              </label>
+              <input
+                type="text"
+                value={meetingTitle}
+                onChange={(e) => setMeetingTitle(e.target.value)}
+                placeholder="e.g., Weekly Team Standup"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-2xl mb-2">🔒</div>
+                <div className="font-semibold text-blue-800">Secure</div>
+                <div className="text-sm text-blue-600">End-to-end encrypted</div>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl mb-2">⚡</div>
+                <div className="font-semibold text-green-800">Instant</div>
+                <div className="text-sm text-green-600">No setup required</div>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <div className="text-2xl mb-2">🌐</div>
+                <div className="font-semibold text-purple-800">Global</div>
+                <div className="text-sm text-purple-600">Join from anywhere</div>
+              </div>
+            </div>
+            
+            <button
+              onClick={handleCreateMeeting}
+              disabled={isCreating || !meetingTitle.trim()}
+              className="w-full py-3 px-6 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isCreating ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating Meeting Room...
+                </span>
+              ) : (
+                '🎯 Create Meeting Room'
+              )}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">{storedTitle}</h2>
+              <p className="text-gray-600 text-sm">Meeting room is active</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-green-600 font-medium">Live</span>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 mb-3">Participants ({connectedUsers.length})</h3>
+              <div className="space-y-2">
+                {connectedUsers.map(({ userId, nickname, isYou }) => (
+                  <div key={userId} className="flex items-center space-x-3 p-2 bg-gray-50 rounded">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                      {(nickname || `U${userId.slice(-2)}`).charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-medium">
+                      {nickname || `User ${userId.slice(-4)}`}
+                      {isYou && ' (You)'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900">Meeting Tools</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <button className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                  <div className="text-xl mb-1">💬</div>
+                  <div className="text-sm font-medium">Chat</div>
+                </button>
+                <button className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                  <div className="text-xl mb-1">📝</div>
+                  <div className="text-sm font-medium">Notes</div>
+                </button>
+                <button className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                  <div className="text-xl mb-1">📊</div>
+                  <div className="text-sm font-medium">Polls</div>
+                </button>
+                <button className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                  <div className="text-xl mb-1">🎨</div>
+                  <div className="text-sm font-medium">Whiteboard</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Game Lobby Creator
+
+Create game sessions with random room codes:
+
+```tsx
+import { useCreateRandomSession, useIsTogether, useJoinUrl, useConnectedUsers } from 'react-together'
+import { useState } from 'react'
+
+const GAME_TYPES = [
+  { id: 'trivia', name: 'Trivia Night', emoji: '🧠', description: 'Test your knowledge' },
+  { id: 'drawing', name: 'Drawing Game', emoji: '🎨', description: 'Draw and guess' },
+  { id: 'word', name: 'Word Game', emoji: '📝', description: 'Word puzzles and challenges' },
+  { id: 'strategy', name: 'Strategy Game', emoji: '♟️', description: 'Think ahead to win' },
+]
+
+export default function GameLobbyCreator() {
+  const createRandomSession = useCreateRandomSession()
+  const isTogether = useIsTogether()
+  const joinUrl = useJoinUrl()
+  const connectedUsers = useConnectedUsers()
+  const [selectedGame, setSelectedGame] = useState(GAME_TYPES[0])
+  const [isCreating, setIsCreating] = useState(false)
+
+  const handleCreateGame = async () => {
+    setIsCreating(true)
+    try {
+      await createRandomSession()
+      localStorage.setItem('selectedGame', JSON.stringify(selectedGame))
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const getRoomCode = () => {
+    if (!joinUrl) return ''
+    const url = new URL(joinUrl)
+    const params = new URLSearchParams(url.search)
+    return params.get('name')?.slice(-6).toUpperCase() || 'GAME01'
+  }
+
+  const storedGame = localStorage.getItem('selectedGame')
+  const currentGame = storedGame ? JSON.parse(storedGame) : selectedGame
+
+  return (
+    <div className="p-6 max-w-2xl mx-auto">
+      <h1 className="text-3xl font-bold mb-8 text-center">
+        🎮 Game Lobby
+      </h1>
+      
+      {!isTogether ? (
+        <div className="space-y-6">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Choose Your Game</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {GAME_TYPES.map((game) => (
+                <button
+                  key={game.id}
+                  onClick={() => setSelectedGame(game)}
+                  className={`p-4 rounded-lg border-2 transition-all text-left ${
+                    selectedGame.id === game.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">{game.emoji}</div>
+                  <div className="font-semibold text-gray-900">{game.name}</div>
+                  <div className="text-sm text-gray-600">{game.description}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-lg font-semibold mb-4">Selected Game</h3>
+            <div className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg mb-4">
+              <div className="text-3xl">{selectedGame.emoji}</div>
+              <div>
+                <div className="font-semibold text-blue-900">{selectedGame.name}</div>
+                <div className="text-sm text-blue-700">{selectedGame.description}</div>
+              </div>
+            </div>
+            
+            <button
+              onClick={handleCreateGame}
+              disabled={isCreating}
+              className="w-full py-3 px-6 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isCreating ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating Game Room...
+                </span>
+              ) : (
+                '🚀 Create Game Room'
+              )}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="text-center mb-6">
+            <div className="text-4xl mb-2">{currentGame.emoji}</div>
+            <h2 className="text-2xl font-bold text-gray-900">{currentGame.name}</h2>
+            <p className="text-gray-600">{currentGame.description}</p>
+          </div>
+          
+          <div className="bg-blue-50 rounded-lg p-4 mb-6 text-center">
+            <div className="text-sm text-blue-600 mb-1">Room Code</div>
+            <div className="text-2xl font-mono font-bold text-blue-900">
+              {getRoomCode()}
+            </div>
+            <div className="text-sm text-blue-600 mt-1">
+              Share this code with friends to join
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3">
+                Players ({connectedUsers.length})
+              </h3>
+              <div className="space-y-2">
+                {connectedUsers.map(({ userId, nickname, isYou }) => (
+                  <div key={userId} className="flex items-center space-x-3 p-2 bg-gray-50 rounded">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                      {(nickname || `P${userId.slice(-1)}`).charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-medium">
+                      {nickname || `Player ${userId.slice(-4)}`}
+                      {isYou && ' (You)'}
+                    </span>
+                    <div className="w-2 h-2 bg-green-500 rounded-full ml-auto"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3">Game Settings</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Max Players:</span>
+                  <span className="font-medium">8</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Game Mode:</span>
+                  <span className="font-medium">Classic</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Difficulty:</span>
+                  <span className="font-medium">Medium</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Time Limit:</span>
+                  <span className="font-medium">5 minutes</span>
+                </div>
+              </div>
+              
+              <button
+                disabled={connectedUsers.length < 2}
+                className="w-full mt-4 py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {connectedUsers.length < 2 ? 'Waiting for Players...' : 'Start Game'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Study Group Launcher
+
+Create instant study sessions:
+
+```tsx
+import { useCreateRandomSession, useIsTogether, useJoinUrl } from 'react-together'
+import { useState } from 'react'
+
+const STUDY_TOPICS = [
+  '📚 Literature Review',
+  '🧮 Math Problem Solving',
+  '⚗️ Science Lab Analysis',
+  '🌍 History Discussion',
+  '💻 Programming Study',
+  '🗣️ Language Practice',
+  '🎯 Test Preparation',
+  '📝 Essay Writing',
+]
+
+export default function StudyGroupLauncher() {
+  const createRandomSession = useCreateRandomSession()
+  const isTogether = useIsTogether()
+  const joinUrl = useJoinUrl()
+  const [studyTopic, setStudyTopic] = useState('')
+  const [sessionType, setSessionType] = useState<'study' | 'homework' | 'review'>('study')
+  const [isCreating, setIsCreating] = useState(false)
+
+  const handleCreateStudySession = async () => {
+    if (!studyTopic.trim()) {
+      alert('Please enter a study topic')
+      return
+    }
+    
+    setIsCreating(true)
+    try {
+      await createRandomSession()
+      localStorage.setItem('studySession', JSON.stringify({
+        topic: studyTopic,
+        type: sessionType,
+        startTime: Date.now()
+      }))
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const shareSession = () => {
+    if (joinUrl) {
+      const shareText = `Join my study session: "${studyTopic}"\n${joinUrl}`
+      navigator.clipboard.writeText(shareText).then(() => {
+        alert('Study session link copied to clipboard!')
+      })
+    }
+  }
+
+  const storedSession = localStorage.getItem('studySession')
+  const currentSession = storedSession ? JSON.parse(storedSession) : null
+
+  return (
+    <div className="p-6 max-w-lg mx-auto">
+      <h1 className="text-2xl font-bold mb-6 text-center">
+        📖 Study Together
+      </h1>
+      
+      {!isTogether ? (
+        <div className="bg-white rounded-lg shadow-lg p-6 space-y-4">
+          <h2 className="text-lg font-semibold">Start Study Session</h2>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              What are you studying?
+            </label>
+            <input
+              type="text"
+              value={studyTopic}
+              onChange={(e) => setStudyTopic(e.target.value)}
+              placeholder="Enter study topic..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="mt-2 flex flex-wrap gap-1">
+              {STUDY_TOPICS.slice(0, 4).map((topic, index) => (
+                <button
+                  key={index}
+                  onClick={() => setStudyTopic(topic)}
+                  className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                >
+                  {topic}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Session Type
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['study', 'homework', 'review'] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setSessionType(type)}
+                  className={`py-2 px-3 text-sm rounded-md border transition-all ${
+                    sessionType === type
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <button
+            onClick={handleCreateStudySession}
+            disabled={isCreating || !studyTopic.trim()}
+            className="w-full py-3 px-4 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {isCreating ? 'Creating Session...' : '🚀 Start Studying Together'}
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-lg p-6 space-y-4">
+          <div className="text-center">
+            <div className="text-3xl mb-2">📚</div>
+            <h2 className="text-lg font-semibold">{currentSession?.topic || 'Study Session'}</h2>
+            <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+              {currentSession?.type || 'study'} session
+            </span>
+          </div>
+          
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+              <span className="text-green-800 font-medium text-sm">Study session active</span>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <button
+              onClick={shareSession}
+              className="w-full py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all"
+            >
+              📎 Share Session Link
+            </button>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <button className="py-2 px-3 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm">
+                📝 Notes
+              </button>
+              <button className="py-2 px-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-sm">
+                ⏱️ Timer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+### Session Management
+- **Clear user feedback** - Always show loading states when creating sessions
+- **Error handling** - Gracefully handle session creation failures
+- **Session persistence** - Consider storing session context for user experience
+
+### User Experience
+- **Immediate feedback** - Show session status changes instantly
+- **Share functionality** - Make it easy to invite others to the session
+- **Visual indicators** - Use clear visual cues for session states
+
+### Integration Patterns
+- **Combine with other hooks** - Use with `useIsTogether`, `useJoinUrl`, and `useConnectedUsers`
+- **State management** - Track session metadata in local storage or state
+- **Responsive design** - Ensure session creators work on all device sizes
+
+## Common Use Cases
+
+### Quick Collaboration
+Perfect for impromptu collaboration sessions:
+```tsx
+const quickCollaborate = () => {
+  createRandomSession()
+  // Users can immediately start collaborating
+}
+```
+
+### Game Lobbies
+Create instant game rooms:
+```tsx
+const createGameRoom = (gameType: string) => {
+  localStorage.setItem('gameType', gameType)
+  createRandomSession()
+}
+```
+
+### Study Groups
+Start educational sessions:
+```tsx
+const startStudySession = (topic: string) => {
+  localStorage.setItem('studyTopic', topic)
+  createRandomSession()
+}
+```
+
+## Related Hooks
+
+- [`useIsTogether`](/react-together/hooks/use-is-together) - Check if user is in a session
+- [`useJoinUrl`](/react-together/hooks/use-join-url) - Get the session join URL
+- [`useLeaveSession`](/react-together/hooks/use-leave-session) - Leave the current session
+- [`useConnectedUsers`](/react-together/hooks/use-connected-users) - See who's in the session
+
+## TypeScript Support
+
+This hook has a simple, type-safe signature:
+
+```tsx
+const createRandomSession: () => void = useCreateRandomSession()
+
+// Usage is straightforward
+const handleClick = () => {
+  createRandomSession() // Type-safe, no parameters needed
+}
+```
+
+<Note>
+The session credentials (name and password) are automatically generated and handled internally. Users don't need to manage these details when using random sessions.
+</Note> 

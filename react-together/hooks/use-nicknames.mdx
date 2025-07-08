@@ -1,0 +1,644 @@
+---
+title: "useNicknames"
+description: "Manage and retrieve user nicknames in your React Together session, enabling personalized collaborative experiences."
+---
+
+## Overview
+
+`useNicknames` provides functionality to manage user nicknames in a React Together session. It allows you to set the current user's nickname and retrieve all users' nicknames for display purposes. The initial nickname for a user is derived using the `deriveNickname` prop passed to the [`ReactTogether`](/react-together/components/react-together) component.
+
+<Info>
+**Perfect for**: User identification, personalized chat interfaces, user lists, collaborative editing with user attribution, and any feature that needs to display human-readable user names.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { useEffect, useState } from 'react'
+import { useConnectedUsers, useNicknames } from 'react-together'
+
+function UserNicknameManager() {
+  const [nickname, setNickname, allNicknames] = useNicknames()
+  const [localNickname, setLocalNickname] = useState(nickname)
+  const connectedUsers = useConnectedUsers()
+
+  useEffect(() => {
+    setLocalNickname(nickname)
+  }, [nickname])
+
+  return (
+    <div>
+      <div>
+        <h3>All Nicknames:</h3>
+        <ul>
+          {connectedUsers.map(({ userId, isYou }) => (
+            <li key={userId}>
+              {allNicknames[userId]}
+              {isYou && ' (You)'}
+            </li>
+          ))}
+        </ul>
+      </div>
+      
+      <div className="mt-4">
+        <input
+          value={localNickname}
+          onChange={(e) => setLocalNickname(e.target.value)}
+          placeholder="Enter your nickname"
+          className="border border-gray-300 rounded px-2 py-1"
+        />
+        <button
+          onClick={() => setNickname(localNickname)}
+          disabled={localNickname === nickname}
+          className="ml-2 bg-blue-500 text-white px-3 py-1 rounded disabled:opacity-50"
+        >
+          Update Nickname
+        </button>
+      </div>
+    </div>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useNicknames(): [
+  nickname: string,
+  setNickname: (nickname: string) => void,
+  allNicknames: Record<string, string>
+]
+```
+
+## Return Value
+
+The hook returns a tuple with three elements:
+
+<ParamField path="[0] nickname" type="string">
+  The current user's nickname
+</ParamField>
+
+<ParamField path="[1] setNickname" type="(nickname: string) => void">
+  Function to update the current user's nickname
+</ParamField>
+
+<ParamField path="[2] allNicknames" type="Record<string, string>">
+  Object mapping all user IDs to their nicknames (userId → nickname)
+</ParamField>
+
+## Examples
+
+### Simple Nickname Editor
+
+```tsx
+import { useNicknames } from 'react-together'
+import { useState } from 'react'
+
+function NicknameEditor() {
+  const [nickname, setNickname] = useNicknames()
+  const [input, setInput] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (input.trim()) {
+      setNickname(input.trim())
+      setInput('')
+    }
+  }
+
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h3 className="font-semibold mb-2">Your Nickname</h3>
+      <p className="text-sm text-gray-600 mb-3">
+        Current: <strong>{nickname}</strong>
+      </p>
+      
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Enter new nickname"
+          className="flex-1 border border-gray-300 rounded px-3 py-2"
+          maxLength={20}
+        />
+        <button
+          type="submit"
+          disabled={!input.trim() || input.trim() === nickname}
+          className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Update
+        </button>
+      </form>
+    </div>
+  )
+}
+```
+
+### User Directory with Nicknames
+
+```tsx
+import { useConnectedUsers, useNicknames } from 'react-together'
+
+function UserDirectory() {
+  const [, , allNicknames] = useNicknames()
+  const connectedUsers = useConnectedUsers()
+
+  const sortedUsers = connectedUsers.sort((a, b) => {
+    if (a.isYou) return -1
+    if (b.isYou) return 1
+    return allNicknames[a.userId].localeCompare(allNicknames[b.userId])
+  })
+
+  return (
+    <div className="bg-white rounded-lg shadow p-4">
+      <h3 className="text-lg font-semibold mb-4">
+        Connected Users ({connectedUsers.length})
+      </h3>
+      
+      <div className="space-y-2">
+        {sortedUsers.map(({ userId, isYou }) => (
+          <div
+            key={userId}
+            className={`flex items-center p-3 rounded-lg ${
+              isYou ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
+            }`}
+          >
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+              {allNicknames[userId]?.charAt(0).toUpperCase() || '?'}
+            </div>
+            
+            <div className="ml-3 flex-1">
+              <p className="font-medium text-gray-900">
+                {allNicknames[userId] || 'Unknown User'}
+              </p>
+              <p className="text-sm text-gray-500">
+                {isYou ? 'You' : `ID: ${userId.slice(0, 8)}...`}
+              </p>
+            </div>
+            
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+              <span className="text-xs text-gray-500">Online</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+### Chat Interface with Nicknames
+
+```tsx
+import { useNicknames, useStateTogether, useConnectedUsers } from 'react-together'
+import { useState } from 'react'
+
+interface ChatMessage {
+  id: string
+  userId: string
+  text: string
+  timestamp: number
+}
+
+function ChatWithNicknames() {
+  const [, , allNicknames] = useNicknames()
+  const [messages, setMessages] = useStateTogether<ChatMessage[]>('chat-messages', [])
+  const [input, setInput] = useState('')
+  const connectedUsers = useConnectedUsers()
+  
+  const currentUser = connectedUsers.find(u => u.isYou)
+
+  const sendMessage = () => {
+    if (input.trim() && currentUser) {
+      const newMessage: ChatMessage = {
+        id: Date.now().toString(),
+        userId: currentUser.userId,
+        text: input.trim(),
+        timestamp: Date.now()
+      }
+      setMessages(prev => [...prev, newMessage])
+      setInput('')
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow flex flex-col h-96">
+      <div className="p-4 border-b">
+        <h3 className="font-semibold">Team Chat</h3>
+      </div>
+      
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.map((message) => {
+          const isOwnMessage = message.userId === currentUser?.userId
+          const senderNickname = allNicknames[message.userId] || 'Unknown User'
+          
+          return (
+            <div
+              key={message.id}
+              className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-xs px-3 py-2 rounded-lg ${
+                  isOwnMessage
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-900'
+                }`}
+              >
+                <p className="text-xs opacity-75 mb-1">
+                  {isOwnMessage ? 'You' : senderNickname}
+                </p>
+                <p className="text-sm">{message.text}</p>
+                <p className="text-xs opacity-75 mt-1">
+                  {new Date(message.timestamp).toLocaleTimeString()}
+                </p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      
+      <div className="p-4 border-t">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Type a message..."
+            className="flex-1 border border-gray-300 rounded px-3 py-2"
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!input.trim()}
+            className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Nickname-based User Mentions
+
+```tsx
+import { useNicknames, useConnectedUsers, useStateTogether } from 'react-together'
+import { useState, useRef, useEffect } from 'react'
+
+interface Mention {
+  userId: string
+  nickname: string
+}
+
+function MentionableTextEditor() {
+  const [, , allNicknames] = useNicknames()
+  const [content, setContent] = useStateTogether('editor-content', '')
+  const [showMentions, setShowMentions] = useState(false)
+  const [mentionQuery, setMentionQuery] = useState('')
+  const [cursorPosition, setCursorPosition] = useState(0)
+  const connectedUsers = useConnectedUsers()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const availableMentions = connectedUsers
+    .filter(user => !user.isYou)
+    .map(user => ({
+      userId: user.userId,
+      nickname: allNicknames[user.userId] || 'Unknown User'
+    }))
+    .filter(mention => 
+      mention.nickname.toLowerCase().includes(mentionQuery.toLowerCase())
+    )
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value
+    const cursorPos = e.target.selectionStart
+    setContent(value)
+    setCursorPosition(cursorPos)
+
+    // Check if user is typing a mention
+    const textBeforeCursor = value.slice(0, cursorPos)
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/)
+    
+    if (mentionMatch) {
+      setMentionQuery(mentionMatch[1])
+      setShowMentions(true)
+    } else {
+      setShowMentions(false)
+      setMentionQuery('')
+    }
+  }
+
+  const insertMention = (mention: Mention) => {
+    const textBeforeCursor = content.slice(0, cursorPosition)
+    const textAfterCursor = content.slice(cursorPosition)
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/)
+    
+    if (mentionMatch) {
+      const beforeMention = textBeforeCursor.slice(0, mentionMatch.index)
+      const newContent = `${beforeMention}@${mention.nickname} ${textAfterCursor}`
+      setContent(newContent)
+      setShowMentions(false)
+      setMentionQuery('')
+      
+      // Focus back to textarea
+      setTimeout(() => {
+        textareaRef.current?.focus()
+        const newCursorPos = beforeMention.length + mention.nickname.length + 2
+        textareaRef.current?.setSelectionRange(newCursorPos, newCursorPos)
+      }, 0)
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow p-4 relative">
+      <h3 className="font-semibold mb-3">Collaborative Editor</h3>
+      
+      <div className="relative">
+        <textarea
+          ref={textareaRef}
+          value={content}
+          onChange={handleInputChange}
+          placeholder="Type @ to mention someone..."
+          className="w-full h-32 border border-gray-300 rounded px-3 py-2 resize-none"
+        />
+        
+        {showMentions && availableMentions.length > 0 && (
+          <div className="absolute z-10 bg-white border border-gray-200 rounded shadow-lg mt-1 max-h-40 overflow-y-auto">
+            {availableMentions.map((mention) => (
+              <button
+                key={mention.userId}
+                onClick={() => insertMention(mention)}
+                className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center"
+              >
+                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-2">
+                  {mention.nickname.charAt(0).toUpperCase()}
+                </div>
+                <span>{mention.nickname}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      <div className="mt-2 text-xs text-gray-500">
+        Type @ followed by a name to mention someone. 
+        {connectedUsers.length > 1 ? 
+          `${connectedUsers.length - 1} user(s) available to mention.` : 
+          'No other users online to mention.'
+        }
+      </div>
+    </div>
+  )
+}
+```
+
+### Advanced Nickname Management
+
+```tsx
+import { useNicknames, useConnectedUsers, useStateTogether } from 'react-together'
+import { useState, useEffect } from 'react'
+
+interface NicknameHistory {
+  userId: string
+  previousNicknames: string[]
+  currentNickname: string
+  lastChanged: number
+}
+
+function AdvancedNicknameManager() {
+  const [nickname, setNickname, allNicknames] = useNicknames()
+  const [nicknameHistory, setNicknameHistory] = useStateTogether<NicknameHistory[]>('nickname-history', [])
+  const [tempNickname, setTempNickname] = useState(nickname)
+  const connectedUsers = useConnectedUsers()
+  
+  const currentUser = connectedUsers.find(u => u.isYou)
+
+  // Track nickname changes
+  useEffect(() => {
+    if (currentUser) {
+      setNicknameHistory(prev => {
+        const existing = prev.find(h => h.userId === currentUser.userId)
+        
+        if (!existing) {
+          // First time user
+          return [...prev, {
+            userId: currentUser.userId,
+            previousNicknames: [],
+            currentNickname: nickname,
+            lastChanged: Date.now()
+          }]
+        } else if (existing.currentNickname !== nickname) {
+          // Nickname changed
+          return prev.map(h => 
+            h.userId === currentUser.userId
+              ? {
+                  ...h,
+                  previousNicknames: [...h.previousNicknames, h.currentNickname],
+                  currentNickname: nickname,
+                  lastChanged: Date.now()
+                }
+              : h
+          )
+        }
+        
+        return prev
+      })
+    }
+  }, [nickname, currentUser, setNicknameHistory])
+
+  const handleNicknameChange = () => {
+    if (tempNickname.trim() && tempNickname !== nickname) {
+      setNickname(tempNickname.trim())
+    }
+  }
+
+  const revertToPreviousNickname = (previousNickname: string) => {
+    setNickname(previousNickname)
+    setTempNickname(previousNickname)
+  }
+
+  const userHistory = currentUser 
+    ? nicknameHistory.find(h => h.userId === currentUser.userId)
+    : null
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6 space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Nickname Management</h3>
+        
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Current Nickname
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={tempNickname}
+                onChange={(e) => setTempNickname(e.target.value)}
+                className="flex-1 border border-gray-300 rounded px-3 py-2"
+                placeholder="Enter nickname"
+                maxLength={30}
+              />
+              <button
+                onClick={handleNicknameChange}
+                disabled={!tempNickname.trim() || tempNickname === nickname}
+                className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+              >
+                Update
+              </button>
+            </div>
+          </div>
+
+          {userHistory && userHistory.previousNicknames.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Previous Nicknames
+              </label>
+              <div className="space-y-1">
+                {userHistory.previousNicknames.slice(-5).reverse().map((prevNickname, index) => (
+                  <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                    <span className="text-sm">{prevNickname}</span>
+                    <button
+                      onClick={() => revertToPreviousNickname(prevNickname)}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      Revert
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h4 className="font-medium mb-3">All Users & Their Nicknames</h4>
+        <div className="space-y-2">
+          {connectedUsers.map(({ userId, isYou }) => {
+            const history = nicknameHistory.find(h => h.userId === userId)
+            
+            return (
+              <div key={userId} className="bg-gray-50 p-3 rounded">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">
+                      {allNicknames[userId]}
+                      {isYou && ' (You)'}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      ID: {userId.slice(0, 12)}...
+                    </p>
+                  </div>
+                  {history && (
+                    <div className="text-right text-xs text-gray-500">
+                      <p>Changed: {history.previousNicknames.length} times</p>
+                      <p>Last: {new Date(history.lastChanged).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                </div>
+                
+                {history && history.previousNicknames.length > 0 && (
+                  <div className="mt-2 text-xs text-gray-600">
+                    <span>Previous: </span>
+                    <span>{history.previousNicknames.slice(-3).join(', ')}</span>
+                    {history.previousNicknames.length > 3 && '...'}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+## Setup with ReactTogether
+
+To use nicknames effectively, configure the `deriveNickname` prop on your `ReactTogether` component:
+
+```tsx
+import { ReactTogether } from 'react-together'
+
+function App() {
+  return (
+    <ReactTogether
+      sessionParams={{ name: 'my-session' }}
+      deriveNickname={(userId) => {
+        // Custom logic to derive initial nickname
+        const stored = localStorage.getItem(`nickname-${userId}`)
+        return stored || `User ${userId.slice(0, 4)}`
+      }}
+    >
+      <YourApp />
+    </ReactTogether>
+  )
+}
+```
+
+## Best Practices
+
+### Performance Considerations
+
+- **Debounce Updates**: For real-time nickname editors, consider debouncing nickname updates
+- **Local State**: Use local state for temporary input values before committing nickname changes
+- **Validation**: Always validate and sanitize nickname input
+
+### User Experience
+
+- **Character Limits**: Enforce reasonable character limits (typically 20-30 characters)
+- **Uniqueness**: Consider if you want to enforce unique nicknames in your application
+- **Persistence**: Nicknames persist for the duration of the session but reset when users rejoin
+
+### Common Patterns
+
+```tsx
+// ✅ Good: Use local state for input, commit on blur/submit
+const [nickname, setNickname] = useNicknames()
+const [input, setInput] = useState(nickname)
+
+// ✅ Good: Validate before setting
+const updateNickname = (newNickname: string) => {
+  if (newNickname.trim() && newNickname.length <= 20) {
+    setNickname(newNickname.trim())
+  }
+}
+
+// ❌ Bad: Don't update on every keystroke
+onChange={(e) => setNickname(e.target.value)} // Too frequent
+
+// ✅ Good: Display fallback for missing nicknames
+{allNicknames[userId] || 'Unknown User'}
+```
+
+## Related Hooks
+
+- [`useConnectedUsers`](/react-together/hooks/use-connected-users) - Get information about all connected users
+- [`useChat`](/react-together/hooks/use-chat) - Build chat interfaces with nickname display
+- [`useStateTogether`](/react-together/hooks/use-state-together) - Share additional user data
+
+## TypeScript Support
+
+The hook is fully typed and provides excellent TypeScript support:
+
+```tsx
+const [
+  nickname,      // string
+  setNickname,   // (nickname: string) => void
+  allNicknames   // Record<string, string>
+] = useNicknames()
+``` 

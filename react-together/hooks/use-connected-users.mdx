@@ -1,0 +1,616 @@
+---
+title: "useConnectedUsers"
+description: "Get information about all users connected to the current React Together session, including their nicknames and connection status."
+---
+
+## Overview
+
+`useConnectedUsers` returns an array of all users currently connected to your React Together session. This hook is essential for building user awareness features, showing who's online, and creating personalized collaborative experiences.
+
+<Info>
+**Perfect for**: User lists, presence indicators, online status displays, collaborative user management, and any feature that needs to show who's connected.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { useConnectedUsers } from 'react-together'
+
+function ConnectedUsersList() {
+  const connectedUsers = useConnectedUsers()
+
+  return (
+    <div>
+      <h3>Connected Users ({connectedUsers.length})</h3>
+      <ul>
+        {connectedUsers.map(({ userId, nickname, isYou }) => (
+          <li key={userId}>
+            {isYou ? (
+              <strong>{nickname} (You)</strong>
+            ) : (
+              <span>{nickname}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useConnectedUsers(): ConnectedUser[]
+```
+
+## Return Value
+
+<ParamField path="connectedUsers" type="ConnectedUser[]">
+  Array of all users connected to the current session
+</ParamField>
+
+### ConnectedUser Object
+
+<ParamField path="userId" type="string">
+  Unique identifier for the user
+</ParamField>
+
+<ParamField path="nickname" type="string">
+  Display name for the user (can be changed using useNicknames hook)
+</ParamField>
+
+<ParamField path="isYou" type="boolean">
+  Whether this user object represents the current user
+</ParamField>
+
+<ParamField path="name" type="string" deprecated>
+  Deprecated since v0.3.3. Use `nickname` instead.
+</ParamField>
+
+## Examples
+
+### Basic User List
+
+```tsx
+function UserPresence() {
+  const connectedUsers = useConnectedUsers()
+
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h3 className="font-semibold mb-2">
+        Online Users ({connectedUsers.length})
+      </h3>
+      <div className="space-y-2">
+        {connectedUsers.map(({ userId, nickname, isYou }) => (
+          <div key={userId} className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className={isYou ? 'font-semibold' : ''}>
+              {nickname}
+              {isYou && ' (You)'}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+### User Avatars
+
+```tsx
+function UserAvatars() {
+  const connectedUsers = useConnectedUsers()
+
+  const getUserColor = (userId: string) => {
+    const colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500']
+    return colors[userId.charCodeAt(0) % colors.length]
+  }
+
+  return (
+    <div className="flex -space-x-2">
+      {connectedUsers.map(({ userId, nickname, isYou }) => (
+        <div
+          key={userId}
+          className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold ${getUserColor(userId)} ${
+            isYou ? 'ring-2 ring-white ring-offset-2' : ''
+          }`}
+          title={nickname}
+        >
+          {nickname.charAt(0).toUpperCase()}
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+### User Management with Actions
+
+```tsx
+import { useConnectedUsers, useStateTogether } from 'react-together'
+
+interface UserRole {
+  userId: string
+  role: 'admin' | 'user' | 'viewer'
+}
+
+function UserManagement() {
+  const connectedUsers = useConnectedUsers()
+  const [userRoles, setUserRoles] = useStateTogether<UserRole[]>('userRoles', [])
+  
+  const getUserRole = (userId: string) => {
+    return userRoles.find(r => r.userId === userId)?.role || 'user'
+  }
+  
+  const updateUserRole = (userId: string, role: 'admin' | 'user' | 'viewer') => {
+    setUserRoles(prev => {
+      const existing = prev.find(r => r.userId === userId)
+      if (existing) {
+        return prev.map(r => r.userId === userId ? { ...r, role } : r)
+      }
+      return [...prev, { userId, role }]
+    })
+  }
+  
+  const currentUser = connectedUsers.find(u => u.isYou)
+  const isAdmin = currentUser ? getUserRole(currentUser.userId) === 'admin' : false
+
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h3 className="font-semibold mb-4">User Management</h3>
+      <div className="space-y-3">
+        {connectedUsers.map(({ userId, nickname, isYou }) => {
+          const userRole = getUserRole(userId)
+          
+          return (
+            <div key={userId} className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                  {nickname.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-medium">
+                    {nickname}
+                    {isYou && ' (You)'}
+                  </p>
+                  <p className="text-sm text-gray-600 capitalize">{userRole}</p>
+                </div>
+              </div>
+              
+              {isAdmin && !isYou && (
+                <select
+                  value={userRole}
+                  onChange={(e) => updateUserRole(userId, e.target.value as any)}
+                  className="text-sm border rounded px-2 py-1"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="user">User</option>
+                  <option value="viewer">Viewer</option>
+                </select>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+```
+
+### Real-time User Activity
+
+```tsx
+import { useConnectedUsers, useStateTogether } from 'react-together'
+
+interface UserActivity {
+  userId: string
+  action: string
+  timestamp: number
+}
+
+function UserActivity() {
+  const connectedUsers = useConnectedUsers()
+  const [activities, setActivities] = useStateTogether<UserActivity[]>('activities', [])
+  
+  const getUserNickname = (userId: string) => {
+    return connectedUsers.find(u => u.userId === userId)?.nickname || 'Unknown User'
+  }
+  
+  const addActivity = (action: string) => {
+    const currentUser = connectedUsers.find(u => u.isYou)
+    if (currentUser) {
+      const newActivity: UserActivity = {
+        userId: currentUser.userId,
+        action,
+        timestamp: Date.now()
+      }
+      setActivities(prev => [newActivity, ...prev.slice(0, 49)]) // Keep last 50 activities
+    }
+  }
+  
+  const getTimeAgo = (timestamp: number) => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000)
+    if (seconds < 60) return `${seconds}s ago`
+    const minutes = Math.floor(seconds / 60)
+    if (minutes < 60) return `${minutes}m ago`
+    const hours = Math.floor(minutes / 60)
+    return `${hours}h ago`
+  }
+
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-semibold">Recent Activity</h3>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => addActivity('created a document')}
+            className="px-3 py-1 bg-blue-500 text-white rounded text-sm"
+          >
+            Create Document
+          </button>
+          <button
+            onClick={() => addActivity('left a comment')}
+            className="px-3 py-1 bg-green-500 text-white rounded text-sm"
+          >
+            Add Comment
+          </button>
+        </div>
+      </div>
+      
+      <div className="space-y-2 max-h-64 overflow-y-auto">
+        {activities.map((activity, index) => (
+          <div key={index} className="flex items-center space-x-2 text-sm">
+            <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs">
+              {getUserNickname(activity.userId).charAt(0).toUpperCase()}
+            </div>
+            <span className="font-medium">{getUserNickname(activity.userId)}</span>
+            <span className="text-gray-600">{activity.action}</span>
+            <span className="text-gray-400 text-xs">{getTimeAgo(activity.timestamp)}</span>
+          </div>
+        ))}
+        
+        {activities.length === 0 && (
+          <p className="text-gray-500 text-center py-4">No recent activity</p>
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+### Collaborative User Stats
+
+```tsx
+function UserStats() {
+  const connectedUsers = useConnectedUsers()
+  
+  const currentUser = connectedUsers.find(u => u.isYou)
+  const otherUsers = connectedUsers.filter(u => !u.isYou)
+  
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-blue-50 p-4 rounded">
+        <h4 className="font-semibold text-blue-800">Total Users</h4>
+        <p className="text-2xl font-bold text-blue-600">{connectedUsers.length}</p>
+      </div>
+      
+      <div className="bg-green-50 p-4 rounded">
+        <h4 className="font-semibold text-green-800">You</h4>
+        <p className="text-lg font-medium text-green-600">
+          {currentUser?.nickname || 'Not connected'}
+        </p>
+      </div>
+      
+      <div className="bg-purple-50 p-4 rounded">
+        <h4 className="font-semibold text-purple-800">Others Online</h4>
+        <p className="text-2xl font-bold text-purple-600">{otherUsers.length}</p>
+      </div>
+    </div>
+  )
+}
+```
+
+### User Connection Status
+
+```tsx
+function UserConnectionStatus() {
+  const connectedUsers = useConnectedUsers()
+  const [previousUsers, setPreviousUsers] = useState<string[]>([])
+  
+  useEffect(() => {
+    const currentUserIds = connectedUsers.map(u => u.userId)
+    const newUsers = currentUserIds.filter(id => !previousUsers.includes(id))
+    const leftUsers = previousUsers.filter(id => !currentUserIds.includes(id))
+    
+    // Show notifications for new/left users
+    newUsers.forEach(userId => {
+      const user = connectedUsers.find(u => u.userId === userId)
+      if (user && !user.isYou) {
+        console.log(`${user.nickname} joined the session`)
+      }
+    })
+    
+    leftUsers.forEach(userId => {
+      console.log(`User ${userId} left the session`)
+    })
+    
+    setPreviousUsers(currentUserIds)
+  }, [connectedUsers, previousUsers])
+  
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h3 className="font-semibold mb-3">Connection Status</h3>
+      <div className="space-y-2">
+        {connectedUsers.map(({ userId, nickname, isYou }) => (
+          <div key={userId} className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className={isYou ? 'font-semibold' : ''}>
+                {nickname}
+                {isYou && ' (You)'}
+              </span>
+            </div>
+            <span className="text-xs text-green-600 font-medium">Online</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+## Advanced Usage
+
+### User Filtering and Search
+
+```tsx
+function UserSearch() {
+  const connectedUsers = useConnectedUsers()
+  const [searchTerm, setSearchTerm] = useState('')
+  
+  const filteredUsers = connectedUsers.filter(user =>
+    user.nickname.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+  
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <div className="mb-4">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search users..."
+          className="w-full p-2 border rounded"
+        />
+      </div>
+      
+      <div className="space-y-2">
+        {filteredUsers.map(({ userId, nickname, isYou }) => (
+          <div key={userId} className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm">
+              {nickname.charAt(0).toUpperCase()}
+            </div>
+            <span className={isYou ? 'font-semibold' : ''}>
+              {nickname}
+              {isYou && ' (You)'}
+            </span>
+          </div>
+        ))}
+        
+        {filteredUsers.length === 0 && searchTerm && (
+          <p className="text-gray-500 text-center py-4">No users found</p>
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+### User Grouping
+
+```tsx
+function UserGroups() {
+  const connectedUsers = useConnectedUsers()
+  
+  const currentUser = connectedUsers.find(u => u.isYou)
+  const otherUsers = connectedUsers.filter(u => !u.isYou)
+  
+  return (
+    <div className="space-y-4">
+      {currentUser && (
+        <div className="bg-blue-50 p-4 rounded">
+          <h4 className="font-semibold text-blue-800 mb-2">You</h4>
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm">
+              {currentUser.nickname.charAt(0).toUpperCase()}
+            </div>
+            <span className="font-medium">{currentUser.nickname}</span>
+          </div>
+        </div>
+      )}
+      
+      {otherUsers.length > 0 && (
+        <div className="bg-gray-50 p-4 rounded">
+          <h4 className="font-semibold text-gray-800 mb-2">
+            Other Users ({otherUsers.length})
+          </h4>
+          <div className="space-y-2">
+            {otherUsers.map(({ userId, nickname }) => (
+              <div key={userId} className="flex items-center space-x-2">
+                <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center text-white text-xs">
+                  {nickname.charAt(0).toUpperCase()}
+                </div>
+                <span>{nickname}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Handle Empty States" icon="circle-exclamation">
+    Always handle cases where no users are connected
+    ```tsx
+    {connectedUsers.length === 0 ? (
+      <p>No users connected</p>
+    ) : (
+      <UserList users={connectedUsers} />
+    )}
+    ```
+  </Card>
+  
+  <Card title="Distinguish Current User" icon="user-check">
+    Make it clear which user is the current user
+    ```tsx
+    {isYou ? (
+      <strong>{nickname} (You)</strong>
+    ) : (
+      <span>{nickname}</span>
+    )}
+    ```
+  </Card>
+  
+  <Card title="Use Stable Keys" icon="key">
+    Always use userId as the key for lists
+    ```tsx
+    {connectedUsers.map(({ userId, nickname }) => (
+      <div key={userId}>{nickname}</div>
+    ))}
+    ```
+  </Card>
+  
+  <Card title="Provide User Context" icon="info-circle">
+    Show additional context about users when available
+    ```tsx
+    <div>
+      <span>{nickname}</span>
+      <span className="text-sm text-gray-500">
+        {isYou ? 'You' : 'Collaborator'}
+      </span>
+    </div>
+    ```
+  </Card>
+</CardGroup>
+
+## Common Patterns
+
+### User Counter
+
+```tsx
+function UserCounter() {
+  const connectedUsers = useConnectedUsers()
+  
+  return (
+    <div className="flex items-center space-x-2">
+      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+      <span className="text-sm text-gray-600">
+        {connectedUsers.length} user{connectedUsers.length !== 1 ? 's' : ''} online
+      </span>
+    </div>
+  )
+}
+```
+
+### User Initials
+
+```tsx
+function UserInitials() {
+  const connectedUsers = useConnectedUsers()
+  
+  return (
+    <div className="flex -space-x-1">
+      {connectedUsers.slice(0, 5).map(({ userId, nickname }) => (
+        <div
+          key={userId}
+          className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm border-2 border-white"
+        >
+          {nickname.charAt(0).toUpperCase()}
+        </div>
+      ))}
+      {connectedUsers.length > 5 && (
+        <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center text-white text-xs border-2 border-white">
+          +{connectedUsers.length - 5}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## TypeScript Support
+
+```tsx
+import { useConnectedUsers, type ConnectedUser } from 'react-together'
+
+function TypedUserList() {
+  const connectedUsers: ConnectedUser[] = useConnectedUsers()
+  
+  // Type-safe filtering
+  const currentUser: ConnectedUser | undefined = connectedUsers.find(u => u.isYou)
+  const otherUsers: ConnectedUser[] = connectedUsers.filter(u => !u.isYou)
+  
+  return (
+    <div>
+      {currentUser && (
+        <div>Current user: {currentUser.nickname}</div>
+      )}
+      <div>Other users: {otherUsers.length}</div>
+    </div>
+  )
+}
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="User list is empty">
+    - Verify the `ReactTogether` provider is properly configured
+    - Check that you're connected to a session
+    - Ensure the session is active and other users have joined
+  </Accordion>
+  
+  <Accordion title="User information is outdated">
+    - The hook automatically updates when users join/leave
+    - If issues persist, check for JavaScript errors
+    - Verify the session connection is stable
+  </Accordion>
+  
+  <Accordion title="isYou flag not working">
+    - Ensure you're properly connected to the session
+    - Check that your user ID is being set correctly
+    - Verify the session initialization is complete
+  </Accordion>
+  
+  <Accordion title="Nicknames not updating">
+    - Use the `useNicknames` hook to manage nickname changes
+    - Check that nickname updates are being published to the session
+    - Verify all users have the latest nickname data
+  </Accordion>
+</AccordionGroup>
+
+## Related Hooks
+
+<CardGroup cols={2}>
+  <Card title="useNicknames" icon="tag" href="/react-together/hooks/use-nicknames">
+    Manage and update user nicknames
+  </Card>
+  <Card title="useCursors" icon="cursor" href="/react-together/hooks/use-cursors">
+    Track cursor positions of connected users
+  </Card>
+  <Card title="useChat" icon="comments" href="/react-together/hooks/use-chat">
+    Enable chat between connected users
+  </Card>
+  <Card title="useStateTogether" icon="refresh" href="/react-together/hooks/use-state-together">
+    Share state between connected users
+  </Card>
+</CardGroup>
+
+`useConnectedUsers` is foundational for building user-aware collaborative features. It provides the essential user information needed for most multiplayer functionality.

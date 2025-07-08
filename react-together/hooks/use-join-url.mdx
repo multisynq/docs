@@ -1,0 +1,708 @@
+---
+title: "useJoinUrl"
+description: "Get the join URL for sharing the current React Together session with other users"
+---
+
+# useJoinUrl
+
+The `useJoinUrl` hook returns the URL that other users can use to join the current React Together session. If there is no active session, this hook returns `null`.
+
+This hook is essential for sharing collaborative sessions and inviting others to join your workspace.
+
+## Basic Usage
+
+```tsx
+import { useJoinUrl } from 'react-together'
+
+function ShareSession() {
+  const joinUrl = useJoinUrl()
+
+  if (!joinUrl) {
+    return <p>Not connected to any session</p>
+  }
+
+  return (
+    <div>
+      <p>Share this URL with others:</p>
+      <code>{joinUrl}</code>
+    </div>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useJoinUrl(): string | null
+```
+
+## Return Value
+
+<ResponseField name="joinUrl" type="string | null">
+  The join URL for the current session, or `null` if not connected to any session.
+</ResponseField>
+
+## Examples
+
+### Simple Share Button
+
+Create a basic share functionality with copy-to-clipboard:
+
+```tsx
+import { useJoinUrl } from 'react-together'
+import { useState } from 'react'
+
+export default function SimpleShareButton() {
+  const joinUrl = useJoinUrl()
+  const [copied, setCopied] = useState(false)
+
+  const copyToClipboard = async () => {
+    if (!joinUrl) return
+
+    try {
+      await navigator.clipboard.writeText(joinUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
+  if (!joinUrl) {
+    return (
+      <div className="p-4 bg-gray-100 rounded-lg text-center">
+        <p className="text-gray-600">Not connected to any session</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 bg-white rounded-lg shadow">
+      <h3 className="text-lg font-semibold mb-3">Invite Others</h3>
+      
+      <div className="flex items-center space-x-2 mb-3">
+        <input
+          type="text"
+          value={joinUrl}
+          readOnly
+          className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm"
+        />
+        <button
+          onClick={copyToClipboard}
+          className={`px-4 py-2 rounded font-medium transition-all ${
+            copied 
+              ? 'bg-green-500 text-white' 
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
+          }`}
+        >
+          {copied ? '✓ Copied' : 'Copy'}
+        </button>
+      </div>
+      
+      <p className="text-sm text-gray-600">
+        Share this link for others to join your session
+      </p>
+    </div>
+  )
+}
+```
+
+### Advanced Share Dialog
+
+Create a comprehensive sharing interface with multiple sharing options:
+
+```tsx
+import { useJoinUrl, useConnectedUsers } from 'react-together'
+import { useState } from 'react'
+
+export default function ShareDialog() {
+  const joinUrl = useJoinUrl()
+  const connectedUsers = useConnectedUsers()
+  const [isOpen, setIsOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const copyToClipboard = async () => {
+    if (!joinUrl) return
+
+    try {
+      await navigator.clipboard.writeText(joinUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
+  const shareViaEmail = () => {
+    if (!joinUrl) return
+    
+    const subject = encodeURIComponent('Join my collaborative session')
+    const body = encodeURIComponent(
+      `Hi!\n\nI'm inviting you to join my collaborative session. Click the link below to get started:\n\n${joinUrl}\n\nSee you there!`
+    )
+    
+    window.open(`mailto:?subject=${subject}&body=${body}`)
+  }
+
+  const shareViaText = () => {
+    if (!joinUrl) return
+    
+    const message = encodeURIComponent(
+      `Join my collaborative session: ${joinUrl}`
+    )
+    
+    window.open(`sms:?body=${message}`)
+  }
+
+  if (!joinUrl) {
+    return null
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all"
+      >
+        👥 Invite Others ({connectedUsers.length} online)
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-lg border p-6 w-96 z-10">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Share Session</h3>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Session URL */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Session URL
+            </label>
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                value={joinUrl}
+                readOnly
+                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm font-mono"
+              />
+              <button
+                onClick={copyToClipboard}
+                className={`px-3 py-2 rounded text-sm font-medium transition-all ${
+                  copied 
+                    ? 'bg-green-500 text-white' 
+                    : 'bg-gray-500 hover:bg-gray-600 text-white'
+                }`}
+              >
+                {copied ? '✓' : '📋'}
+              </button>
+            </div>
+          </div>
+
+          {/* Share Options */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Share via
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={shareViaEmail}
+                className="flex items-center justify-center space-x-2 px-3 py-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-all"
+              >
+                <span>📧</span>
+                <span>Email</span>
+              </button>
+              <button
+                onClick={shareViaText}
+                className="flex items-center justify-center space-x-2 px-3 py-2 bg-green-50 text-green-700 rounded hover:bg-green-100 transition-all"
+              >
+                <span>💬</span>
+                <span>SMS</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Current Participants */}
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">
+              Current Participants ({connectedUsers.length})
+            </h4>
+            <div className="space-y-1">
+              {connectedUsers.slice(0, 3).map(({ userId, nickname, isYou }) => (
+                <div key={userId} className="flex items-center space-x-2 text-sm">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>
+                    {nickname || `User ${userId.slice(-4)}`}
+                    {isYou && ' (You)'}
+                  </span>
+                </div>
+              ))}
+              {connectedUsers.length > 3 && (
+                <div className="text-xs text-gray-500">
+                  +{connectedUsers.length - 3} more participants
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### QR Code Share
+
+Generate a QR code for easy mobile sharing:
+
+```tsx
+import { useJoinUrl } from 'react-together'
+import { useState, useEffect } from 'react'
+
+// Note: You'll need to install a QR code library like 'qrcode'
+// npm install qrcode @types/qrcode
+
+export default function QRCodeShare() {
+  const joinUrl = useJoinUrl()
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('')
+  const [showQR, setShowQR] = useState(false)
+
+  useEffect(() => {
+    if (joinUrl) {
+      // Generate QR code (you'll need to install qrcode library)
+      // import QRCode from 'qrcode'
+      // QRCode.toDataURL(joinUrl).then(setQrCodeUrl)
+      
+      // For demo purposes, using a placeholder QR service
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(joinUrl)}`
+      setQrCodeUrl(qrUrl)
+    }
+  }, [joinUrl])
+
+  if (!joinUrl) {
+    return (
+      <div className="p-4 bg-gray-100 rounded-lg text-center">
+        <p className="text-gray-600">No active session to share</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-6 bg-white rounded-lg shadow-lg max-w-sm mx-auto">
+      <h3 className="text-lg font-semibold mb-4 text-center">Share Session</h3>
+      
+      {!showQR ? (
+        <div className="space-y-4">
+          <div className="text-center">
+            <div className="text-6xl mb-2">📱</div>
+            <p className="text-gray-600 text-sm">
+              Share your session instantly with a QR code
+            </p>
+          </div>
+          
+          <button
+            onClick={() => setShowQR(true)}
+            className="w-full py-3 px-4 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-all"
+          >
+            Generate QR Code
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="text-center">
+            {qrCodeUrl && (
+              <img
+                src={qrCodeUrl}
+                alt="Session QR Code"
+                className="mx-auto mb-3 rounded"
+              />
+            )}
+            <p className="text-sm text-gray-600 mb-3">
+              Scan with your phone to join the session
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <button
+              onClick={() => navigator.clipboard.writeText(joinUrl)}
+              className="w-full py-2 px-4 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-all"
+            >
+              📋 Copy Link
+            </button>
+            
+            <button
+              onClick={() => setShowQR(false)}
+              className="w-full py-2 px-4 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-all"
+            >
+              ← Back
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Session Info Panel
+
+Display comprehensive session information including join URL:
+
+```tsx
+import { useJoinUrl, useConnectedUsers, useIsTogether } from 'react-together'
+import { useState, useEffect } from 'react'
+
+export default function SessionInfoPanel() {
+  const joinUrl = useJoinUrl()
+  const connectedUsers = useConnectedUsers()
+  const isTogether = useIsTogether()
+  const [sessionDuration, setSessionDuration] = useState(0)
+  const [startTime] = useState(Date.now())
+
+  useEffect(() => {
+    if (!isTogether) return
+
+    const interval = setInterval(() => {
+      setSessionDuration(Date.now() - startTime)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [isTogether, startTime])
+
+  const formatDuration = (ms: number) => {
+    const seconds = Math.floor(ms / 1000) % 60
+    const minutes = Math.floor(ms / 60000) % 60
+    const hours = Math.floor(ms / 3600000)
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    }
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  }
+
+  const getSessionId = () => {
+    if (!joinUrl) return 'N/A'
+    try {
+      const url = new URL(joinUrl)
+      const name = url.searchParams.get('name')
+      return name ? name.slice(-8).toUpperCase() : 'Unknown'
+    } catch {
+      return 'Unknown'
+    }
+  }
+
+  const shareSession = async () => {
+    if (!joinUrl) return
+
+    try {
+      await navigator.share({
+        title: 'Join my collaborative session',
+        text: 'Join my React Together session',
+        url: joinUrl
+      })
+    } catch (err) {
+      // Fallback to clipboard
+      navigator.clipboard.writeText(joinUrl)
+      alert('Session URL copied to clipboard!')
+    }
+  }
+
+  if (!isTogether || !joinUrl) {
+    return (
+      <div className="p-4 bg-gray-100 rounded-lg">
+        <div className="text-center text-gray-600">
+          <div className="text-2xl mb-2">🚫</div>
+          <p>No active session</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-6 bg-white rounded-lg shadow-lg">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold">Session Info</h3>
+        <div className="flex items-center space-x-2">
+          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="text-green-600 font-medium text-sm">Active</span>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {/* Session Statistics */}
+        <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600">{connectedUsers.length}</div>
+            <div className="text-xs text-gray-600">Participants</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600">{formatDuration(sessionDuration)}</div>
+            <div className="text-xs text-gray-600">Duration</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600">{getSessionId()}</div>
+            <div className="text-xs text-gray-600">Session ID</div>
+          </div>
+        </div>
+
+        {/* Participants List */}
+        <div>
+          <h4 className="font-medium text-gray-900 mb-2">Participants</h4>
+          <div className="space-y-1">
+            {connectedUsers.map(({ userId, nickname, isYou }) => (
+              <div key={userId} className="flex items-center space-x-2 py-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm">
+                  {nickname || `User ${userId.slice(-4)}`}
+                  {isYou && <span className="text-blue-600 font-medium"> (You)</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Share Section */}
+        <div className="border-t pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="font-medium text-gray-900">Share Session</h4>
+            <button
+              onClick={shareSession}
+              className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-all"
+            >
+              Share
+            </button>
+          </div>
+          
+          <div className="p-2 bg-gray-50 rounded text-xs font-mono text-gray-600 break-all">
+            {joinUrl}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Invitation Manager
+
+Create a sophisticated invitation system:
+
+```tsx
+import { useJoinUrl, useConnectedUsers } from 'react-together'
+import { useState } from 'react'
+
+interface Invitation {
+  id: string
+  email: string
+  sentAt: number
+  status: 'sent' | 'joined' | 'expired'
+}
+
+export default function InvitationManager() {
+  const joinUrl = useJoinUrl()
+  const connectedUsers = useConnectedUsers()
+  const [invitations, setInvitations] = useState<Invitation[]>([])
+  const [email, setEmail] = useState('')
+  const [isSending, setIsSending] = useState(false)
+
+  const sendInvitation = async () => {
+    if (!email || !joinUrl) return
+
+    setIsSending(true)
+    
+    try {
+      // Simulate sending email (replace with actual email service)
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      const newInvitation: Invitation = {
+        id: Date.now().toString(),
+        email,
+        sentAt: Date.now(),
+        status: 'sent'
+      }
+      
+      setInvitations(prev => [newInvitation, ...prev])
+      setEmail('')
+      
+      // In a real app, you would send an actual email here
+      console.log(`Invitation sent to ${email}: ${joinUrl}`)
+      
+    } catch (error) {
+      console.error('Failed to send invitation:', error)
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  const formatTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleString()
+  }
+
+  if (!joinUrl) {
+    return (
+      <div className="p-6 bg-gray-100 rounded-lg text-center">
+        <p className="text-gray-600">No active session to invite users to</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-6 bg-white rounded-lg shadow-lg max-w-2xl mx-auto">
+      <h3 className="text-xl font-semibold mb-6">Invitation Manager</h3>
+      
+      {/* Send Invitation */}
+      <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+        <h4 className="font-medium text-blue-900 mb-3">Send Invitation</h4>
+        <div className="flex space-x-2">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter email address"
+            className="flex-1 px-3 py-2 border border-blue-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            onClick={sendInvitation}
+            disabled={!email || isSending}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {isSending ? 'Sending...' : 'Send'}
+          </button>
+        </div>
+      </div>
+
+      {/* Current Session */}
+      <div className="mb-6">
+        <h4 className="font-medium text-gray-900 mb-3">Current Session</h4>
+        <div className="grid grid-cols-2 gap-4 p-4 bg-green-50 rounded-lg">
+          <div>
+            <span className="text-sm text-green-700">Participants Online:</span>
+            <div className="font-semibold text-green-900">{connectedUsers.length}</div>
+          </div>
+          <div>
+            <span className="text-sm text-green-700">Session URL:</span>
+            <div className="font-mono text-xs text-green-800 truncate">{joinUrl}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Invitation History */}
+      <div>
+        <h4 className="font-medium text-gray-900 mb-3">
+          Invitation History ({invitations.length})
+        </h4>
+        
+        {invitations.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No invitations sent yet
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {invitations.map((invitation) => (
+              <div key={invitation.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                <div>
+                  <div className="font-medium">{invitation.email}</div>
+                  <div className="text-sm text-gray-500">
+                    Sent {formatTime(invitation.sentAt)}
+                  </div>
+                </div>
+                <div>
+                  <span className={`px-2 py-1 text-xs font-medium rounded ${
+                    invitation.status === 'sent' ? 'bg-yellow-100 text-yellow-800' :
+                    invitation.status === 'joined' ? 'bg-green-100 text-green-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {invitation.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+### URL Handling
+- **Always check for null** - The hook returns `null` when not in a session
+- **Validate URLs** - Ensure the URL is valid before sharing or processing
+- **Handle URL parameters** - Be aware of query parameters in the join URL
+
+### User Experience
+- **Copy feedback** - Provide clear feedback when URLs are copied
+- **Share options** - Offer multiple ways to share (copy, email, SMS, QR code)
+- **Visual indicators** - Show session status clearly
+
+### Security Considerations
+- **URL sensitivity** - Join URLs contain session credentials, handle them securely
+- **Expiration awareness** - URLs may become invalid when sessions end
+- **Access control** - Consider implementing additional access controls if needed
+
+## Common Patterns
+
+### Share Button with Copy
+```tsx
+const shareSession = () => {
+  if (joinUrl) {
+    navigator.clipboard.writeText(joinUrl)
+    alert('Session URL copied!')
+  }
+}
+```
+
+### Email Invitation
+```tsx
+const inviteViaEmail = (email: string) => {
+  if (joinUrl) {
+    const subject = 'Join my collaborative session'
+    const body = `Join here: ${joinUrl}`
+    window.open(`mailto:${email}?subject=${subject}&body=${body}`)
+  }
+}
+```
+
+### URL Validation
+```tsx
+const isValidJoinUrl = (url: string | null) => {
+  if (!url) return false
+  try {
+    const parsed = new URL(url)
+    return parsed.searchParams.has('name')
+  } catch {
+    return false
+  }
+}
+```
+
+## Related Hooks
+
+- [`useIsTogether`](/react-together/hooks/use-is-together) - Check if user is in a session
+- [`useCreateRandomSession`](/react-together/hooks/use-create-random-session) - Create new sessions
+- [`useConnectedUsers`](/react-together/hooks/use-connected-users) - See who's in the session
+- [`useLeaveSession`](/react-together/hooks/use-leave-session) - Leave the current session
+
+## TypeScript Support
+
+This hook has simple, type-safe return value:
+
+```tsx
+const joinUrl: string | null = useJoinUrl()
+
+// Type guards for safe usage
+if (joinUrl) {
+  // joinUrl is guaranteed to be string here
+  navigator.clipboard.writeText(joinUrl)
+}
+
+// Optional chaining is also safe
+const urlLength = joinUrl?.length ?? 0
+``` 

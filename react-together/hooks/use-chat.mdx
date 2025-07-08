@@ -1,0 +1,712 @@
+---
+title: "useChat"
+description: "Build real-time chat functionality into your React Together applications with message history and user identification."
+---
+
+## Overview
+
+`useChat` enables real-time messaging between users in your collaborative application. It provides a complete chat system with message history, automatic user identification, and timestamp tracking. Perfect for building chat interfaces, comments systems, and any collaborative communication feature.
+
+<Info>
+**Perfect for**: Real-time chat applications, team communication, comment systems, collaborative feedback, customer support chat, and any feature requiring user-to-user messaging.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { useEffect, useRef, useState } from 'react'
+import { useChat } from 'react-together'
+
+function ChatComponent() {
+  const { messages, sendMessage } = useChat('my-chat')
+  const [message, setMessage] = useState('')
+  const messagesRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight
+    }
+  }, [messages])
+
+  const handleSendMessage = () => {
+    if (message.trim()) {
+      sendMessage(message.trim())
+      setMessage('')
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
+  return (
+    <div className="flex flex-col h-96 border rounded-lg">
+      {/* Messages Container */}
+      <div 
+        ref={messagesRef}
+        className="flex-1 overflow-y-auto p-4 space-y-2"
+      >
+        {messages.map(({ id, senderId, message, sentAt }) => (
+          <div key={id} className="text-sm">
+            <span className="text-gray-500">
+              [{new Date(sentAt).toLocaleTimeString()}]
+            </span>{' '}
+            <strong className="text-blue-600">{senderId}</strong>: {message}
+          </div>
+        ))}
+      </div>
+      
+      {/* Input Container */}
+      <div className="p-4 border-t flex gap-2">
+        <input
+          type="text"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder="Type a message..."
+          className="flex-1 border border-gray-300 rounded px-3 py-2"
+        />
+        <button
+          onClick={handleSendMessage}
+          disabled={!message.trim()}
+          className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useChat(rtKey: string): {
+  messages: ChatMessage[]
+  sendMessage: (message: string) => void
+}
+```
+
+## Parameters
+
+<ParamField path="rtKey" type="string" required>
+  Unique identifier for this chat instance. Use different keys for separate chat rooms or conversations.
+</ParamField>
+
+## Return Value
+
+<ParamField path="messages" type="ChatMessage[]">
+  Array of all messages in the chat, ordered chronologically
+</ParamField>
+
+<ParamField path="sendMessage" type="(message: string) => void">
+  Function to send a new message to the chat
+</ParamField>
+
+### ChatMessage Interface
+
+<ParamField path="id" type="number">
+  Unique identifier for the message
+</ParamField>
+
+<ParamField path="senderId" type="string">
+  User ID of the user who sent the message
+</ParamField>
+
+<ParamField path="message" type="string">
+  The text content of the message
+</ParamField>
+
+<ParamField path="sentAt" type="number">
+  Timestamp (in milliseconds) when the message was sent
+</ParamField>
+
+## Examples
+
+### Modern Chat Interface
+
+```tsx
+import { useChat, useNicknames, useConnectedUsers } from 'react-together'
+import { useState, useRef, useEffect } from 'react'
+
+function ModernChat() {
+  const { messages, sendMessage } = useChat('team-chat')
+  const [, , allNicknames] = useNicknames()
+  const [input, setInput] = useState('')
+  const connectedUsers = useConnectedUsers()
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  
+  const currentUser = connectedUsers.find(u => u.isYou)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (input.trim()) {
+      sendMessage(input.trim())
+      setInput('')
+    }
+  }
+
+  const formatTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    })
+  }
+
+  const isConsecutiveMessage = (currentMsg: any, prevMsg: any) => {
+    return prevMsg && 
+           prevMsg.senderId === currentMsg.senderId && 
+           (currentMsg.sentAt - prevMsg.sentAt) < 60000 // Within 1 minute
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg flex flex-col h-[500px]">
+      {/* Header */}
+      <div className="bg-gray-50 px-4 py-3 border-b rounded-t-lg">
+        <h3 className="font-semibold text-gray-800">Team Chat</h3>
+        <p className="text-sm text-gray-600">
+          {connectedUsers.length} user(s) online
+        </p>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-1">
+        {messages.map((msg, index) => {
+          const prevMsg = messages[index - 1]
+          const isOwn = msg.senderId === currentUser?.userId
+          const isConsecutive = isConsecutiveMessage(msg, prevMsg)
+          const senderName = allNicknames[msg.senderId] || msg.senderId
+
+          return (
+            <div key={msg.id}>
+              <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-xs lg:max-w-md ${isOwn ? 'order-1' : ''}`}>
+                  {!isConsecutive && (
+                    <div className={`text-xs text-gray-500 mb-1 ${isOwn ? 'text-right' : 'text-left'}`}>
+                      {isOwn ? 'You' : senderName} • {formatTime(msg.sentAt)}
+                    </div>
+                  )}
+                  <div
+                    className={`px-3 py-2 rounded-lg ${
+                      isOwn
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-100 text-gray-800'
+                    } ${!isConsecutive ? 'rounded-tl-lg' : isOwn ? 'rounded-tr-md' : 'rounded-tl-md'}`}
+                  >
+                    {msg.message}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <form onSubmit={handleSubmit} className="p-4 border-t bg-gray-50">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your message..."
+            className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-full font-medium transition-colors"
+          >
+            Send
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+```
+
+### Multi-Room Chat System
+
+```tsx
+import { useChat, useStateTogether, useNicknames } from 'react-together'
+import { useState } from 'react'
+
+interface ChatRoom {
+  id: string
+  name: string
+  description: string
+}
+
+function MultiRoomChat() {
+  const [rooms] = useStateTogether<ChatRoom[]>('chat-rooms', [
+    { id: 'general', name: 'General', description: 'General discussion' },
+    { id: 'dev', name: 'Development', description: 'Development topics' },
+    { id: 'design', name: 'Design', description: 'Design discussions' }
+  ])
+  
+  const [activeRoom, setActiveRoom] = useState('general')
+  const { messages, sendMessage } = useChat(`room-${activeRoom}`)
+  const [, , allNicknames] = useNicknames()
+  const [input, setInput] = useState('')
+
+  const handleSendMessage = () => {
+    if (input.trim()) {
+      sendMessage(input.trim())
+      setInput('')
+    }
+  }
+
+  const currentRoom = rooms.find(r => r.id === activeRoom)
+
+  return (
+    <div className="flex h-[600px] bg-white rounded-lg shadow-lg overflow-hidden">
+      {/* Sidebar */}
+      <div className="w-64 bg-gray-100 border-r">
+        <div className="p-4 border-b">
+          <h3 className="font-semibold text-gray-800">Chat Rooms</h3>
+        </div>
+        <div className="p-2">
+          {rooms.map((room) => (
+            <button
+              key={room.id}
+              onClick={() => setActiveRoom(room.id)}
+              className={`w-full text-left p-3 rounded-lg mb-1 transition-colors ${
+                activeRoom === room.id
+                  ? 'bg-blue-500 text-white'
+                  : 'hover:bg-gray-200 text-gray-700'
+              }`}
+            >
+              <div className="font-medium"># {room.name}</div>
+              <div className="text-sm opacity-75">{room.description}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Room Header */}
+        <div className="bg-white border-b p-4">
+          <h2 className="font-semibold text-lg"># {currentRoom?.name}</h2>
+          <p className="text-gray-600 text-sm">{currentRoom?.description}</p>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {messages.length === 0 ? (
+            <div className="text-center text-gray-500 py-8">
+              <p>No messages yet in #{currentRoom?.name}</p>
+              <p className="text-sm">Be the first to start the conversation!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {messages.map((msg) => (
+                <div key={msg.id} className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                    {(allNicknames[msg.senderId] || msg.senderId).charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-baseline space-x-2">
+                      <span className="font-semibold text-gray-900">
+                        {allNicknames[msg.senderId] || msg.senderId}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(msg.sentAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-gray-700 mt-1">{msg.message}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Input */}
+        <div className="p-4 border-t bg-gray-50">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              placeholder={`Message #${currentRoom?.name}`}
+              className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!input.trim()}
+              className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Chat with Rich Features
+
+```tsx
+import { useChat, useNicknames, useConnectedUsers, useStateTogether } from 'react-together'
+import { useState, useRef, useEffect } from 'react'
+
+interface Reaction {
+  messageId: number
+  userId: string
+  emoji: string
+}
+
+function RichChat() {
+  const { messages, sendMessage } = useChat('rich-chat')
+  const [, , allNicknames] = useNicknames()
+  const [reactions, setReactions] = useStateTogether<Reaction[]>('chat-reactions', [])
+  const [typingUsers, setTypingUsers] = useStateTogether<string[]>('typing-users', [])
+  const [input, setInput] = useState('')
+  const [showEmojiPicker, setShowEmojiPicker] = useState<number | null>(null)
+  const connectedUsers = useConnectedUsers()
+  const typingTimeoutRef = useRef<NodeJS.Timeout>()
+  
+  const currentUser = connectedUsers.find(u => u.isYou)
+  const emojis = ['👍', '❤️', '😂', '😮', '😢', '😡']
+
+  // Handle typing indicators
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value)
+    
+    if (currentUser && !typingUsers.includes(currentUser.userId)) {
+      setTypingUsers(prev => [...prev, currentUser.userId])
+    }
+    
+    clearTimeout(typingTimeoutRef.current)
+    typingTimeoutRef.current = setTimeout(() => {
+      if (currentUser) {
+        setTypingUsers(prev => prev.filter(id => id !== currentUser.userId))
+      }
+    }, 1000)
+  }
+
+  const handleSendMessage = () => {
+    if (input.trim() && currentUser) {
+      sendMessage(input.trim())
+      setInput('')
+      setTypingUsers(prev => prev.filter(id => id !== currentUser.userId))
+    }
+  }
+
+  const addReaction = (messageId: number, emoji: string) => {
+    if (!currentUser) return
+    
+    const existingReaction = reactions.find(
+      r => r.messageId === messageId && r.userId === currentUser.userId && r.emoji === emoji
+    )
+
+    if (existingReaction) {
+      // Remove reaction
+      setReactions(prev => prev.filter(r => r !== existingReaction))
+    } else {
+      // Add reaction
+      setReactions(prev => [...prev, {
+        messageId,
+        userId: currentUser.userId,
+        emoji
+      }])
+    }
+    setShowEmojiPicker(null)
+  }
+
+  const getReactionsForMessage = (messageId: number) => {
+    const messageReactions = reactions.filter(r => r.messageId === messageId)
+    const grouped = messageReactions.reduce((acc, reaction) => {
+      if (!acc[reaction.emoji]) {
+        acc[reaction.emoji] = []
+      }
+      acc[reaction.emoji].push(reaction.userId)
+      return acc
+    }, {} as Record<string, string[]>)
+    
+    return grouped
+  }
+
+  const typingUserNames = typingUsers
+    .filter(userId => userId !== currentUser?.userId)
+    .map(userId => allNicknames[userId] || userId)
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg flex flex-col h-[600px]">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-3 rounded-t-lg">
+        <h3 className="font-semibold">Rich Chat</h3>
+        <p className="text-sm opacity-90">
+          {connectedUsers.length} user(s) online
+        </p>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((msg) => {
+          const isOwn = msg.senderId === currentUser?.userId
+          const senderName = allNicknames[msg.senderId] || msg.senderId
+          const messageReactions = getReactionsForMessage(msg.id)
+
+          return (
+            <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+              <div className="max-w-md">
+                {!isOwn && (
+                  <div className="text-sm font-medium text-gray-600 mb-1">
+                    {senderName}
+                  </div>
+                )}
+                
+                <div className="relative group">
+                  <div
+                    className={`px-4 py-2 rounded-lg ${
+                      isOwn
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    {msg.message}
+                  </div>
+                  
+                  {/* Reaction Button */}
+                  <button
+                    onClick={() => setShowEmojiPicker(showEmojiPicker === msg.id ? null : msg.id)}
+                    className="absolute -right-2 -top-2 bg-gray-200 hover:bg-gray-300 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    😊
+                  </button>
+                  
+                  {/* Emoji Picker */}
+                  {showEmojiPicker === msg.id && (
+                    <div className="absolute top-0 right-0 bg-white border rounded-lg shadow-lg p-2 flex gap-1 z-10">
+                      {emojis.map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={() => addReaction(msg.id, emoji)}
+                          className="hover:bg-gray-100 rounded p-1"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Reactions */}
+                {Object.keys(messageReactions).length > 0 && (
+                  <div className="flex gap-1 mt-2">
+                    {Object.entries(messageReactions).map(([emoji, userIds]) => (
+                      <button
+                        key={emoji}
+                        onClick={() => addReaction(msg.id, emoji)}
+                        className={`text-xs px-2 py-1 rounded-full border ${
+                          currentUser && userIds.includes(currentUser.userId)
+                            ? 'bg-blue-100 border-blue-300'
+                            : 'bg-gray-100 border-gray-300'
+                        } hover:bg-gray-200`}
+                        title={userIds.map(id => allNicknames[id] || id).join(', ')}
+                      >
+                        {emoji} {userIds.length}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="text-xs text-gray-500 mt-1">
+                  {new Date(msg.sentAt).toLocaleTimeString()}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Typing Indicator */}
+      {typingUserNames.length > 0 && (
+        <div className="px-4 py-2 text-sm text-gray-500 italic">
+          {typingUserNames.join(', ')} {typingUserNames.length === 1 ? 'is' : 'are'} typing...
+        </div>
+      )}
+
+      {/* Input */}
+      <div className="p-4 border-t">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={handleInputChange}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            placeholder="Type a message..."
+            className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            onClick={handleSendMessage}
+            disabled={!input.trim()}
+            className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white px-6 py-2 rounded-full"
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Minimal Comment System
+
+```tsx
+import { useChat, useNicknames } from 'react-together'
+import { useState } from 'react'
+
+interface CommentSystemProps {
+  postId: string
+  title: string
+}
+
+function CommentSystem({ postId, title }: CommentSystemProps) {
+  const { messages: comments, sendMessage: addComment } = useChat(`comments-${postId}`)
+  const [, , allNicknames] = useNicknames()
+  const [newComment, setNewComment] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newComment.trim()) {
+      addComment(newComment.trim())
+      setNewComment('')
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <h3 className="text-lg font-semibold mb-4">Comments on "{title}"</h3>
+      
+      {/* Comments List */}
+      <div className="space-y-4 mb-6">
+        {comments.length === 0 ? (
+          <p className="text-gray-500 text-center py-4">
+            No comments yet. Be the first to comment!
+          </p>
+        ) : (
+          comments.map((comment) => (
+            <div key={comment.id} className="border-l-4 border-blue-500 pl-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium text-gray-900">
+                  {allNicknames[comment.senderId] || comment.senderId}
+                </span>
+                <span className="text-sm text-gray-500">
+                  {new Date(comment.sentAt).toLocaleDateString()}
+                </span>
+              </div>
+              <p className="text-gray-700">{comment.message}</p>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Add Comment Form */}
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <textarea
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder="Add a comment..."
+          rows={3}
+          className="w-full border border-gray-300 rounded px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          type="submit"
+          disabled={!newComment.trim()}
+          className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white px-4 py-2 rounded"
+        >
+          Post Comment
+        </button>
+      </form>
+    </div>
+  )
+}
+
+// Usage
+function BlogPost() {
+  return (
+    <div className="max-w-2xl mx-auto space-y-8">
+      <article className="bg-white rounded-lg shadow p-6">
+        <h1 className="text-2xl font-bold mb-4">My Blog Post</h1>
+        <p>This is the content of my blog post...</p>
+      </article>
+      
+      <CommentSystem 
+        postId="blog-post-1" 
+        title="My Blog Post" 
+      />
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+### Performance Considerations
+
+- **Unique Keys**: Use descriptive, unique `rtKey` values for different chat instances
+- **Message Limits**: Consider implementing message history limits for long-running chats
+- **Auto-scroll**: Implement smooth auto-scrolling for better user experience
+
+### User Experience
+
+- **Message Formatting**: Support line breaks and basic formatting in messages
+- **Timestamps**: Always display timestamps for better context
+- **User Identification**: Combine with `useNicknames` for better user identification
+- **Typing Indicators**: Add typing indicators for real-time feedback
+
+### Security & Moderation
+
+```tsx
+// Input validation
+const validateMessage = (message: string) => {
+  return message.trim().length > 0 && message.length <= 500
+}
+
+// Message filtering (implement on your backend)
+const filterMessage = (message: string) => {
+  // Remove or replace inappropriate content
+  return message.replace(/spam|abuse/gi, '***')
+}
+```
+
+## Related Hooks
+
+- [`useNicknames`](/react-together/hooks/use-nicknames) - Display user-friendly names in chat
+- [`useConnectedUsers`](/react-together/hooks/use-connected-users) - Show online users
+- [`useStateTogether`](/react-together/hooks/use-state-together) - Add additional chat features
+
+## TypeScript Support
+
+The hook is fully typed with comprehensive TypeScript support:
+
+```tsx
+interface ChatMessage {
+  id: number
+  senderId: string
+  message: string
+  sentAt: number
+}
+
+const {
+  messages,     // ChatMessage[]
+  sendMessage   // (message: string) => void
+} = useChat('my-chat')

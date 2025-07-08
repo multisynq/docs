@@ -1,0 +1,682 @@
+---
+title: "Model"
+description: "The Model class is the core synchronized object class in Multisynq. Models are automatically kept in sync across all users in a session."
+---
+
+## Overview
+
+The **Model** class provides the foundation for all synchronized objects in Multisynq applications. Models handle computation, maintain state, and ensure that all users see identical behavior through deterministic execution.
+
+<Info>
+**Key Concept**: Models run identically on every user's device, ensuring perfect synchronization. They communicate with Views only through publish/subscribe events.
+</Info>
+
+## Core Principles
+
+<CardGroup cols={2}>
+  <Card title="Deterministic Execution" icon="sync">
+    All models execute identically across users, ensuring synchronized state
+  </Card>
+  <Card title="Event-Driven Communication" icon="broadcast-tower">
+    Models communicate with Views only through publish/subscribe events
+  </Card>
+  <Card title="Automatic Synchronization" icon="refresh">
+    Model state is automatically kept in sync across all session participants
+  </Card>
+  <Card title="Time Management" icon="clock">
+    Models can schedule future events for time-based behavior
+  </Card>
+</CardGroup>
+
+## Critical Rules
+
+<Warning>
+**Implementation Requirements**:
+- **NEVER use `new` constructor** - Always use `Model.create()`
+- **NEVER override the constructor** - Override `init()` method instead  
+- **Always call `Model.register(classId)`** for all Model subclasses
+- **Always call `destroy()`** when model instance is no longer needed
+</Warning>
+
+## Basic Usage
+
+### Defining a Model
+
+```javascript
+class GameModel extends Multisynq.Model {
+    init(options = {}) {
+        super.init(options);
+        this.score = 0;
+        this.players = [];
+        
+        // Subscribe to events from views
+        this.subscribe(this.sessionId, "playerJoined", this.addPlayer);
+        this.subscribe(this.sessionId, "scoreChanged", this.updateScore);
+        
+        // Start game loop
+        this.future(1000).gameLoop();
+    }
+    
+    addPlayer(data) {
+        this.players.push(data);
+        this.publish(this.sessionId, "playersUpdated", this.players);
+    }
+    
+    updateScore(data) {
+        this.score += data.points;
+        this.publish(this.sessionId, "scoreUpdated", this.score);
+    }
+    
+    gameLoop() {
+        // Game logic here
+        this.future(1000).gameLoop(); // Schedule next update
+    }
+}
+
+// Required registration
+GameModel.register("GameModel");
+```
+
+### Creating Model Instances
+
+```javascript
+// Correct way to create models
+const childModel = ChildModel.create({ 
+    name: "example",
+    value: 42 
+});
+
+// Wrong - never use 'new'
+// const model = new ChildModel(); // DON'T DO THIS
+```
+
+## Properties
+
+### `id`
+<ParamField path="id" type="string" readonly>
+  Unique identifier for the model within the session
+</ParamField>
+
+```javascript
+init() {
+    // Use model ID to scope events
+    this.subscribe(this.id, "changed", this.handleChange);
+    this.publish(this.id, "initialized");
+}
+```
+
+### `sessionId` 
+<ParamField path="sessionId" type="string" readonly>
+  Global session identifier shared by all users
+</ParamField>
+
+```javascript
+init() {
+    // Subscribe to global session events
+    this.subscribe(this.sessionId, "view-join", this.handleUserJoin);
+    this.subscribe(this.sessionId, "view-exit", this.handleUserLeave);
+}
+```
+
+### `viewCount`
+<ParamField path="viewCount" type="number" readonly>
+  Number of users currently in the session
+</ParamField>
+
+```javascript
+handleUserJoin() {
+    console.log(`Total users: ${this.viewCount}`);
+    
+    // Adjust game difficulty based on user count
+    if (this.viewCount > 4) {
+        this.increaseDifficulty();
+    }
+}
+```
+
+### `activeSubscription`
+<ParamField path="activeSubscription" type="object" readonly>
+  Information about the currently executing subscription handler
+</ParamField>
+
+```javascript
+handleEvent() {
+    console.log("Handling:", this.activeSubscription);
+    // Output: { scope: "gameId", event: "playerMoved", source: "view" }
+}
+```
+
+## Core Methods
+
+### `init(options, persistentData)`
+
+Override this method to initialize your model. Called automatically by `create()`.
+
+<ParamField path="options" type="object">
+  Configuration options passed to `create()`
+</ParamField>
+
+<ParamField path="persistentData" type="object">
+  Data restored from previous sessions (if using persistence)
+</ParamField>
+
+```javascript
+class PlayerModel extends Multisynq.Model {
+    init(options = {}) {
+        super.init(options);
+        
+        this.name = options.name || "Anonymous";
+        this.position = options.position || { x: 0, y: 0 };
+        this.health = options.health || 100;
+        
+        // Set up event handlers
+        this.subscribe(this.id, "move", this.handleMove);
+        this.subscribe(this.id, "takeDamage", this.takeDamage);
+    }
+    
+    handleMove(data) {
+        this.position = data.position;
+        this.publish(this.sessionId, "playerMoved", {
+            playerId: this.id,
+            position: this.position
+        });
+    }
+}
+```
+
+### `publish(scope, event, data)`
+
+Send an event to a specific scope. Primary communication method with Views.
+
+<ParamField path="scope" type="string" required>
+  Event scope (often `this.sessionId` for global events)
+</ParamField>
+
+<ParamField path="event" type="string" required>
+  Event name
+</ParamField>
+
+<ParamField path="data" type="any">
+  Data to send with the event
+</ParamField>
+
+```javascript
+// Publish to all users in session
+this.publish(this.sessionId, "gameStarted", { 
+    startTime: this.now(),
+    playerCount: this.viewCount 
+});
+
+// Publish to specific model instance
+this.publish(this.id, "healthChanged", { 
+    health: this.health,
+    maxHealth: this.maxHealth 
+});
+
+// Publish to specific view
+this.publish(viewId, "privateMessage", { 
+    from: "server", 
+    message: "Welcome!" 
+});
+```
+
+### `subscribe(scope, event, handler)`
+
+Register an event handler for specific events.
+
+<ParamField path="scope" type="string" required>
+  Event scope to listen to
+</ParamField>
+
+<ParamField path="event" type="string" required>
+  Event name to handle
+</ParamField>
+
+<ParamField path="handler" type="function" required>
+  Method to call when event occurs
+</ParamField>
+
+```javascript
+init() {
+    // Listen for user actions
+    this.subscribe(this.sessionId, "userAction", this.handleUserAction);
+    
+    // Listen for system events
+    this.subscribe(this.sessionId, "view-join", this.handleUserJoin);
+    this.subscribe(this.sessionId, "view-exit", this.handleUserLeave);
+    
+    // Listen for model-specific events
+    this.subscribe(this.id, "configure", this.configure);
+}
+
+handleUserAction(data) {
+    const { userId, action, payload } = data;
+    // Process user action
+}
+```
+
+### `unsubscribe(scope, event, handler)`
+
+Remove event handler(s).
+
+```javascript
+// Unsubscribe specific handler
+this.unsubscribe(this.sessionId, "gameEvent", this.handleGameEvent);
+
+// Unsubscribe all handlers for event
+this.unsubscribe(this.sessionId, "gameEvent");
+
+// Unsubscribe all handlers for scope
+this.unsubscribe(this.sessionId);
+```
+
+### `future(milliseconds)`
+
+Schedule a method call for future execution.
+
+<ParamField path="milliseconds" type="number" default="0">
+  Delay in milliseconds before execution
+</ParamField>
+
+```javascript
+init() {
+    // Start immediate game loop
+    this.future(0).gameLoop();
+    
+    // Schedule periodic saves
+    this.future(30000).autoSave(); // Every 30 seconds
+}
+
+gameLoop() {
+    this.updateGame();
+    this.checkWinConditions();
+    
+    // Schedule next frame (60 FPS)
+    this.future(16.67).gameLoop();
+}
+
+autoSave() {
+    this.saveGameState();
+    this.future(30000).autoSave(); // Schedule next save
+}
+```
+
+### `cancelFuture(method)`
+
+Cancel a previously scheduled future message.
+
+<ParamField path="method" type="function" required>
+  The method that was scheduled
+</ParamField>
+
+<ParamField returns="boolean">
+  True if message was found and canceled
+</ParamField>
+
+```javascript
+startTimer() {
+    this.future(5000).timeOut();
+}
+
+stopTimer() {
+    const canceled = this.cancelFuture(this.timeOut);
+    console.log(canceled ? "Timer stopped" : "Timer not found");
+}
+```
+
+### `now()`
+
+Get the current model time in milliseconds.
+
+<ParamField returns="number">
+  Current time in milliseconds since session start
+</ParamField>
+
+```javascript
+logEvent(eventType) {
+    const timestamp = this.now();
+    this.events.push({ 
+        type: eventType, 
+        time: timestamp,
+        frame: this.frameCount 
+    });
+}
+```
+
+### `random()`
+
+Generate a synchronized random number (0-1) identical across all users.
+
+<ParamField returns="number">
+  Random number between 0 and 1
+</ParamField>
+
+```javascript
+spawnEnemy() {
+    const enemy = EnemyModel.create({
+        x: this.random() * this.worldWidth,
+        y: this.random() * this.worldHeight,
+        type: this.enemyTypes[Math.floor(this.random() * this.enemyTypes.length)]
+    });
+}
+```
+
+## Model Management
+
+### `destroy()`
+
+Clean up model instance when no longer needed.
+
+```javascript
+removePlayer(playerId) {
+    const player = this.getModel(playerId);
+    if (player) {
+        // Clean up player data
+        const index = this.players.indexOf(player);
+        this.players.splice(index, 1);
+        
+        // Destroy the model
+        player.destroy();
+        
+        // Notify views
+        this.publish(this.sessionId, "playerRemoved", { playerId });
+    }
+}
+```
+
+### `getModel(id)`
+
+Look up another model in the session by ID.
+
+<ParamField path="id" type="string" required>
+  Model ID to look up
+</ParamField>
+
+<ParamField returns="Model">
+  Model instance or undefined if not found
+</ParamField>
+
+```javascript
+attack(targetId) {
+    const target = this.getModel(targetId);
+    if (target && this.isInRange(target)) {
+        target.takeDamage(this.attackPower);
+    }
+}
+```
+
+## Static Methods
+
+### `Model.create(options, persistentData)`
+
+Create a new model instance. Always use this instead of `new`.
+
+<ParamField path="options" type="object">
+  Configuration options
+</ParamField>
+
+<ParamField path="persistentData" type="object">
+  Restored persistent data
+</ParamField>
+
+<ParamField returns="Model">
+  New model instance
+</ParamField>
+
+```javascript
+// Create child models
+const bullet = BulletModel.create({
+    position: this.position,
+    velocity: this.calculateVelocity(),
+    damage: this.weaponDamage
+});
+
+this.bullets.push(bullet);
+```
+
+### `Model.register(classId)`
+
+Register a model class with Multisynq. Required for all model subclasses.
+
+<ParamField path="classId" type="string" required>
+  Unique identifier for the model class
+</ParamField>
+
+```javascript
+class WeaponModel extends Multisynq.Model {
+    // ... model implementation
+}
+
+// Required registration
+WeaponModel.register("WeaponModel");
+```
+
+## Well-Known Models
+
+### `beWellKnownAs(name)`
+
+Make this model globally accessible.
+
+<ParamField path="name" type="string" required>
+  Global name for this model
+</ParamField>
+
+```javascript
+init() {
+    super.init();
+    this.beWellKnownAs("GameManager");
+}
+```
+
+### `wellKnownModel(name)`
+
+Access a globally registered model.
+
+<ParamField path="name" type="string" required>
+  Name of the well-known model
+</ParamField>
+
+<ParamField returns="Model">
+  Model instance or undefined
+</ParamField>
+
+```javascript
+// Access from instance method
+handleEvent() {
+    const gameManager = this.wellKnownModel("GameManager");
+    gameManager.logEvent("playerAction");
+}
+
+// Access from static context
+static method() {
+    const gameManager = Model.wellKnownModel("GameManager");
+    return gameManager.getCurrentState();
+}
+```
+
+## Advanced Features
+
+### Serialization
+
+Models automatically serialize supported data types:
+
+<Accordion title="Supported Types">
+**Supported**:
+- Plain Object, Array, number, string, boolean, null
+- Special numbers: -0, NaN, Infinity, -Infinity  
+- BigInt, undefined
+- ArrayBuffer, DataView, typed arrays
+- Set, Map
+
+**Not Supported**:
+- Date (timezone issues)
+- RegExp (non-introspectable state)
+- WeakMap, WeakSet (not enumerable)
+- Symbol (non-serializable)
+- Function, Promise, Generator (closure issues)
+</Accordion>
+
+### Dollar Properties
+
+Properties starting with `$` are ignored in snapshots:
+
+```javascript
+init() {
+    this.gameData = { score: 0, level: 1 };      // Saved in snapshots
+    this.$cachedView = null;                      // Not saved (cache)
+    this.$tempCalculation = 0;                    // Not saved (temporary)
+}
+```
+
+### Custom Serialization
+
+Define custom serialization for non-model classes:
+
+```javascript
+class GameModel extends Multisynq.Model {
+    static types() {
+        return {
+            "THREE.Vector3": THREE.Vector3,
+            "CustomClass": {
+                cls: MyCustomClass,
+                write: obj => obj.serialize(),
+                read: state => MyCustomClass.deserialize(state)
+            }
+        };
+    }
+}
+```
+
+## Common Patterns
+
+### Game State Management
+
+```javascript
+class GameStateModel extends Multisynq.Model {
+    init() {
+        this.state = "waiting";  // waiting, playing, paused, ended
+        this.players = new Map();
+        this.beWellKnownAs("GameState");
+        
+        this.subscribe(this.sessionId, "view-join", this.handlePlayerJoin);
+        this.subscribe(this.sessionId, "startGame", this.startGame);
+    }
+    
+    handlePlayerJoin(viewId) {
+        this.players.set(viewId, PlayerModel.create({ 
+            id: viewId,
+            name: `Player ${this.players.size + 1}`
+        }));
+        
+        if (this.players.size >= 2 && this.state === "waiting") {
+            this.future(3000).startGame(); // Auto-start with delay
+        }
+    }
+    
+    startGame() {
+        this.state = "playing";
+        this.startTime = this.now();
+        this.publish(this.sessionId, "gameStarted", {
+            playerCount: this.players.size,
+            startTime: this.startTime
+        });
+    }
+}
+```
+
+### Hierarchical Models
+
+```javascript
+class WorldModel extends Multisynq.Model {
+    init() {
+        this.regions = [];
+        this.npcs = [];
+        
+        // Create child models
+        for (let i = 0; i < 4; i++) {
+            const region = RegionModel.create({ 
+                id: i, 
+                worldId: this.id 
+            });
+            this.regions.push(region);
+        }
+    }
+    
+    destroy() {
+        // Clean up child models
+        this.regions.forEach(region => region.destroy());
+        this.npcs.forEach(npc => npc.destroy());
+        super.destroy();
+    }
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Event Naming" icon="tag">
+    Use descriptive, namespaced event names
+    ```javascript
+    // Good
+    this.publish(this.sessionId, "game.playerJoined", data);
+    
+    // Avoid
+    this.publish(this.sessionId, "event", data);
+    ```
+  </Card>
+  
+  <Card title="State Validation" icon="shield-check">
+    Validate state changes to prevent corruption
+    ```javascript
+    setHealth(value) {
+        this.health = Math.max(0, Math.min(100, value));
+        if (this.health <= 0) {
+            this.handleDeath();
+        }
+    }
+    ```
+  </Card>
+  
+  <Card title="Performance" icon="gauge">
+    Batch updates and limit event frequency
+    ```javascript
+    updatePositions() {
+        // Batch multiple changes
+        this.entities.forEach(entity => entity.update());
+        
+        // Single notification
+        this.publish(this.sessionId, "entitiesUpdated");
+    }
+    ```
+  </Card>
+  
+  <Card title="Error Handling" icon="exclamation-triangle">
+    Handle edge cases gracefully
+    ```javascript
+    handleInput(data) {
+        if (!data || !this.isValidInput(data)) {
+            console.warn("Invalid input received:", data);
+            return;
+        }
+        this.processInput(data);
+    }
+    ```
+  </Card>
+</CardGroup>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="View Class" icon="eye" href="/api-reference/view">
+    Learn about the View class for UI and user input
+  </Card>
+  <Card title="Session Management" icon="users" href="/api-reference/session">
+    Understand session lifecycle and management
+  </Card>
+  <Card title="Model-View Architecture" icon="sitemap" href="/concepts/model-view-synchronizer">
+    Deep dive into the architectural concepts
+  </Card>
+  <Card title="Hello World Tutorial" icon="rocket" href="/tutorials/hello-world">
+    See models in action with a complete example
+  </Card>
+</CardGroup>

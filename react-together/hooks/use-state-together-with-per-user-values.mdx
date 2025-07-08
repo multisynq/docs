@@ -1,0 +1,588 @@
+---
+title: "useStateTogetherWithPerUserValues"
+description: "Share state between users while tracking individual user values in real-time collaborative applications"
+---
+
+# useStateTogetherWithPerUserValues
+
+The `useStateTogetherWithPerUserValues` hook allows users to share state while also being able to read the individual state values of all their peers. Each user maintains their own state value, but can see everyone else's values in real-time.
+
+If the user is not connected to any session, the hook behaves like a normal [`useState`](https://react.dev/reference/react/useState), and the peer state object will be empty.
+
+## Basic Usage
+
+```tsx
+import { useStateTogetherWithPerUserValues } from 'react-together'
+
+function ScoreBoard() {
+  const [myScore, setMyScore, allScores] = useStateTogetherWithPerUserValues('scores', 0)
+
+  const increment = () => setMyScore(prev => prev + 1)
+  const reset = () => setMyScore(0)
+
+  return (
+    <div>
+      <h3>Scores</h3>
+      {Object.entries(allScores).map(([userId, score]) => (
+        <div key={userId}>
+          {userId}: {score}
+        </div>
+      ))}
+      
+      <button onClick={increment}>Increment My Score</button>
+      <button onClick={reset}>Reset My Score</button>
+    </div>
+  )
+}
+```
+
+## Signature
+
+```tsx
+useStateTogetherWithPerUserValues<T>(
+  rtKey: string,
+  initialValue: T,
+  options?: UseStateTogetherWithPerUserValuesOptions
+): [T, (T | (T) => T) => void, Record<string, T>]
+```
+
+## Parameters
+
+<ParamField path="rtKey" type="string" required>
+  The key used to identify this state across all users in the session.
+</ParamField>
+
+<ParamField path="initialValue" type="T" required>
+  The initial value to use when the state is first created.
+</ParamField>
+
+<ParamField path="options" type="UseStateTogetherWithPerUserValuesOptions">
+  Configuration options for the hook behavior. See [Options](#options) below.
+</ParamField>
+
+## Return Values
+
+<ResponseField name="[0]" type="T">
+  The current local state value for this user.
+</ResponseField>
+
+<ResponseField name="[1]" type="(T | (T) => T) => void">
+  The setter function that allows updating the local state value.
+</ResponseField>
+
+<ResponseField name="[2]" type="Record<string, T>">
+  An object containing a mapping between each user ID and their current state value. Users that are not currently rendering this hook will not appear in the mapping, even if they are connected to the session.
+</ResponseField>
+
+## Options
+
+<ParamField path="keepValues" type="boolean" default="false">
+  If `true`, the user's state will be persisted in the session even after disconnection.
+</ParamField>
+
+<ParamField path="omitMyValue" type="boolean" default="false">
+  If `true`, the local value will not be included in the `allValues` object.
+</ParamField>
+
+<ParamField path="overwriteSessionValue" type="boolean" default="false">
+  By default, when a user connects to a session and a value associated with the user's identifier already exists (either a persisted value or another user with the same identifier is already connected), the connecting user will update their local state to match the session value. If this flag is `true`, the user will force its local value into the session.
+</ParamField>
+
+<ParamField path="resetOnConnect" type="boolean" default="false">
+  If `true`, the user's state will be reset to `initialValue` when the user connects to the session.
+</ParamField>
+
+<ParamField path="resetOnDisconnect" type="boolean" default="false">
+  If `true`, the user's state will be reset to `initialValue` after the user disconnects from the session. This only affects the user's local state after disconnection.
+</ParamField>
+
+<ParamField path="throttleDelay" type="number" default="100">
+  The delay in milliseconds between consecutive updates to the state. This only applies when the user is connected to a session.
+</ParamField>
+
+## Examples
+
+### Interactive Score System
+
+Create a collaborative scoring system where each user can track their own score while seeing everyone else's:
+
+```tsx
+import { useStateTogetherWithPerUserValues, useMyId } from 'react-together'
+
+interface ScoreProps {
+  score: number
+  clickable: boolean
+  onClick: () => void
+  onReset: () => void
+}
+
+function Score({ score, clickable, onClick, onReset }: ScoreProps) {
+  const clickableStyle = clickable
+    ? 'cursor-pointer shadow-sm bg-blue-500 hover:bg-blue-600 text-white'
+    : 'bg-gray-100'
+    
+  return (
+    <div className="flex flex-col items-center">
+      <div
+        className={`py-2 px-4 rounded-lg select-none ${clickableStyle}`}
+        onClick={onClick}
+        onContextMenu={(e) => {
+          if (clickable) {
+            e.preventDefault()
+            onReset()
+          }
+        }}
+      >
+        {score}
+      </div>
+    </div>
+  )
+}
+
+export default function CollaborativeScores() {
+  const [, setMyScore, scoresByUser] = useStateTogetherWithPerUserValues('game-scores', 0)
+  const myId = useMyId()
+
+  const increment = () => setMyScore(prev => prev + 1)
+  const reset = () => setMyScore(0)
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <h2>Game Scores</h2>
+      <div className="flex gap-4 flex-wrap">
+        {Object.entries(scoresByUser).map(([userId, score]) => {
+          const isMyScore = userId === myId
+          return (
+            <div key={userId} className="text-center">
+              <p className="text-sm text-gray-600 mb-1">
+                {isMyScore ? 'You' : `User ${userId.slice(-4)}`}
+              </p>
+              <Score
+                score={score}
+                clickable={isMyScore}
+                onClick={() => isMyScore && increment()}
+                onReset={() => isMyScore && reset()}
+              />
+            </div>
+          )
+        })}
+      </div>
+      <p className="text-xs text-gray-500">
+        Click your score to increment, right-click to reset
+      </p>
+    </div>
+  )
+}
+```
+
+### Team Progress Tracker
+
+Track individual progress within teams while showing overall team status:
+
+```tsx
+import { useStateTogetherWithPerUserValues, useConnectedUsers } from 'react-together'
+
+interface TaskProgress {
+  completed: number
+  total: number
+}
+
+export default function TeamProgressTracker() {
+  const [myProgress, setMyProgress, allProgress] = useStateTogetherWithPerUserValues<TaskProgress>(
+    'team-progress',
+    { completed: 0, total: 10 }
+  )
+  
+  const connectedUsers = useConnectedUsers()
+
+  const updateProgress = (completed: number) => {
+    setMyProgress(prev => ({ ...prev, completed }))
+  }
+
+  const updateTotal = (total: number) => {
+    setMyProgress(prev => ({ ...prev, total, completed: Math.min(prev.completed, total) }))
+  }
+
+  const teamTotal = Object.values(allProgress).reduce((sum, p) => sum + p.total, 0)
+  const teamCompleted = Object.values(allProgress).reduce((sum, p) => sum + p.completed, 0)
+  const teamPercent = teamTotal > 0 ? Math.round((teamCompleted / teamTotal) * 100) : 0
+
+  return (
+    <div className="p-6 max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6">Team Progress Tracker</h2>
+      
+      {/* Team Overview */}
+      <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+        <h3 className="text-lg font-semibold mb-2">Team Progress</h3>
+        <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+          <div 
+            className="bg-blue-600 h-2 rounded-full transition-all"
+            style={{ width: `${teamPercent}%` }}
+          />
+        </div>
+        <p>{teamCompleted} / {teamTotal} tasks completed ({teamPercent}%)</p>
+      </div>
+
+      {/* Individual Progress */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Individual Progress</h3>
+        {connectedUsers.map(({ userId, nickname, isYou }) => {
+          const progress = allProgress[userId] || { completed: 0, total: 10 }
+          const percent = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0
+          
+          return (
+            <div key={userId} className={`p-3 rounded-lg ${isYou ? 'bg-green-50 border-2 border-green-200' : 'bg-gray-50'}`}>
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">
+                  {isYou ? 'You' : (nickname || `User ${userId.slice(-4)}`)}
+                </span>
+                <span className="text-sm text-gray-600">
+                  {progress.completed} / {progress.total} ({percent}%)
+                </span>
+              </div>
+              
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                <div 
+                  className={`h-2 rounded-full transition-all ${isYou ? 'bg-green-600' : 'bg-gray-400'}`}
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+              
+              {isYou && (
+                <div className="flex gap-2 mt-3">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm">Completed:</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max={myProgress.total}
+                      value={myProgress.completed}
+                      onChange={(e) => updateProgress(parseInt(e.target.value))}
+                      className="flex-1"
+                    />
+                    <span className="text-sm w-8">{myProgress.completed}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm">Total:</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={myProgress.total}
+                      onChange={(e) => updateTotal(parseInt(e.target.value) || 1)}
+                      className="w-16 px-2 py-1 text-sm border rounded"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+```
+
+### Mood Board Collaboration
+
+Allow users to share their mood while seeing everyone else's emotional state:
+
+```tsx
+import { useStateTogetherWithPerUserValues, useNicknames } from 'react-together'
+
+const MOODS = [
+  { emoji: '😊', name: 'Happy', color: 'bg-yellow-100 border-yellow-300' },
+  { emoji: '😔', name: 'Sad', color: 'bg-blue-100 border-blue-300' },
+  { emoji: '😴', name: 'Tired', color: 'bg-purple-100 border-purple-300' },
+  { emoji: '😤', name: 'Frustrated', color: 'bg-red-100 border-red-300' },
+  { emoji: '🤔', name: 'Thinking', color: 'bg-gray-100 border-gray-300' },
+  { emoji: '🎉', name: 'Excited', color: 'bg-green-100 border-green-300' },
+]
+
+interface MoodData {
+  mood: string
+  emoji: string
+  timestamp: number
+}
+
+export default function TeamMoodBoard() {
+  const [myMood, setMyMood, allMoods] = useStateTogetherWithPerUserValues<MoodData>(
+    'team-moods',
+    { mood: 'Happy', emoji: '😊', timestamp: Date.now() }
+  )
+  
+  const [, , allNicknames] = useNicknames()
+
+  const updateMood = (mood: string, emoji: string) => {
+    setMyMood({ mood, emoji, timestamp: Date.now() })
+  }
+
+  const sortedMoods = Object.entries(allMoods).sort(([, a], [, b]) => b.timestamp - a.timestamp)
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6 text-center">Team Mood Board</h2>
+      
+      {/* Mood Selection */}
+      <div className="mb-8 p-4 bg-gray-50 rounded-lg">
+        <h3 className="text-lg font-semibold mb-4">How are you feeling?</h3>
+        <div className="grid grid-cols-3 gap-3">
+          {MOODS.map(({ emoji, name, color }) => (
+            <button
+              key={name}
+              onClick={() => updateMood(name, emoji)}
+              className={`p-3 rounded-lg border-2 transition-all hover:scale-105 ${
+                myMood.mood === name ? color : 'bg-white border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <div className="text-2xl mb-1">{emoji}</div>
+              <div className="text-sm font-medium">{name}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Mood Display */}
+      <div className="space-y-3">
+        <h3 className="text-lg font-semibold">Current Team Mood</h3>
+        {sortedMoods.length === 0 ? (
+          <p className="text-gray-500 text-center py-8">No one has shared their mood yet</p>
+        ) : (
+          <div className="grid gap-3">
+            {sortedMoods.map(([userId, moodData]) => {
+              const nickname = allNicknames[userId] || `User ${userId.slice(-4)}`
+              const timeAgo = Math.floor((Date.now() - moodData.timestamp) / 1000 / 60)
+              const moodConfig = MOODS.find(m => m.name === moodData.mood) || MOODS[0]
+              
+              return (
+                <div key={userId} className={`p-4 rounded-lg border-2 ${moodConfig.color}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl">{moodData.emoji}</span>
+                      <div>
+                        <div className="font-semibold">{nickname}</div>
+                        <div className="text-sm text-gray-600">Feeling {moodData.mood.toLowerCase()}</div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {timeAgo === 0 ? 'Just now' : `${timeAgo}m ago`}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Mood Statistics */}
+      <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+        <h3 className="text-lg font-semibold mb-3">Mood Distribution</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {MOODS.map(({ emoji, name }) => {
+            const count = sortedMoods.filter(([, mood]) => mood.mood === name).length
+            const percentage = sortedMoods.length > 0 ? Math.round((count / sortedMoods.length) * 100) : 0
+            
+            return (
+              <div key={name} className="text-center">
+                <div className="text-2xl mb-1">{emoji}</div>
+                <div className="text-sm font-medium">{count}</div>
+                <div className="text-xs text-gray-500">{percentage}%</div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Voting System
+
+Implement a real-time voting system where users can see all votes as they come in:
+
+```tsx
+import { useStateTogetherWithPerUserValues, useConnectedUsers } from 'react-together'
+
+interface Vote {
+  option: string
+  timestamp: number
+}
+
+const VOTING_OPTIONS = [
+  { id: 'pizza', label: '🍕 Pizza', color: 'bg-red-100 border-red-300' },
+  { id: 'burger', label: '🍔 Burger', color: 'bg-yellow-100 border-yellow-300' },
+  { id: 'sushi', label: '🍣 Sushi', color: 'bg-blue-100 border-blue-300' },
+  { id: 'salad', label: '🥗 Salad', color: 'bg-green-100 border-green-300' },
+]
+
+export default function RealTimeVoting() {
+  const [myVote, setMyVote, allVotes] = useStateTogetherWithPerUserValues<Vote | null>(
+    'lunch-vote',
+    null
+  )
+  
+  const connectedUsers = useConnectedUsers()
+
+  const castVote = (option: string) => {
+    setMyVote({ option, timestamp: Date.now() })
+  }
+
+  const clearVote = () => {
+    setMyVote(null)
+  }
+
+  // Calculate vote counts
+  const voteCounts = VOTING_OPTIONS.reduce((counts, { id }) => {
+    counts[id] = Object.values(allVotes).filter(vote => vote?.option === id).length
+    return counts
+  }, {} as Record<string, number>)
+
+  const totalVotes = Object.values(voteCounts).reduce((sum, count) => sum + count, 0)
+  const winner = Object.entries(voteCounts).reduce((winner, [option, count]) => 
+    count > winner.count ? { option, count } : winner,
+    { option: '', count: 0 }
+  )
+
+  return (
+    <div className="p-6 max-w-3xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6 text-center">What should we have for lunch?</h2>
+      
+      {/* Voting Options */}
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold mb-4">Cast your vote:</h3>
+        <div className="grid grid-cols-2 gap-4">
+          {VOTING_OPTIONS.map(({ id, label, color }) => {
+            const count = voteCounts[id]
+            const percentage = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0
+            const isSelected = myVote?.option === id
+            
+            return (
+              <button
+                key={id}
+                onClick={() => castVote(id)}
+                className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                  isSelected ? color : 'bg-white border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <div className="text-2xl mb-2">{label}</div>
+                <div className="text-sm font-medium">{count} votes ({percentage}%)</div>
+                <div className="w-full bg-gray-200 rounded-full h-1 mt-2">
+                  <div 
+                    className="bg-blue-600 h-1 rounded-full transition-all"
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+              </button>
+            )
+          })}
+        </div>
+        
+        {myVote && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={clearVote}
+              className="px-4 py-2 text-sm bg-gray-200 hover:bg-gray-300 rounded-lg transition-all"
+            >
+              Clear my vote
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Results */}
+      {totalVotes > 0 && (
+        <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">Current Results</h3>
+          <p className="text-center text-lg">
+            Leading: <span className="font-bold">{VOTING_OPTIONS.find(o => o.id === winner.option)?.label}</span>
+            {winner.count > 1 && ` with ${winner.count} votes`}
+          </p>
+        </div>
+      )}
+
+      {/* Voter List */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Voters ({connectedUsers.length})</h3>
+        <div className="space-y-2">
+          {connectedUsers.map(({ userId, nickname, isYou }) => {
+            const vote = allVotes[userId]
+            const votedOption = vote ? VOTING_OPTIONS.find(o => o.id === vote.option) : null
+            
+            return (
+              <div 
+                key={userId} 
+                className={`p-3 rounded-lg flex justify-between items-center ${
+                  isYou ? 'bg-green-50 border-2 border-green-200' : 'bg-gray-50'
+                }`}
+              >
+                <span className="font-medium">
+                  {isYou ? 'You' : (nickname || `User ${userId.slice(-4)}`)}
+                </span>
+                <span className="text-sm">
+                  {votedOption ? (
+                    <span className="flex items-center gap-2">
+                      {votedOption.label}
+                      <span className="text-xs text-gray-500">
+                        {Math.floor((Date.now() - vote!.timestamp) / 1000 / 60)}m ago
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">No vote yet</span>
+                  )}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+### State Structure Design
+- **Keep individual states small and focused** - Each user's state should represent a single concept
+- **Use meaningful initial values** - Choose defaults that make sense when users first join
+- **Consider data normalization** - For complex objects, consider separate hooks for different concerns
+
+### Performance Optimization
+- **Use throttling for frequent updates** - Adjust `throttleDelay` based on your use case
+- **Minimize object mutations** - Create new objects rather than mutating existing ones
+- **Filter displayed data** - Only render active users to avoid UI clutter
+
+### User Experience
+- **Provide visual feedback** - Clearly indicate which values belong to which users
+- **Handle edge cases** - Account for users joining/leaving mid-session
+- **Show connection status** - Let users know when their updates are being shared
+
+## Related Hooks
+
+- [`useStateTogether`](/react-together/hooks/use-state-together) - For shared state without per-user tracking
+- [`useConnectedUsers`](/react-together/hooks/use-connected-users) - Get information about connected users
+- [`useMyId`](/react-together/hooks/use-my-id) - Get the current user's ID
+- [`useNicknames`](/react-together/hooks/use-nicknames) - Manage user nicknames
+
+## TypeScript Support
+
+This hook is fully typed and will infer the type of your state from the `initialValue` parameter:
+
+```tsx
+// TypeScript will infer number type
+const [count, setCount, allCounts] = useStateTogetherWithPerUserValues('counter', 0)
+
+// Explicit typing for complex objects
+interface UserPreferences {
+  theme: 'light' | 'dark'
+  language: string
+}
+
+const [prefs, setPrefs, allPrefs] = useStateTogetherWithPerUserValues<UserPreferences>(
+  'user-preferences',
+  { theme: 'light', language: 'en' }
+)
+``` 
