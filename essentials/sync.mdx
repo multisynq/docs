@@ -1,189 +1,359 @@
 ---
 title: "Real-time Synchronization"
-description: "Learn how Multisynq handles real-time synchronization between users and devices"
+description: "Learn how Multisynq achieves perfect synchronization through deterministic execution"
 ---
 
 # Real-time Synchronization
 
-Multisynq provides seamless real-time synchronization that keeps all users in a session perfectly in sync, regardless of network conditions or device differences.
+Multisynq provides perfect real-time synchronization through a revolutionary client-side architecture. Unlike traditional approaches, every user runs the same deterministic application logic locally, ensuring identical state across all participants.
 
-## How It Works
+## How Multisynq Synchronization Works
 
-### Automatic State Sync
-Every change in your application is automatically synchronized across all connected users:
+### Deterministic Virtual Machine
+Multisynq runs your Model code in a deterministic virtual machine called **Teatime**. This ensures that given the same initial state and the same sequence of events, every user's device produces exactly the same result.
 
-```javascript
-// Changes are automatically synced
-session.setState({
-  document: {
-    title: "Updated Title",
-    content: "New content here"
-  }
-});
-
-// All users receive the update instantly
-session.onStateChange((newState) => {
-  console.log('State updated:', newState);
-});
-```
-
-### Conflict-Free Updates
-Multisynq uses advanced conflict resolution algorithms to ensure data consistency:
-
-- **Operational Transformation**: Handles concurrent text edits
-- **Last-Write-Wins**: Simple resolution for basic data types
-- **Custom Resolvers**: Define your own conflict resolution logic
-
-## Synchronization Features
+### Key Principles
 
 <CardGroup cols={2}>
-  <Card title="Instant Updates" icon="bolt">
-    Changes appear instantly across all connected users with sub-100ms latency
+  <Card title="Deterministic Execution" icon="cog">
+    Same inputs always produce same outputs across all clients
   </Card>
-  <Card title="Offline Support" icon="wifi-slash">
-    Continue working offline and sync automatically when reconnected
+  <Card title="Event Ordering" icon="list-ol">
+    Reflector servers order all events into a single canonical stream
   </Card>
-  <Card title="Conflict Resolution" icon="merge">
-    Automatic handling of concurrent edits without data loss
+  <Card title="Synchronized Time" icon="clock">
+    Global heartbeat ensures time-dependent operations stay in sync
   </Card>
-  <Card title="History Tracking" icon="clock-rotate-left">
-    Full history of all changes for debugging and rollback
+  <Card title="No Server Logic" icon="server">
+    Reflectors only pass messages - all logic runs on clients
   </Card>
 </CardGroup>
 
-## Implementation Example
+## Architecture Overview
 
-### Basic Synchronization
-```javascript
-import { Multisynq } from '@multisynq/sdk';
-
-const session = new Multisynq.Session({
-  apiKey: 'your-api-key',
-  sessionId: 'session-123'
-});
-
-// Listen for state changes
-session.onStateChange((state, changeset) => {
-  console.log('New state:', state);
-  console.log('What changed:', changeset);
-  
-  // Update your UI
-  updateUI(state);
-});
-
-// Make changes
-session.setState({
-  cursor: { x: 100, y: 200 },
-  selection: { start: 0, end: 10 }
-});
+```
+User A Device                 Reflector Server              User B Device
+┌─────────────┐              ┌─────────────┐              ┌─────────────┐
+│    View A   │              │             │              │    View B   │
+│     ↕       │              │   Orders    │              │     ↕       │
+│   Model A   │ ←── Events ──│   Events    │── Events ──→ │   Model B   │
+│ (Teatime VM)│              │             │              │ (Teatime VM)│
+└─────────────┘              └─────────────┘              └─────────────┘
 ```
 
-### Advanced Synchronization
+All Models run **identically** on every device, synchronized through ordered events.
+
+## Basic Synchronization Example
+
+### Model-Driven State Changes
 ```javascript
-// Custom conflict resolution
-session.setConflictResolver('document.content', (local, remote, base) => {
-  // Custom merge logic
-  return mergeTextContent(local, remote, base);
-});
-
-// Batch updates for performance
-session.batch(() => {
-  session.setState({ field1: 'value1' });
-  session.setState({ field2: 'value2' });
-  session.setState({ field3: 'value3' });
-});
-
-// Conditional updates
-session.setState({
-  counter: session.getState().counter + 1
-}, {
-  condition: (currentState) => currentState.counter < 100
-});
+class CounterModel extends Multisynq.Model {
+    init() {
+        this.count = 0;
+        
+        // Subscribe to events from any view
+        this.subscribe(this.sessionId, "increment", this.handleIncrement);
+        this.subscribe(this.sessionId, "reset", this.handleReset);
+    }
+    
+    handleIncrement() {
+        // This runs identically on every user's device
+        this.count += 1;
+        
+        // Notify all views of the change
+        this.publish(this.sessionId, "countChanged", this.count);
+    }
+    
+    handleReset() {
+        this.count = 0;
+        this.publish(this.sessionId, "countChanged", this.count);
+    }
+}
 ```
 
-## Best Practices
-
-### Performance Optimization
-- **Batch Updates**: Group related changes together
-- **Debounce Fast Changes**: Avoid excessive updates during rapid input
-- **Selective Sync**: Only sync necessary data fields
-
-### Data Structure Design
-- **Flat Structures**: Prefer flat objects over deeply nested ones
-- **Immutable Updates**: Always create new objects instead of mutating
-- **Unique IDs**: Use consistent unique identifiers for list items
-
-### Error Handling
+### View Interaction
 ```javascript
-session.onSyncError((error) => {
-  console.error('Sync failed:', error);
-  
-  // Show user-friendly error message
-  showErrorMessage('Connection lost. Reconnecting...');
-  
-  // Implement retry logic
-  setTimeout(() => session.reconnect(), 1000);
-});
+class CounterView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        
+        // Listen for model changes
+        this.subscribe(this.sessionId, "countChanged", this.updateDisplay);
+        
+        // Set up UI event handlers
+        this.setupButtons();
+        
+        // Display initial state
+        this.updateDisplay(model.count);
+    }
+    
+    setupButtons() {
+        document.getElementById("increment").onclick = () => {
+            // Send event to model (will sync to all users)
+            this.publish(this.sessionId, "increment");
+        };
+        
+        document.getElementById("reset").onclick = () => {
+            this.publish(this.sessionId, "reset");
+        };
+    }
+    
+    updateDisplay(count) {
+        document.getElementById("counter").textContent = count;
+    }
+}
 ```
 
-## Network Resilience
+## Advanced Synchronization Patterns
 
-### Connection Management
+### Chat System with Message History
+```javascript
+class ChatModel extends Multisynq.Model {
+    init() {
+        this.messages = [];
+        this.subscribe(this.sessionId, "sendMessage", this.addMessage);
+    }
+    
+    addMessage({ text, username }) {
+        // Deterministic ID generation
+        const message = {
+            id: this.random().toString(),  // Synchronized random
+            text: text,
+            username: username,
+            timestamp: this.now()          // Synchronized time
+        };
+        
+        this.messages.push(message);
+        this.publish(this.sessionId, "messagesUpdated", this.messages);
+    }
+}
+```
+
+### Real-time Cursor Tracking
+```javascript
+class CursorModel extends Multisynq.Model {
+    init() {
+        this.cursors = new Map();
+        this.subscribe(this.sessionId, "view-join", this.userJoined);
+        this.subscribe(this.sessionId, "view-exit", this.userLeft);
+        this.subscribe(this.sessionId, "cursorMove", this.updateCursor);
+    }
+    
+    userJoined(viewId) {
+        this.cursors.set(viewId, { x: 0, y: 0, color: this.getRandomColor() });
+        this.publish(this.sessionId, "cursorsChanged", this.getCursorsArray());
+    }
+    
+    userLeft(viewId) {
+        this.cursors.delete(viewId);
+        this.publish(this.sessionId, "cursorsChanged", this.getCursorsArray());
+    }
+    
+    updateCursor({ viewId, x, y }) {
+        if (this.cursors.has(viewId)) {
+            this.cursors.get(viewId).x = x;
+            this.cursors.get(viewId).y = y;
+            this.publish(this.sessionId, "cursorsChanged", this.getCursorsArray());
+        }
+    }
+    
+    getRandomColor() {
+        const colors = ['red', 'blue', 'green', 'purple', 'orange'];
+        return colors[Math.floor(this.random() * colors.length)];
+    }
+    
+    getCursorsArray() {
+        return Array.from(this.cursors.entries()).map(([viewId, cursor]) => ({
+            viewId,
+            ...cursor
+        }));
+    }
+}
+```
+
+## Synchronized Time and Randomness
+
+### Deterministic Time
+```javascript
+class GameModel extends Multisynq.Model {
+    init() {
+        this.startTime = this.now(); // Synchronized start time
+        this.gameLoop();
+    }
+    
+    gameLoop() {
+        const currentTime = this.now();
+        const elapsedTime = currentTime - this.startTime;
+        
+        // Game logic based on synchronized time
+        this.updateGameState(elapsedTime);
+        
+        // Schedule next update
+        this.future(16).gameLoop(); // ~60 FPS
+    }
+}
+```
+
+### Deterministic Random Numbers
+```javascript
+class LootModel extends Multisynq.Model {
+    init() {
+        this.subscribe(this.sessionId, "openChest", this.generateLoot);
+    }
+    
+    generateLoot() {
+        // Every user gets the same "random" result
+        const lootRoll = this.random();
+        
+        let loot;
+        if (lootRoll < 0.1) {
+            loot = "legendary";
+        } else if (lootRoll < 0.3) {
+            loot = "rare";
+        } else {
+            loot = "common";
+        }
+        
+        this.publish(this.sessionId, "lootReceived", loot);
+    }
+}
+```
+
+## Future Scheduling
+
+Use `future()` for time-based events that must stay synchronized:
+
+```javascript
+class TimerModel extends Multisynq.Model {
+    init() {
+        this.timeLeft = 60; // 60 seconds
+        this.startCountdown();
+    }
+    
+    startCountdown() {
+        this.publish(this.sessionId, "timerUpdate", this.timeLeft);
+        
+        if (this.timeLeft > 0) {
+            this.timeLeft--;
+            // Schedule next tick in 1 second
+            this.future(1000).startCountdown();
+        } else {
+            this.publish(this.sessionId, "timerExpired");
+        }
+    }
+}
+```
+
+## Best Practices for Synchronization
+
+### Do's ✅
+- **Use `this.random()`** instead of `Math.random()` in Models
+- **Use `this.now()`** instead of `Date.now()` in Models  
+- **Use `this.future()`** for time-based operations in Models
+- **Communicate via events** between Model and View
+- **Keep Models deterministic** - no external API calls, random DOM access, etc.
+
+### Don'ts ❌
+- **Never write to Model from View** - only through events
+- **Don't use `Math.random()`** in Model code
+- **Don't use `Date.now()`** or `setTimeout()` in Model code
+- **Don't access DOM** from Model code
+- **Don't make HTTP requests** from Model code
+
+## Connection Resilience
+
+### Built-in Reconnection
 Multisynq automatically handles:
-- Network interruptions
-- Server failover
-- Reconnection with state recovery
-- Bandwidth optimization
+- Temporary network interruptions
+- Device sleep/wake cycles
+- Browser tab switching
+- Connection drops and recovery
 
-### Offline Capabilities
+### View-Level Connection Awareness
 ```javascript
-// Detect offline state
-session.onConnectionChange((status) => {
-  if (status === 'offline') {
-    showOfflineIndicator();
-  } else {
-    hideOfflineIndicator();
-  }
-});
-
-// Queue operations while offline
-session.enableOfflineQueue({
-  maxOperations: 1000,
-  persistToDisk: true
-});
+class NetworkView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.isConnected = true;
+    }
+    
+    update(time) {
+        // Check connection status (this is automatic)
+        const connected = this.session && this.session.view;
+        
+        if (connected !== this.isConnected) {
+            this.isConnected = connected;
+            this.updateConnectionIndicator();
+        }
+    }
+    
+    updateConnectionIndicator() {
+        const indicator = document.getElementById("connection-status");
+        indicator.textContent = this.isConnected ? "Connected" : "Reconnecting...";
+        indicator.className = this.isConnected ? "connected" : "disconnected";
+    }
+}
 ```
 
 ## Testing Synchronization
 
-### Unit Testing
+### Multi-User Testing
 ```javascript
-import { MockSession } from '@multisynq/sdk/testing';
-
-test('state synchronization', async () => {
-  const session = new MockSession();
-  
-  const statePromise = session.waitForStateChange();
-  session.setState({ test: 'value' });
-  
-  const newState = await statePromise;
-  expect(newState.test).toBe('value');
+// Use the Widget Dock for easy multi-device testing
+Multisynq.Session.join({
+    apiKey: "your-api-key",
+    appId: "com.example.test",
+    model: TestModel,
+    view: TestView
+}).then(session => {
+    // Show QR code for joining from other devices
+    Multisynq.App.makeWidgetDock();
 });
 ```
 
-### Integration Testing
-Test real-time sync with multiple simulated users:
+### Debug Synchronization
 ```javascript
-const session1 = new Multisynq.Session({ sessionId: 'test-session' });
-const session2 = new Multisynq.Session({ sessionId: 'test-session' });
-
-// Test cross-user synchronization
-session1.setState({ message: 'Hello' });
-await session2.waitForStateChange();
-expect(session2.getState().message).toBe('Hello');
+Multisynq.Session.join({
+    // ... other options
+    debug: ["session", "messages", "events", "ticks"]
+});
 ```
+
+This enables console logging of:
+- Session connection status
+- Messages sent/received
+- Event publishing/subscribing
+- Heartbeat ticks
 
 ## Next Steps
 
-- Learn about [Collaborative Editing](/essentials/collaboration)
-- Explore [Conflict Resolution](/essentials/conflicts)
-- Check out the [API Reference](/api-reference/introduction) 
+<CardGroup cols={2}>
+  <Card
+    title="Model API Reference"
+    icon="cube"
+    href="/api-reference/model"
+  >
+    Deep dive into Model lifecycle and event system
+  </Card>
+  <Card
+    title="View API Reference"  
+    icon="eye"
+    href="/api-reference/view"
+  >
+    Learn about View interactions and rendering
+  </Card>
+  <Card
+    title="Session Management"
+    icon="users"
+    href="/api-reference/session"
+  >
+    Advanced session configuration and debugging
+  </Card>
+  <Card
+    title="Hello World Tutorial"
+    icon="play"
+    href="/tutorials/hello-world"
+  >
+    Step-by-step tutorial with working examples
+  </Card>
+</CardGroup> 

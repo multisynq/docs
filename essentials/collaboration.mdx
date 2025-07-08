@@ -1,351 +1,546 @@
 ---
 title: "Collaborative Editing"
-description: "Build real-time collaborative editing experiences with Multisynq"
+description: "Build real-time collaborative editing experiences with Multisynq's Model-View architecture"
 ---
 
 # Collaborative Editing
 
-Create powerful collaborative editing experiences where multiple users can work together on documents, code, designs, and more in real-time.
+Create powerful collaborative editing experiences where multiple users can work together on documents, code, designs, and more in real-time using Multisynq's deterministic synchronization.
 
-## Core Concepts
+## Core Architecture
 
-### User Awareness
-Track and display information about all active users:
+### Model-View Collaboration Pattern
+Multisynq collaborative editing uses the Model-View pattern where:
 
-```javascript
-// Get current users in session
-const users = session.getUsers();
+- **Model**: Manages document state, handles edits, and ensures consistency
+- **View**: Handles user input, displays content, and shows user presence
+- **Events**: Coordinate all changes between users
 
-// Listen for user changes
-session.onUserChange((users) => {
-  updateUserAvatars(users);
-  updatePresenceIndicators(users);
-});
-
-// Update user info
-session.updateUser({
-  displayName: 'John Doe',
-  avatar: 'https://example.com/avatar.jpg',
-  cursor: { line: 10, column: 5 }
-});
-```
-
-### Cursor and Selection Sharing
-Share cursor positions and selections across users:
+### User Awareness System
+Track active users and their cursors automatically:
 
 ```javascript
-// Share cursor position
-session.setCursor({
-  x: 100,
-  y: 200,
-  userId: 'user-123'
-});
-
-// Share text selection
-session.setSelection({
-  start: 0,
-  end: 10,
-  userId: 'user-123'
-});
-
-// Listen for other users' cursors
-session.onCursorChange((cursors) => {
-  cursors.forEach(cursor => {
-    if (cursor.userId !== session.currentUser.id) {
-      showRemoteCursor(cursor);
+class CollaborativeModel extends Multisynq.Model {
+    init() {
+        this.document = { content: "", cursors: new Map() };
+        this.users = new Map();
+        
+        // Built-in user lifecycle events
+        this.subscribe(this.sessionId, "view-join", this.handleUserJoin);
+        this.subscribe(this.sessionId, "view-exit", this.handleUserLeave);
+        
+        // Custom collaboration events
+        this.subscribe(this.sessionId, "updateCursor", this.handleCursorUpdate);
+        this.subscribe(this.sessionId, "textEdit", this.handleTextEdit);
     }
-  });
-});
-```
-
-## Text Editing
-
-### Operational Transformation
-Multisynq handles complex text editing scenarios automatically:
-
-```javascript
-// Concurrent text edits are automatically resolved
-session.onTextChange((delta, userId) => {
-  if (userId !== session.currentUser.id) {
-    // Apply remote changes
-    editor.applyDelta(delta);
-  }
-});
-
-// Insert text
-session.insertText(position, 'Hello world');
-
-// Delete text
-session.deleteText(start, end);
-
-// Replace text
-session.replaceText(start, end, 'New content');
-```
-
-### Rich Text Support
-Support for formatting and rich content:
-
-```javascript
-// Apply formatting
-session.formatText(start, end, {
-  bold: true,
-  italic: false,
-  color: '#ff0000'
-});
-
-// Insert rich content
-session.insertRichText(position, {
-  text: 'Important note',
-  attributes: {
-    bold: true,
-    backgroundColor: '#yellow'
-  }
-});
-```
-
-## Building Collaborative Editors
-
-### Document Editor Example
-```javascript
-import { Multisynq } from '@multisynq/sdk';
-
-class CollaborativeEditor {
-  constructor(element, sessionId) {
-    this.element = element;
-    this.session = new Multisynq.Session({ sessionId });
-    this.setupEventHandlers();
-  }
-
-  setupEventHandlers() {
-    // Handle local text changes
-    this.element.addEventListener('input', (e) => {
-      const delta = this.computeDelta(e);
-      this.session.applyTextDelta(delta);
-    });
-
-    // Handle remote text changes
-    this.session.onTextDelta((delta, userId) => {
-      if (userId !== this.session.currentUser.id) {
-        this.applyRemoteChange(delta);
-      }
-    });
-
-    // Handle cursor changes
-    this.element.addEventListener('selectionchange', () => {
-      const selection = this.getSelection();
-      this.session.setCursor(selection);
-    });
-  }
-
-  applyRemoteChange(delta) {
-    // Apply change without triggering local events
-    this.suppressLocalEvents = true;
-    this.element.value = this.applyDelta(this.element.value, delta);
-    this.suppressLocalEvents = false;
-  }
-}
-```
-
-### Code Editor Integration
-```javascript
-// Monaco Editor integration
-import * as monaco from 'monaco-editor';
-
-class CollaborativeCodeEditor {
-  constructor(container, sessionId) {
-    this.editor = monaco.editor.create(container, {
-      value: '',
-      language: 'javascript'
-    });
-
-    this.session = new Multisynq.Session({ sessionId });
-    this.setupCollaboration();
-  }
-
-  setupCollaboration() {
-    // Handle text changes
-    this.editor.onDidChangeModelContent((e) => {
-      if (!this.suppressLocalEvents) {
-        this.session.applyTextChanges(e.changes);
-      }
-    });
-
-    // Handle cursor changes
-    this.editor.onDidChangeCursorPosition((e) => {
-      this.session.setCursor({
-        line: e.position.lineNumber,
-        column: e.position.column
-      });
-    });
-
-    // Apply remote changes
-    this.session.onTextChanges((changes, userId) => {
-      if (userId !== this.session.currentUser.id) {
-        this.suppressLocalEvents = true;
-        this.editor.executeEdits('multisynq', changes);
-        this.suppressLocalEvents = false;
-      }
-    });
-  }
-}
-```
-
-## Advanced Features
-
-### Comments and Annotations
-```javascript
-// Add comments to content
-session.addComment({
-  id: 'comment-123',
-  position: { line: 10, column: 5 },
-  author: 'user-456',
-  text: 'This needs clarification',
-  timestamp: Date.now()
-});
-
-// Listen for comments
-session.onCommentAdded((comment) => {
-  showCommentInUI(comment);
-});
-
-// Resolve comments
-session.resolveComment('comment-123');
-```
-
-### Version History
-```javascript
-// Get document history
-const history = session.getHistory();
-
-// Create snapshot
-session.createSnapshot('Version 1.0');
-
-// Restore to previous version
-session.restoreSnapshot('snapshot-id');
-
-// Compare versions
-const diff = session.compareVersions('v1', 'v2');
-```
-
-### Permissions and Access Control
-```javascript
-// Set user permissions
-session.setUserPermissions('user-123', {
-  canEdit: true,
-  canComment: true,
-  canDelete: false
-});
-
-// Check permissions before operations
-if (session.canUserEdit(userId)) {
-  session.applyEdit(edit);
-}
-```
-
-## UI Components
-
-### User Presence
-```javascript
-// Show active users
-function renderUserPresence(users) {
-  const container = document.getElementById('user-presence');
-  container.innerHTML = users.map(user => `
-    <div class="user-avatar" style="border: 2px solid ${user.color}">
-      <img src="${user.avatar}" alt="${user.displayName}">
-      <span class="user-name">${user.displayName}</span>
-    </div>
-  `).join('');
-}
-```
-
-### Remote Cursors
-```javascript
-// Display remote cursors
-function showRemoteCursor(cursor) {
-  const cursorElement = document.createElement('div');
-  cursorElement.className = 'remote-cursor';
-  cursorElement.style.left = cursor.x + 'px';
-  cursorElement.style.top = cursor.y + 'px';
-  cursorElement.style.borderColor = cursor.user.color;
-  
-  document.body.appendChild(cursorElement);
-  
-  // Remove after timeout
-  setTimeout(() => {
-    cursorElement.remove();
-  }, 5000);
-}
-```
-
-### Conflict Indicators
-```javascript
-// Show when conflicts are resolved
-session.onConflictResolved((resolution) => {
-  showNotification({
-    type: 'info',
-    message: `Conflict resolved: ${resolution.strategy}`,
-    duration: 3000
-  });
-});
-```
-
-## Performance Optimization
-
-### Debouncing Updates
-```javascript
-// Debounce rapid changes
-const debouncedUpdate = debounce((changes) => {
-  session.applyChanges(changes);
-}, 100);
-
-editor.onDidChangeModelContent((e) => {
-  debouncedUpdate(e.changes);
-});
-```
-
-### Efficient Rendering
-```javascript
-// Only update changed regions
-session.onStateChange((newState, changeset) => {
-  Object.keys(changeset).forEach(key => {
-    if (key.startsWith('document.')) {
-      updateDocumentRegion(key, changeset[key]);
+    
+    handleUserJoin(viewId) {
+        this.users.set(viewId, {
+            id: viewId,
+            name: this.generateUserName(),
+            color: this.getRandomColor(),
+            joinedAt: this.now()
+        });
+        
+        this.publish(this.sessionId, "usersChanged", Array.from(this.users.values()));
     }
-  });
-});
+    
+    handleUserLeave(viewId) {
+        this.users.delete(viewId);
+        this.document.cursors.delete(viewId);
+        this.publish(this.sessionId, "usersChanged", Array.from(this.users.values()));
+    }
+    
+    getRandomColor() {
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'];
+        return colors[Math.floor(this.random() * colors.length)];
+    }
+    
+    generateUserName() {
+        const adjectives = ['Quick', 'Bright', 'Creative', 'Smart', 'Cool'];
+        const nouns = ['Writer', 'Editor', 'Author', 'Coder', 'Designer'];
+        const adj = adjectives[Math.floor(this.random() * adjectives.length)];
+        const noun = nouns[Math.floor(this.random() * nouns.length)];
+        return `${adj} ${noun}`;
+    }
+}
+```
+
+## Cursor and Selection Tracking
+
+### Real-time Cursor Sharing
+```javascript
+class CursorModel extends Multisynq.Model {
+    init() {
+        this.cursors = new Map();
+        this.subscribe(this.sessionId, "cursorMove", this.handleCursorMove);
+        this.subscribe(this.sessionId, "selectionChange", this.handleSelectionChange);
+    }
+    
+    handleCursorMove({ viewId, position }) {
+        const cursor = this.cursors.get(viewId) || {};
+        cursor.position = position;
+        cursor.lastUpdate = this.now();
+        this.cursors.set(viewId, cursor);
+        
+        this.publish(this.sessionId, "cursorsUpdated", this.getCursorsArray());
+    }
+    
+    handleSelectionChange({ viewId, selection }) {
+        const cursor = this.cursors.get(viewId) || {};
+        cursor.selection = selection;
+        cursor.lastUpdate = this.now();
+        this.cursors.set(viewId, cursor);
+        
+        this.publish(this.sessionId, "cursorsUpdated", this.getCursorsArray());
+    }
+    
+    getCursorsArray() {
+        return Array.from(this.cursors.entries()).map(([viewId, cursor]) => ({
+            viewId,
+            ...cursor
+        }));
+    }
+}
+```
+
+### Cursor View Implementation
+```javascript
+class CursorView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.editor = document.getElementById('editor');
+        this.cursorOverlay = document.getElementById('cursor-overlay');
+        
+        this.subscribe(this.sessionId, "cursorsUpdated", this.renderCursors);
+        this.setupCursorTracking();
+    }
+    
+    setupCursorTracking() {
+        this.editor.addEventListener('mouseup', () => this.sendCursorPosition());
+        this.editor.addEventListener('keyup', () => this.sendCursorPosition());
+        this.editor.addEventListener('selectionchange', () => this.sendSelection());
+    }
+    
+    sendCursorPosition() {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const position = this.getPositionFromRange(range);
+            
+            this.publish(this.sessionId, "cursorMove", {
+                viewId: this.viewId,
+                position: position
+            });
+        }
+    }
+    
+    sendSelection() {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const selectionData = {
+                start: this.getPositionFromRange({ 
+                    startContainer: range.startContainer, 
+                    startOffset: range.startOffset 
+                }),
+                end: this.getPositionFromRange({ 
+                    endContainer: range.endContainer, 
+                    endOffset: range.endOffset 
+                })
+            };
+            
+            this.publish(this.sessionId, "selectionChange", {
+                viewId: this.viewId,
+                selection: selectionData
+            });
+        }
+    }
+    
+    renderCursors(cursors) {
+        // Clear existing cursors
+        this.cursorOverlay.innerHTML = '';
+        
+        cursors.forEach(cursor => {
+            if (cursor.viewId !== this.viewId) {
+                this.renderRemoteCursor(cursor);
+            }
+        });
+    }
+    
+    renderRemoteCursor(cursor) {
+        const cursorElement = document.createElement('div');
+        cursorElement.className = 'remote-cursor';
+        cursorElement.style.backgroundColor = cursor.color || '#999';
+        
+        // Position the cursor element
+        const position = this.getElementPosition(cursor.position);
+        cursorElement.style.left = position.x + 'px';
+        cursorElement.style.top = position.y + 'px';
+        
+        this.cursorOverlay.appendChild(cursorElement);
+    }
+}
+```
+
+## Text Editing with Operational Transformation
+
+### Document Model with Edit History
+```javascript
+class DocumentModel extends Multisynq.Model {
+    init() {
+        this.content = "";
+        this.operations = [];
+        this.version = 0;
+        
+        this.subscribe(this.sessionId, "insertText", this.handleInsert);
+        this.subscribe(this.sessionId, "deleteText", this.handleDelete);
+        this.subscribe(this.sessionId, "replaceText", this.handleReplace);
+    }
+    
+    handleInsert({ viewId, position, text, version }) {
+        // Simple operational transformation
+        const adjustedPosition = this.transformPosition(position, version);
+        
+        const operation = {
+            id: this.generateOperationId(),
+            type: 'insert',
+            position: adjustedPosition,
+            text: text,
+            viewId: viewId,
+            version: this.version,
+            timestamp: this.now()
+        };
+        
+        this.applyOperation(operation);
+    }
+    
+    handleDelete({ viewId, start, end, version }) {
+        const adjustedStart = this.transformPosition(start, version);
+        const adjustedEnd = this.transformPosition(end, version);
+        
+        const operation = {
+            id: this.generateOperationId(),
+            type: 'delete',
+            start: adjustedStart,
+            end: adjustedEnd,
+            deletedText: this.content.substring(adjustedStart, adjustedEnd),
+            viewId: viewId,
+            version: this.version,
+            timestamp: this.now()
+        };
+        
+        this.applyOperation(operation);
+    }
+    
+    applyOperation(operation) {
+        switch (operation.type) {
+            case 'insert':
+                this.content = 
+                    this.content.slice(0, operation.position) + 
+                    operation.text + 
+                    this.content.slice(operation.position);
+                break;
+                
+            case 'delete':
+                this.content = 
+                    this.content.slice(0, operation.start) + 
+                    this.content.slice(operation.end);
+                break;
+        }
+        
+        this.operations.push(operation);
+        this.version++;
+        
+        this.publish(this.sessionId, "documentUpdated", {
+            content: this.content,
+            operation: operation,
+            version: this.version
+        });
+    }
+    
+    transformPosition(position, fromVersion) {
+        // Simple position transformation based on intervening operations
+        let adjustedPosition = position;
+        
+        for (let i = fromVersion; i < this.operations.length; i++) {
+            const op = this.operations[i];
+            if (op.type === 'insert' && op.position <= adjustedPosition) {
+                adjustedPosition += op.text.length;
+            } else if (op.type === 'delete' && op.start <= adjustedPosition) {
+                const deletedLength = op.end - op.start;
+                adjustedPosition = Math.max(op.start, adjustedPosition - deletedLength);
+            }
+        }
+        
+        return adjustedPosition;
+    }
+    
+    generateOperationId() {
+        return `op_${this.now()}_${Math.floor(this.random() * 1000000)}`;
+    }
+}
+```
+
+## Complete Collaborative Editor Example
+
+### Basic Text Editor
+```javascript
+class SimpleEditorModel extends Multisynq.Model {
+    init() {
+        this.content = "Welcome to collaborative editing!\n\nStart typing to see real-time sync.";
+        this.users = new Map();
+        
+        this.subscribe(this.sessionId, "view-join", this.handleUserJoin);
+        this.subscribe(this.sessionId, "view-exit", this.handleUserLeave);
+        this.subscribe(this.sessionId, "contentChange", this.handleContentChange);
+    }
+    
+    handleUserJoin(viewId) {
+        this.users.set(viewId, {
+            id: viewId,
+            name: `User ${this.users.size + 1}`,
+            color: this.getRandomColor()
+        });
+        
+        // Send current state to new user
+        this.publish(viewId, "initialContent", {
+            content: this.content,
+            users: Array.from(this.users.values())
+        });
+        
+        // Notify others of new user
+        this.publish(this.sessionId, "userJoined", this.users.get(viewId));
+    }
+    
+    handleUserLeave(viewId) {
+        const user = this.users.get(viewId);
+        this.users.delete(viewId);
+        
+        if (user) {
+            this.publish(this.sessionId, "userLeft", user);
+        }
+    }
+    
+    handleContentChange({ viewId, content }) {
+        this.content = content;
+        
+        // Broadcast to all other users
+        this.publish(this.sessionId, "contentUpdated", {
+            content: this.content,
+            authorId: viewId
+        });
+    }
+    
+    getRandomColor() {
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
+        return colors[Math.floor(this.random() * colors.length)];
+    }
+}
+
+class SimpleEditorView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.textarea = document.getElementById('editor');
+        this.userList = document.getElementById('users');
+        this.suppressEvents = false;
+        
+        this.subscribe(this.sessionId, "initialContent", this.handleInitialContent);
+        this.subscribe(this.sessionId, "contentUpdated", this.handleContentUpdate);
+        this.subscribe(this.sessionId, "userJoined", this.handleUserJoined);
+        this.subscribe(this.sessionId, "userLeft", this.handleUserLeft);
+        
+        this.setupEditor();
+    }
+    
+    setupEditor() {
+        this.textarea.addEventListener('input', () => {
+            if (!this.suppressEvents) {
+                this.publish(this.sessionId, "contentChange", {
+                    viewId: this.viewId,
+                    content: this.textarea.value
+                });
+            }
+        });
+    }
+    
+    handleInitialContent({ content, users }) {
+        this.suppressEvents = true;
+        this.textarea.value = content;
+        this.suppressEvents = false;
+        
+        this.updateUserList(users);
+    }
+    
+    handleContentUpdate({ content, authorId }) {
+        if (authorId !== this.viewId) {
+            const cursorPosition = this.textarea.selectionStart;
+            
+            this.suppressEvents = true;
+            this.textarea.value = content;
+            this.textarea.setSelectionRange(cursorPosition, cursorPosition);
+            this.suppressEvents = false;
+        }
+    }
+    
+    handleUserJoined(user) {
+        this.showUserNotification(`${user.name} joined`, user.color);
+    }
+    
+    handleUserLeft(user) {
+        this.showUserNotification(`${user.name} left`, '#999');
+    }
+    
+    updateUserList(users) {
+        this.userList.innerHTML = '';
+        users.forEach(user => {
+            const userElement = document.createElement('div');
+            userElement.className = 'user-indicator';
+            userElement.style.backgroundColor = user.color;
+            userElement.textContent = user.name;
+            this.userList.appendChild(userElement);
+        });
+    }
+    
+    showUserNotification(message, color) {
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.style.borderLeftColor = color;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => notification.remove(), 3000);
+    }
+}
+```
+
+## Integration with Popular Editors
+
+### CodeMirror Integration
+```javascript
+class CodeMirrorCollabView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        
+        this.editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+            lineNumbers: true,
+            mode: 'javascript',
+            theme: 'default'
+        });
+        
+        this.subscribe(this.sessionId, "codeChange", this.handleRemoteChange);
+        this.setupCollaboration();
+    }
+    
+    setupCollaboration() {
+        this.editor.on('change', (instance, change) => {
+            if (change.origin !== 'remote') {
+                this.publish(this.sessionId, "codeEdit", {
+                    viewId: this.viewId,
+                    change: change,
+                    content: this.editor.getValue()
+                });
+            }
+        });
+    }
+    
+    handleRemoteChange({ change, authorId }) {
+        if (authorId !== this.viewId) {
+            // Apply remote change without triggering local change event
+            this.editor.replaceRange(
+                change.text.join('\n'),
+                change.from,
+                change.to,
+                'remote'
+            );
+        }
+    }
+}
 ```
 
 ## Best Practices
 
-### 1. Handle Network Issues
-```javascript
-session.onConnectionLost(() => {
-  showOfflineIndicator();
-  enableOfflineMode();
-});
+### Performance Optimization
+- **Debounce rapid changes** to reduce event frequency
+- **Batch operations** when possible
+- **Limit history size** to prevent memory growth
+- **Use efficient diff algorithms** for large documents
 
-session.onConnectionRestored(() => {
-  hideOfflineIndicator();
-  syncPendingChanges();
-});
-```
+### User Experience
+- **Visual feedback** for all user actions
+- **Smooth cursor animations** for better presence awareness
+- **Conflict resolution indicators** when edits overlap
+- **Undo/redo support** that respects collaborative changes
 
-### 2. Graceful Degradation
+### Error Handling
 ```javascript
-// Fallback for unsupported features
-if (!session.supportsOperationalTransform()) {
-  enableBasicSyncMode();
+class RobustEditorModel extends Multisynq.Model {
+    init() {
+        this.content = "";
+        this.subscribe(this.sessionId, "textEdit", this.handleTextEdit);
+    }
+    
+    handleTextEdit(data) {
+        try {
+            // Validate edit data
+            if (!this.validateEdit(data)) {
+                console.warn('Invalid edit received:', data);
+                return;
+            }
+            
+            // Apply edit
+            this.applyEdit(data);
+            
+        } catch (error) {
+            console.error('Error applying edit:', error);
+            
+            // Recover by broadcasting current state
+            this.publish(this.sessionId, "contentReset", {
+                content: this.content,
+                reason: "recovery"
+            });
+        }
+    }
+    
+    validateEdit(data) {
+        return data && 
+               typeof data.position === 'number' && 
+               data.position >= 0 && 
+               data.position <= this.content.length;
+    }
 }
 ```
 
-### 3. User Experience
-- Show clear indicators of other users' activities
-- Provide smooth animations for remote changes
-- Handle conflicts gracefully with user feedback
-- Maintain responsive performance during heavy collaboration
-
 ## Next Steps
 
-- Explore [Conflict Resolution](/essentials/conflicts)
-- Learn about [Real-time Synchronization](/essentials/sync)
-- Check out the [Sessions API](/api-reference/endpoint/create) 
+<CardGroup cols={2}>
+  <Card
+    title="Real-time Chat"
+    icon="message"
+    href="/essentials/chat"
+  >
+    Build chat systems with message history and user presence
+  </Card>
+  <Card
+    title="Shared Whiteboard"
+    icon="pen"
+    href="/essentials/whiteboard"
+  >
+    Create collaborative drawing and design tools
+  </Card>
+  <Card
+    title="Model API Reference"
+    icon="cube"
+    href="/api-reference/model"
+  >
+    Deep dive into Model event handling and state management
+  </Card>
+  <Card
+    title="View API Reference"
+    icon="eye"
+    href="/api-reference/view"
+  >
+    Learn advanced View techniques and UI integration
+  </Card>
+</CardGroup> 

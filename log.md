@@ -423,3 +423,10 @@ the multisynq.io docs are in the process of           │
   The foundation is now solid and the migration is
   proceeding systematically according to the
   documented plan!
+
+  read@TODO.md then
+1. update it with current progress and any identified additional discovered todos
+2. add a next task for: Carefully review ALL CURRENT /docs documentation that was NOT copied verbatim (so basically anything not in the react-together section) to ensure validity and accuracy - see the Critical Base Instruction 
+3. add a todo for strategizing automated syncing for croquet classes, multisynq-client docs (incl tutorials), Tutorials Repo List (this file doesnt exist create it and put @https://github.com/multisynq/physics-fountain , @https://github.com/multisynq/multiblaster-lobby and @https://github.com/multisynq/vibecoded-gallery  in it
+4. add a todo for writing a super thorough test suite for all /docs pages and navigation/ui/images/interactive components using playwright 
+5. continue working on the todos until all are complete

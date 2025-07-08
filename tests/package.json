@@ -1,0 +1,41 @@
+{
+  "name": "multisynq-docs-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive test suite for Multisynq documentation",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:chrome": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:safari": "playwright test --project=webkit",
+    "test:mobile": "playwright test --project='Mobile Chrome' --project='Mobile Safari'",
+    "test:pages": "playwright test page-loading.spec.js",
+    "test:navigation": "playwright test navigation.spec.js",
+    "test:interactive": "playwright test interactive-components.spec.js",
+    "test:smoke": "playwright test --grep='loads successfully'",
+    "test:ci": "playwright test --reporter=github",
+    "install": "playwright install --with-deps",
+    "install:browsers": "playwright install",
+    "report": "playwright show-report",
+    "trace": "playwright show-trace"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  },
+  "keywords": [
+    "playwright",
+    "testing",
+    "documentation",
+    "multisynq",
+    "e2e",
+    "ui-testing"
+  ],
+  "author": "Multisynq Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 

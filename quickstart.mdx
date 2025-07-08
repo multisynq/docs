@@ -3,117 +3,260 @@ title: 'Quickstart'
 description: 'Start building real-time collaborative applications with Multisynq in under 5 minutes'
 ---
 
-## Installation
+## Get Your API Key
 
-Get started with Multisynq by installing the SDK and setting up your first application.
+Before you begin, get your free API key from [multisynq.io/coder](https://multisynq.io/coder).
 
-### Install the SDK
+## Create Your First Multisynq App
+
+### Step 1: Set Up HTML Structure
+
+Create an HTML file with the Multisynq client library:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #counter { font-size: 24px; margin: 20px 0; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>My First Multisynq App</h1>
+    <div id="counter">Count: 0</div>
+    <button id="increment">+1</button>
+    <button id="reset">Reset</button>
+</body>
+</html>
+```
+
+### Step 2: Create Your Model
+
+The Model contains your application logic and handles all state changes:
+
+```javascript
+class CounterModel extends Multisynq.Model {
+    init() {
+        // Initialize the counter
+        this.count = 0;
+        
+        // Subscribe to events from views
+        this.subscribe(this.sessionId, "increment", this.handleIncrement);
+        this.subscribe(this.sessionId, "reset", this.handleReset);
+    }
+    
+    handleIncrement() {
+        this.count += 1;
+        // Notify all views of the change
+        this.publish(this.sessionId, "countChanged", this.count);
+    }
+    
+    handleReset() {
+        this.count = 0;
+        this.publish(this.sessionId, "countChanged", this.count);
+    }
+}
+```
+
+### Step 3: Create Your View
+
+The View handles user interaction and displays the current state:
+
+```javascript
+class CounterView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        
+        // Subscribe to model updates
+        this.subscribe(this.sessionId, "countChanged", this.updateDisplay);
+        
+        // Set up UI event listeners
+        this.setupUI();
+        
+        // Display initial state
+        this.updateDisplay(model.count);
+    }
+    
+    setupUI() {
+        document.getElementById("increment").addEventListener("click", () => {
+            // Send event to model
+            this.publish(this.sessionId, "increment");
+        });
+        
+        document.getElementById("reset").addEventListener("click", () => {
+            this.publish(this.sessionId, "reset");
+        });
+    }
+    
+    updateDisplay(count) {
+        document.getElementById("counter").textContent = `Count: ${count}`;
+    }
+}
+```
+
+### Step 4: Start Your Session
+
+Connect everything together and start your collaborative session:
+
+```javascript
+// Start the Multisynq session
+Multisynq.Session.join({
+    apiKey: "your-api-key-here",           // Get from multisynq.io/coder
+    appId: "com.example.counter",          // Your unique app ID
+    model: CounterModel,                   // Your model class
+    view: CounterView,                     // Your view class
+    name: Multisynq.App.autoSession(),     // Auto session name from URL
+    password: Multisynq.App.autoPassword() // Auto password from URL
+}).then(session => {
+    console.log("Joined session:", session.id);
+    
+    // Show QR code for easy sharing
+    Multisynq.App.makeWidgetDock();
+});
+```
+
+## Complete Example
 
 <AccordionGroup>
-  <Accordion icon="npm" title="Install via npm">
-    Install the Multisynq SDK using npm:
-    ```bash
-    npm install @multisynq/sdk
-    ```
-  </Accordion>
-  <Accordion icon="code" title="Basic Setup">
-    Create a new Multisynq application:
-    ```javascript
-    import { Multisynq } from '@multisynq/sdk';
-
-    const app = new Multisynq({
-      apiKey: 'your-api-key',
-      appId: 'your-app-id'
-    });
-
-    app.connect();
+  <Accordion icon="code" title="Complete HTML File">
+    Here's the complete working example:
+    
+    ```html
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.min.js"></script>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            #counter { font-size: 24px; margin: 20px 0; }
+            button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+        </style>
+    </head>
+    <body>
+        <h1>My First Multisynq App</h1>
+        <div id="counter">Count: 0</div>
+        <button id="increment">+1</button>
+        <button id="reset">Reset</button>
+        
+        <script>
+            class CounterModel extends Multisynq.Model {
+                init() {
+                    this.count = 0;
+                    this.subscribe(this.sessionId, "increment", this.handleIncrement);
+                    this.subscribe(this.sessionId, "reset", this.handleReset);
+                }
+                
+                handleIncrement() {
+                    this.count += 1;
+                    this.publish(this.sessionId, "countChanged", this.count);
+                }
+                
+                handleReset() {
+                    this.count = 0;
+                    this.publish(this.sessionId, "countChanged", this.count);
+                }
+            }
+            
+            class CounterView extends Multisynq.View {
+                constructor(model) {
+                    super(model);
+                    this.subscribe(this.sessionId, "countChanged", this.updateDisplay);
+                    this.setupUI();
+                    this.updateDisplay(model.count);
+                }
+                
+                setupUI() {
+                    document.getElementById("increment").addEventListener("click", () => {
+                        this.publish(this.sessionId, "increment");
+                    });
+                    
+                    document.getElementById("reset").addEventListener("click", () => {
+                        this.publish(this.sessionId, "reset");
+                    });
+                }
+                
+                updateDisplay(count) {
+                    document.getElementById("counter").textContent = `Count: ${count}`;
+                }
+            }
+            
+            // Start your Multisynq session
+            Multisynq.Session.join({
+                apiKey: "your-api-key-here",
+                appId: "com.example.counter",
+                model: CounterModel,
+                view: CounterView,
+                name: Multisynq.App.autoSession(),
+                password: Multisynq.App.autoPassword()
+            }).then(session => {
+                console.log("Joined session:", session.id);
+                Multisynq.App.makeWidgetDock();
+            });
+        </script>
+    </body>
+    </html>
     ```
   </Accordion>
 </AccordionGroup>
 
-### Your First Collaborative App
+## How It Works
 
-<AccordionGroup>
+### Model-View Architecture
+Multisynq uses a strict Model-View separation:
 
-<Accordion icon="users" title="Create a shared session">
-  Set up a shared session where multiple users can collaborate:
-  ```javascript
-  const session = await app.createSession({
-    name: 'my-first-session',
-    maxUsers: 10
-  });
-  ```
-</Accordion>
+- **Model**: Contains all application logic and state. Runs in a deterministic virtual machine to ensure synchronization.
+- **View**: Handles user interface and user input. Can read from the model but never writes to it directly.
+- **Events**: All communication between Model and View happens through events.
 
-<Accordion icon="sync" title="Synchronize state">
-  Share state between users in real-time:
-  ```javascript
-  // Set shared state
-  session.setState('counter', 0);
+### Automatic Synchronization
+When you run this app:
 
-  // Listen for state changes
-  session.on('stateChange', (key, value) => {
-    console.log(`${key} changed to ${value}`);
-  });
+1. All users join the same session using the session name and password
+2. The Model runs identically on every user's device
+3. User actions trigger events that are synchronized across all clients
+4. Every user sees the same counter value in real-time
 
-  // Update state (syncs across all users)
-  session.setState('counter', 42);
-  ```
-</Accordion>
+### Testing Your App
 
-</AccordionGroup>
-
-## Build Your Application
-
-Now that you have the basics set up, start building your collaborative features.
-
-<CardGroup>
-
-<Card title="Real-time Chat" icon="message" href="/essentials/chat">
-  Build a chat system with real-time messaging
-</Card>
-
-<Card
-  title="Shared Whiteboard"
-  icon="pen"
-  href="/essentials/whiteboard"
->
-  Create a collaborative drawing canvas
-</Card>
-
-<Card
-  title="Document Collaboration"
-  icon="file-text"
-  href="/essentials/documents"
->
-  Build Google Docs-style collaborative editing
-</Card>
-
-<Card
-  title="Multi-user Games"
-  icon="gamepad"
-  href="/essentials/games"
->
-  Create real-time multiplayer games
-</Card>
-
-</CardGroup>
+1. Replace `"your-api-key-here"` with your actual API key
+2. Open the HTML file in your browser
+3. Use the QR code to join from other devices
+4. Click the buttons - all connected users will see the updates instantly!
 
 ## Next Steps
 
 <CardGroup cols={2}>
   <Card
-    title="API Reference"
-    icon="code"
-    href="/api-reference/introduction"
+    title="Learn the Model API"
+    icon="cube"
+    href="/api-reference/model"
   >
-    Explore the full Multisynq API
+    Deep dive into Models, events, and state management
   </Card>
   <Card
-    title="Advanced Features"
-    icon="rocket"
-    href="/essentials/advanced"
+    title="Learn the View API"
+    icon="eye"
+    href="/api-reference/view"
   >
-    Learn about advanced Multisynq features
+    Understand Views, user interaction, and UI updates
+  </Card>
+  <Card
+    title="Session Management"
+    icon="users"
+    href="/api-reference/session"
+  >
+    Advanced session configuration and management
+  </Card>
+  <Card
+    title="Real Examples"
+    icon="rocket"
+    href="/tutorials/hello-world"
+  >
+    Explore comprehensive tutorials and examples
   </Card>
 </CardGroup>
