@@ -1,152 +1,295 @@
 {
-  "openapi": "3.1.0",
+  "openapi": "3.0.1",
   "info": {
-    "title": "OpenAPI Plant Store",
-    "description": "A sample API that uses a plant store as an example to demonstrate features in the OpenAPI specification",
-    "license": {
-      "name": "MIT"
-    },
-    "version": "1.0.0"
+    "title": "Multisynq API",
+    "description": "API documentation for Multisynq - Build real-time collaborative applications with ease. The Multisynq API provides endpoints for session management, user management, and real-time synchronization.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Multisynq Support",
+      "url": "https://multisynq.io",
+      "email": "support@multisynq.io"
+    }
   },
   "servers": [
     {
-      "url": "http://sandbox.mintlify.com"
-    }
-  ],
-  "security": [
+      "url": "https://api.multisynq.io/v1",
+      "description": "Production server"
+    },
     {
-      "bearerAuth": []
+      "url": "https://api-dev.multisynq.io/v1", 
+      "description": "Development server"
     }
   ],
   "paths": {
-    "/plants": {
+    "/sessions": {
       "get": {
-        "description": "Returns all plants from the system that the user has access to",
+        "summary": "List active sessions",
+        "description": "Retrieve a list of active Multisynq sessions for your application",
+        "operationId": "getSessions",
         "parameters": [
+          {
+            "name": "appId",
+            "in": "query",
+            "description": "Filter sessions by application ID",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "com.example.myapp"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query", 
+            "description": "Filter sessions by status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["active", "dormant", "terminated"],
+              "example": "active"
+            }
+          },
           {
             "name": "limit",
             "in": "query",
-            "description": "The maximum number of results to return",
+            "description": "Maximum number of sessions to return",
+            "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "example": 10
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Plant response",
+            "description": "List of sessions",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plant"
+                  "type": "object",
+                  "properties": {
+                    "sessions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Session"
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total number of sessions"
+                    }
                   }
                 }
               }
             }
           },
-          "400": {
-            "description": "Unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       },
       "post": {
-        "description": "Creates a new plant in the store",
+        "summary": "Create a new session",
+        "description": "Create a new Multisynq session with specified parameters",
+        "operationId": "createSession",
         "requestBody": {
-          "description": "Plant to add to the store",
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewPlant"
+                "$ref": "#/components/schemas/CreateSessionRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
-          "200": {
-            "description": "plant response",
+          "201": {
+            "description": "Session created successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Plant"
+                  "$ref": "#/components/schemas/Session"
                 }
               }
             }
           },
           "400": {
-            "description": "unexpected error",
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/sessions/{sessionId}": {
+      "get": {
+        "summary": "Get session details",
+        "description": "Retrieve detailed information about a specific session",
+        "operationId": "getSession",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID",
+            "schema": {
+              "type": "string",
+              "example": "abc123-def456"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session details",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/SessionDetail"
                 }
               }
             }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
-        }
-      }
-    },
-    "/plants/{id}": {
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
       "delete": {
-        "description": "Deletes a single plant based on the ID supplied",
+        "summary": "Terminate a session",
+        "description": "Terminate an active Multisynq session",
+        "operationId": "deleteSession",
         "parameters": [
           {
-            "name": "id",
+            "name": "sessionId",
             "in": "path",
-            "description": "ID of plant to delete",
             "required": true,
+            "description": "The session ID to terminate",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string",
+              "example": "abc123-def456"
             }
           }
         ],
         "responses": {
           "204": {
-            "description": "Plant deleted",
-            "content": {}
+            "description": "Session terminated successfully"
           },
-          "400": {
-            "description": "unexpected error",
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/sessions/{sessionId}/users": {
+      "get": {
+        "summary": "List session users",
+        "description": "Get a list of users currently connected to a session",
+        "operationId": "getSessionUsers",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID",
+            "schema": {
+              "type": "string",
+              "example": "abc123-def456"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of connected users",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SessionUser"
+                      }
+                    },
+                    "count": {
+                      "type": "integer",
+                      "description": "Number of connected users"
+                    }
+                  }
                 }
               }
             }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
-    }
-  },
-  "webhooks": {
-    "/plant/webhook": {
+    },
+    "/webhooks/session-events": {
       "post": {
-        "description": "Information about a new plant added to the store",
+        "summary": "Session event webhook",
+        "description": "Webhook endpoint for receiving session lifecycle events",
+        "operationId": "sessionWebhook",
         "requestBody": {
-          "description": "Plant added to the store",
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewPlant"
+                "$ref": "#/components/schemas/SessionEvent"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Return a 200 status to indicate that the data was received successfully"
+            "description": "Webhook received successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
           }
         }
       }
@@ -154,64 +297,270 @@
   },
   "components": {
     "schemas": {
-      "Plant": {
-        "required": [
-          "name"
-        ],
+      "Session": {
         "type": "object",
+        "required": ["id", "appId", "status", "createdAt"],
         "properties": {
-          "name": {
-            "description": "The name of the plant",
-            "type": "string"
+          "id": {
+            "type": "string",
+            "description": "Unique session identifier",
+            "example": "abc123-def456"
           },
-          "tag": {
-            "description": "Tag to specify the type",
-            "type": "string"
+          "name": {
+            "type": "string",
+            "description": "Session name (optional)",
+            "example": "my-session"
+          },
+          "appId": {
+            "type": "string",
+            "description": "Application identifier",
+            "example": "com.example.myapp"
+          },
+          "persistentId": {
+            "type": "string",
+            "description": "Persistent session identifier",
+            "example": "persistent-abc123"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "dormant", "terminated"],
+            "description": "Current session status"
+          },
+          "userCount": {
+            "type": "integer",
+            "description": "Number of connected users",
+            "example": 5
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Session creation timestamp"
+          },
+          "lastActiveAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last activity timestamp"
           }
         }
       },
-      "NewPlant": {
+      "SessionDetail": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/Plant"
+            "$ref": "#/components/schemas/Session"
           },
           {
-            "required": [
-              "id"
-            ],
             "type": "object",
             "properties": {
-              "id": {
-                "description": "Identification number of the plant",
+              "options": {
+                "type": "object",
+                "description": "Session configuration options"
+              },
+              "tps": {
                 "type": "integer",
-                "format": "int64"
+                "description": "Ticks per second",
+                "example": 20
+              },
+              "reflector": {
+                "type": "string",
+                "description": "Reflector URL"
+              },
+              "stats": {
+                "type": "object",
+                "properties": {
+                  "messagesProcessed": {
+                    "type": "integer",
+                    "description": "Total messages processed"
+                  },
+                  "snapshotCount": {
+                    "type": "integer", 
+                    "description": "Number of snapshots taken"
+                  },
+                  "dataSize": {
+                    "type": "integer",
+                    "description": "Session data size in bytes"
+                  }
+                }
               }
             }
           }
         ]
       },
-      "Error": {
-        "required": [
-          "error",
-          "message"
-        ],
+      "CreateSessionRequest": {
         "type": "object",
+        "required": ["appId", "model"],
+        "properties": {
+          "appId": {
+            "type": "string",
+            "description": "Unique application identifier",
+            "example": "com.example.myapp"
+          },
+          "name": {
+            "type": "string",
+            "description": "Optional session name",
+            "example": "my-session"
+          },
+          "password": {
+            "type": "string",
+            "description": "Optional session password for encryption",
+            "example": "secure-password"
+          },
+          "model": {
+            "type": "string",
+            "description": "Root model class name",
+            "example": "MyRootModel"
+          },
+          "options": {
+            "type": "object",
+            "description": "Options passed to model init function"
+          },
+          "tps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60,
+            "default": 20,
+            "description": "Ticks per second"
+          },
+          "autoSleep": {
+            "type": "integer",
+            "default": 10,
+            "description": "Seconds before going dormant when no users"
+          }
+        }
+      },
+      "SessionUser": {
+        "type": "object",
+        "required": ["viewId", "joinedAt"],
+        "properties": {
+          "viewId": {
+            "type": "string",
+            "description": "Unique view identifier for this user",
+            "example": "view-123abc"
+          },
+          "viewData": {
+            "type": "object",
+            "description": "Additional user data provided during join"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the user joined the session"
+          },
+          "lastActiveAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last activity from this user"
+          },
+          "isConnected": {
+            "type": "boolean",
+            "description": "Whether the user is currently connected"
+          }
+        }
+      },
+      "SessionEvent": {
+        "type": "object",
+        "required": ["eventType", "sessionId", "timestamp"],
+        "properties": {
+          "eventType": {
+            "type": "string",
+            "enum": ["session.created", "session.terminated", "user.joined", "user.left"],
+            "description": "Type of session event"
+          },
+          "sessionId": {
+            "type": "string",
+            "description": "Session identifier",
+            "example": "abc123-def456"
+          },
+          "appId": {
+            "type": "string",
+            "description": "Application identifier",
+            "example": "com.example.myapp"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Event timestamp"
+          },
+          "data": {
+            "type": "object",
+            "description": "Event-specific data"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error", "message"],
         "properties": {
           "error": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "description": "Error code",
+            "example": "INVALID_SESSION"
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable error message",
+            "example": "The specified session was not found"
+          },
+          "details": {
+            "type": "object",
+            "description": "Additional error details"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request - invalid parameters",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized - invalid API key",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
           }
         }
       }
     },
     "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer"
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key for authentication. Get your API key from https://multisynq.io/coder"
       }
     }
-  }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ]
 }

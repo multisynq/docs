@@ -1,0 +1,276 @@
+---
+title: "Conflict Resolution"
+description: "Understand how Multisynq handles conflicts in real-time collaborative applications"
+---
+
+## What are Conflicts?
+
+In real-time collaborative applications, conflicts occur when multiple users attempt to modify the same data simultaneously. Multisynq provides built-in conflict resolution mechanisms to ensure data consistency across all connected users.
+
+## Multisynq's Approach to Conflict Resolution
+
+### Deterministic Execution
+Multisynq prevents most conflicts by using a deterministic execution model:
+
+- **Single Source of Truth**: All application logic runs in the Model on the reflector
+- **Event Ordering**: Events are processed in a consistent order across all clients
+- **Synchronized State**: All users see the exact same state at any given time
+
+### Built-in Conflict Prevention
+
+#### 1. **Atomic Operations**
+```javascript
+class MyModel extends Multisynq.Model {
+  init(options) {
+    super.init(options);
+    this.counter = 0;
+    this.subscribe(this.sessionId, "increment", this.incrementCounter);
+  }
+
+  incrementCounter() {
+    // This operation is atomic across all users
+    this.counter += 1;
+    this.publish(this.sessionId, "counterUpdated", this.counter);
+  }
+}
+```
+
+#### 2. **Event Sequencing**
+All events are processed in the order they arrive at the reflector, ensuring consistent state updates.
+
+#### 3. **Snapshot Consistency**
+Regular snapshots ensure all users stay synchronized, automatically resolving any temporary inconsistencies.
+
+## Handling User Intent Conflicts
+
+While Multisynq prevents data conflicts, user intent conflicts may still occur. Here are strategies to handle them:
+
+### 1. **Optimistic UI Updates**
+```javascript
+class MyView extends Multisynq.View {
+  constructor(model) {
+    super(model);
+    this.subscribe(this.sessionId, "textChanged", this.updateText);
+  }
+
+  handleTextInput(text) {
+    // Optimistically update UI immediately
+    this.updateDisplayText(text);
+    
+    // Send change to model for synchronization
+    this.publish(this.sessionId, "changeText", {
+      userId: this.viewId,
+      text: text,
+      timestamp: this.now()
+    });
+  }
+
+  updateText(data) {
+    // Apply authoritative update from model
+    this.updateDisplayText(data.text);
+  }
+}
+```
+
+### 2. **Last-Writer-Wins Strategy**
+```javascript
+class DocumentModel extends Multisynq.Model {
+  init(options) {
+    super.init(options);
+    this.document = { content: "", lastModified: 0, lastEditor: null };
+    this.subscribe(this.sessionId, "updateDocument", this.updateDocument);
+  }
+
+  updateDocument(data) {
+    // Simple last-writer-wins approach
+    if (data.timestamp > this.document.lastModified) {
+      this.document.content = data.content;
+      this.document.lastModified = data.timestamp;
+      this.document.lastEditor = data.userId;
+      this.publish(this.sessionId, "documentUpdated", this.document);
+    }
+  }
+}
+```
+
+### 3. **Collaborative Text Editing**
+For complex text editing, consider operational transformation:
+
+```javascript
+class CollaborativeTextModel extends Multisynq.Model {
+  init(options) {
+    super.init(options);
+    this.content = "";
+    this.operations = [];
+    this.subscribe(this.sessionId, "textOperation", this.applyOperation);
+  }
+
+  applyOperation(operation) {
+    // Transform operation against concurrent operations
+    const transformedOp = this.transformOperation(operation, this.operations);
+    
+    // Apply the transformed operation
+    this.content = this.applyToText(this.content, transformedOp);
+    this.operations.push(transformedOp);
+    
+    // Notify all views of the change
+    this.publish(this.sessionId, "textUpdated", {
+      content: this.content,
+      operation: transformedOp
+    });
+  }
+
+  transformOperation(newOp, existingOps) {
+    // Implement operational transformation logic
+    // This is a simplified example
+    return newOp;
+  }
+}
+```
+
+## Advanced Conflict Resolution Patterns
+
+### 1. **Version Vectors**
+Track changes per user to handle complex merge scenarios:
+
+```javascript
+class VersionedModel extends Multisynq.Model {
+  init(options) {
+    super.init(options);
+    this.data = {};
+    this.versions = {}; // Track version per user
+    this.subscribe(this.sessionId, "dataUpdate", this.handleUpdate);
+  }
+
+  handleUpdate(update) {
+    const { userId, data, version } = update;
+    
+    // Check if this update is newer than what we have
+    if (!this.versions[userId] || version > this.versions[userId]) {
+      this.mergeData(data, userId);
+      this.versions[userId] = version;
+      this.publish(this.sessionId, "dataChanged", this.data);
+    }
+  }
+
+  mergeData(newData, userId) {
+    // Implement application-specific merge logic
+    Object.assign(this.data, newData);
+  }
+}
+```
+
+### 2. **Conflict-Free Replicated Data Types (CRDTs)**
+Use CRDT patterns for automatic conflict resolution:
+
+```javascript
+class CRDTSetModel extends Multisynq.Model {
+  init(options) {
+    super.init(options);
+    this.set = new Map(); // userId -> Set of items
+    this.subscribe(this.sessionId, "addItem", this.addItem);
+    this.subscribe(this.sessionId, "removeItem", this.removeItem);
+  }
+
+  addItem(data) {
+    const { userId, item } = data;
+    if (!this.set.has(userId)) {
+      this.set.set(userId, new Set());
+    }
+    this.set.get(userId).add(item);
+    this.publishSetUpdate();
+  }
+
+  removeItem(data) {
+    const { userId, item } = data;
+    if (this.set.has(userId)) {
+      this.set.get(userId).delete(item);
+    }
+    this.publishSetUpdate();
+  }
+
+  getUnionSet() {
+    // Merge all user sets automatically
+    const union = new Set();
+    for (const userSet of this.set.values()) {
+      for (const item of userSet) {
+        union.add(item);
+      }
+    }
+    return union;
+  }
+
+  publishSetUpdate() {
+    this.publish(this.sessionId, "setUpdated", Array.from(this.getUnionSet()));
+  }
+}
+```
+
+## Best Practices
+
+### 1. **Design for Collaboration**
+- Plan your data structures to minimize conflicts
+- Use fine-grained operations instead of bulk updates
+- Consider user workflow when designing interactions
+
+### 2. **Provide User Feedback**
+```javascript
+class ConflictAwareView extends Multisynq.View {
+  handleConflict(conflictData) {
+    // Show user-friendly conflict resolution UI
+    this.showNotification(`Your change conflicted with ${conflictData.otherUser}'s edit`);
+    this.highlightConflictedArea(conflictData.location);
+  }
+
+  showMergeDialog(options) {
+    // Allow user to choose resolution strategy
+    this.displayMergeOptions(options);
+  }
+}
+```
+
+### 3. **Monitor and Log Conflicts**
+```javascript
+class ConflictMonitoringModel extends Multisynq.Model {
+  handlePotentialConflict(data) {
+    // Log conflict for analysis
+    console.log("Conflict detected:", {
+      users: data.conflictingUsers,
+      operation: data.operation,
+      timestamp: this.now()
+    });
+
+    // Resolve using your chosen strategy
+    this.resolveConflict(data);
+  }
+}
+```
+
+## Testing Conflict Scenarios
+
+### 1. **Simulated Concurrent Actions**
+```javascript
+// Test setup for conflict scenarios
+class ConflictTestModel extends Multisynq.Model {
+  simulateConflict() {
+    // Simulate two users editing simultaneously
+    this.handleEdit({ userId: "user1", text: "Hello", position: 0 });
+    this.handleEdit({ userId: "user2", text: "Hi", position: 0 });
+  }
+}
+```
+
+### 2. **Network Partition Testing**
+Test how your application handles temporary disconnections and reconnections.
+
+## Summary
+
+Multisynq's deterministic execution model prevents most data conflicts automatically. For user intent conflicts:
+
+1. **Use optimistic UI updates** for responsiveness
+2. **Implement appropriate conflict resolution strategies** (last-writer-wins, operational transformation, CRDTs)
+3. **Provide clear user feedback** when conflicts occur
+4. **Design data structures** to minimize conflicts
+5. **Test thoroughly** with concurrent user scenarios
+
+By following these patterns, you can build collaborative applications that handle conflicts gracefully while maintaining data consistency across all users.

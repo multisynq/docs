@@ -1,0 +1,931 @@
+---
+title: "Shared Whiteboard"
+description: "Create collaborative drawing canvases with Multisynq"
+---
+
+## Building a Shared Whiteboard
+
+A collaborative whiteboard allows multiple users to draw, sketch, and annotate together in real-time. This guide shows you how to build a robust whiteboard application using Multisynq.
+
+## Basic Whiteboard Implementation
+
+### 1. **Whiteboard Model**
+
+```javascript
+class WhiteboardModel extends Multisynq.Model {
+  init(options) {
+    super.init(options);
+    
+    this.strokes = new Map(); // strokeId -> stroke data
+    this.users = new Map(); // userId -> user cursor/tool state
+    this.canvasSize = options.canvasSize || { width: 1200, height: 800 };
+    
+    // Subscribe to drawing events
+    this.subscribe(this.sessionId, "startStroke", this.handleStartStroke);
+    this.subscribe(this.sessionId, "addPoint", this.handleAddPoint);
+    this.subscribe(this.sessionId, "endStroke", this.handleEndStroke);
+    this.subscribe(this.sessionId, "eraseStroke", this.handleEraseStroke);
+    this.subscribe(this.sessionId, "clearCanvas", this.handleClearCanvas);
+    this.subscribe(this.sessionId, "updateCursor", this.handleCursorUpdate);
+    this.subscribe(this.sessionId, "changeTool", this.handleToolChange);
+    
+    // User management
+    this.subscribe(this.sessionId, "view-join", this.handleUserJoin);
+    this.subscribe(this.sessionId, "view-exit", this.handleUserLeave);
+  }
+
+  handleStartStroke(data) {
+    const { userId, strokeId, point, tool } = data;
+    
+    const stroke = {
+      id: strokeId,
+      userId,
+      points: [point],
+      tool: {
+        type: tool.type || 'pen',
+        color: tool.color || '#000000',
+        size: Math.max(1, Math.min(50, tool.size || 2)), // Clamp size
+        opacity: Math.max(0.1, Math.min(1, tool.opacity || 1))
+      },
+      startTime: this.now(),
+      completed: false
+    };
+    
+    this.strokes.set(strokeId, stroke);
+    
+    // Broadcast stroke start to all users
+    this.publish(this.sessionId, "strokeStarted", {
+      stroke,
+      userId
+    });
+  }
+
+  handleAddPoint(data) {
+    const { strokeId, point } = data;
+    const stroke = this.strokes.get(strokeId);
+    
+    if (!stroke || stroke.completed) return;
+    
+    // Validate point data
+    if (!this.isValidPoint(point)) return;
+    
+    stroke.points.push(point);
+    
+    // Broadcast new point
+    this.publish(this.sessionId, "pointAdded", {
+      strokeId,
+      point,
+      pointIndex: stroke.points.length - 1
+    });
+  }
+
+  handleEndStroke(data) {
+    const { strokeId } = data;
+    const stroke = this.strokes.get(strokeId);
+    
+    if (!stroke) return;
+    
+    stroke.completed = true;
+    stroke.endTime = this.now();
+    
+    // Broadcast stroke completion
+    this.publish(this.sessionId, "strokeCompleted", {
+      strokeId,
+      stroke
+    });
+  }
+
+  handleEraseStroke(data) {
+    const { strokeId, userId } = data;
+    
+    if (!this.strokes.has(strokeId)) return;
+    
+    // Remove stroke
+    this.strokes.delete(strokeId);
+    
+    // Broadcast erasure
+    this.publish(this.sessionId, "strokeErased", {
+      strokeId,
+      erasedBy: userId
+    });
+  }
+
+  handleClearCanvas(data) {
+    const { userId } = data;
+    
+    // Clear all strokes
+    this.strokes.clear();
+    
+    // Broadcast clear
+    this.publish(this.sessionId, "canvasCleared", {
+      clearedBy: userId,
+      timestamp: this.now()
+    });
+  }
+
+  handleCursorUpdate(data) {
+    const { userId, cursor } = data;
+    
+    if (!this.isValidPoint(cursor)) return;
+    
+    // Update user cursor position
+    const user = this.users.get(userId) || {};
+    user.cursor = cursor;
+    user.lastUpdate = this.now();
+    this.users.set(userId, user);
+    
+    // Broadcast cursor update (except to sender)
+    this.publish(this.sessionId, "cursorMoved", {
+      userId,
+      cursor
+    });
+  }
+
+  handleToolChange(data) {
+    const { userId, tool } = data;
+    
+    // Update user tool
+    const user = this.users.get(userId) || {};
+    user.tool = {
+      type: tool.type || 'pen',
+      color: tool.color || '#000000',
+      size: Math.max(1, Math.min(50, tool.size || 2)),
+      opacity: Math.max(0.1, Math.min(1, tool.opacity || 1))
+    };
+    this.users.set(userId, user);
+    
+    // Broadcast tool change
+    this.publish(this.sessionId, "toolChanged", {
+      userId,
+      tool: user.tool
+    });
+  }
+
+  handleUserJoin(viewId) {
+    // Initialize user state
+    this.users.set(viewId, {
+      userId: viewId,
+      joinedAt: this.now(),
+      cursor: { x: 0, y: 0 },
+      tool: {
+        type: 'pen',
+        color: this.generateUserColor(viewId),
+        size: 2,
+        opacity: 1
+      }
+    });
+    
+    // Send current canvas state to new user
+    this.sendCanvasState(viewId);
+    
+    // Announce user joined
+    this.publish(this.sessionId, "userJoinedWhiteboard", {
+      userId: viewId,
+      userCount: this.users.size
+    });
+  }
+
+  handleUserLeave(viewId) {
+    this.users.delete(viewId);
+    
+    // Announce user left
+    this.publish(this.sessionId, "userLeftWhiteboard", {
+      userId: viewId,
+      userCount: this.users.size
+    });
+  }
+
+  sendCanvasState(userId) {
+    // Send all existing strokes to new user
+    const strokesArray = Array.from(this.strokes.values());
+    this.publish(userId, "canvasState", {
+      strokes: strokesArray,
+      canvasSize: this.canvasSize,
+      userCount: this.users.size
+    });
+  }
+
+  isValidPoint(point) {
+    return point &&
+           typeof point.x === 'number' &&
+           typeof point.y === 'number' &&
+           point.x >= 0 && point.x <= this.canvasSize.width &&
+           point.y >= 0 && point.y <= this.canvasSize.height;
+  }
+
+  generateUserColor(userId) {
+    // Generate consistent color for user
+    const colors = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+      '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'
+    ];
+    const hash = this.hashString(userId);
+    return colors[hash % colors.length];
+  }
+
+  hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
+  }
+}
+```
+
+### 2. **Whiteboard View**
+
+```javascript
+class WhiteboardView extends Multisynq.View {
+  constructor(model) {
+    super(model);
+    
+    this.canvas = null;
+    this.ctx = null;
+    this.isDrawing = false;
+    this.currentStrokeId = null;
+    this.lastPoint = null;
+    this.currentTool = {
+      type: 'pen',
+      color: '#000000',
+      size: 2,
+      opacity: 1
+    };
+    
+    this.cursors = new Map(); // Other users' cursors
+    this.strokes = new Map(); // Rendered strokes
+    
+    this.setupCanvas();
+    this.setupEventListeners();
+    this.setupUI();
+  }
+
+  setupCanvas() {
+    this.canvas = document.getElementById('whiteboard-canvas');
+    this.ctx = this.canvas.getContext('2d');
+    
+    // Set canvas size
+    this.canvas.width = 1200;
+    this.canvas.height = 800;
+    
+    // Configure drawing context
+    this.ctx.lineCap = 'round';
+    this.ctx.lineJoin = 'round';
+  }
+
+  setupEventListeners() {
+    // Subscribe to model events
+    this.subscribe(this.sessionId, "strokeStarted", this.onStrokeStarted);
+    this.subscribe(this.sessionId, "pointAdded", this.onPointAdded);
+    this.subscribe(this.sessionId, "strokeCompleted", this.onStrokeCompleted);
+    this.subscribe(this.sessionId, "strokeErased", this.onStrokeErased);
+    this.subscribe(this.sessionId, "canvasCleared", this.onCanvasCleared);
+    this.subscribe(this.sessionId, "cursorMoved", this.onCursorMoved);
+    this.subscribe(this.sessionId, "toolChanged", this.onToolChanged);
+    this.subscribe(this.viewId, "canvasState", this.onCanvasState);
+    
+    // Canvas mouse/touch events
+    this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
+    this.canvas.addEventListener('mousemove', (e) => this.draw(e));
+    this.canvas.addEventListener('mouseup', (e) => this.stopDrawing(e));
+    this.canvas.addEventListener('mouseleave', (e) => this.stopDrawing(e));
+    
+    // Touch events for mobile
+    this.canvas.addEventListener('touchstart', (e) => this.handleTouch(e, 'start'));
+    this.canvas.addEventListener('touchmove', (e) => this.handleTouch(e, 'move'));
+    this.canvas.addEventListener('touchend', (e) => this.handleTouch(e, 'end'));
+    
+    // Cursor tracking
+    this.canvas.addEventListener('mousemove', (e) => this.updateCursor(e));
+    
+    // Prevent scrolling on touch
+    this.canvas.addEventListener('touchmove', (e) => e.preventDefault());
+  }
+
+  setupUI() {
+    // Tool buttons
+    document.getElementById('pen-tool').addEventListener('click', () => {
+      this.setTool('pen');
+    });
+    
+    document.getElementById('eraser-tool').addEventListener('click', () => {
+      this.setTool('eraser');
+    });
+    
+    // Color picker
+    document.getElementById('color-picker').addEventListener('change', (e) => {
+      this.currentTool.color = e.target.value;
+      this.publishToolChange();
+    });
+    
+    // Size slider
+    document.getElementById('size-slider').addEventListener('input', (e) => {
+      this.currentTool.size = parseInt(e.target.value);
+      this.publishToolChange();
+    });
+    
+    // Clear button
+    document.getElementById('clear-button').addEventListener('click', () => {
+      this.clearCanvas();
+    });
+  }
+
+  startDrawing(event) {
+    if (this.currentTool.type === 'eraser') {
+      this.eraseAtPoint(this.getPointFromEvent(event));
+      return;
+    }
+    
+    this.isDrawing = true;
+    this.currentStrokeId = this.generateStrokeId();
+    this.lastPoint = this.getPointFromEvent(event);
+    
+    // Start new stroke
+    this.publish(this.sessionId, "startStroke", {
+      userId: this.viewId,
+      strokeId: this.currentStrokeId,
+      point: this.lastPoint,
+      tool: this.currentTool
+    });
+  }
+
+  draw(event) {
+    if (!this.isDrawing) return;
+    
+    const currentPoint = this.getPointFromEvent(event);
+    
+    // Add point to current stroke
+    this.publish(this.sessionId, "addPoint", {
+      strokeId: this.currentStrokeId,
+      point: currentPoint
+    });
+    
+    this.lastPoint = currentPoint;
+  }
+
+  stopDrawing(event) {
+    if (!this.isDrawing) return;
+    
+    this.isDrawing = false;
+    
+    // End current stroke
+    this.publish(this.sessionId, "endStroke", {
+      strokeId: this.currentStrokeId
+    });
+    
+    this.currentStrokeId = null;
+    this.lastPoint = null;
+  }
+
+  handleTouch(event, type) {
+    event.preventDefault();
+    
+    if (event.touches.length !== 1) return; // Only handle single touch
+    
+    const touch = event.touches[0];
+    const mouseEvent = new MouseEvent(
+      type === 'start' ? 'mousedown' : type === 'move' ? 'mousemove' : 'mouseup',
+      {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      }
+    );
+    
+    this.canvas.dispatchEvent(mouseEvent);
+  }
+
+  updateCursor(event) {
+    const point = this.getPointFromEvent(event);
+    this.publish(this.sessionId, "updateCursor", {
+      userId: this.viewId,
+      cursor: point
+    });
+  }
+
+  getPointFromEvent(event) {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    };
+  }
+
+  // Event handlers for model events
+  onStrokeStarted(data) {
+    if (data.userId === this.viewId) return; // Don't render own strokes twice
+    
+    const { stroke } = data;
+    this.strokes.set(stroke.id, {
+      ...stroke,
+      renderedPoints: 0
+    });
+    
+    this.renderStroke(stroke);
+  }
+
+  onPointAdded(data) {
+    const { strokeId, point } = data;
+    const stroke = this.strokes.get(strokeId);
+    
+    if (!stroke) return;
+    
+    // Add point to local stroke
+    if (!stroke.points) stroke.points = [];
+    stroke.points.push(point);
+    
+    this.renderStrokeSegment(stroke, stroke.renderedPoints);
+    stroke.renderedPoints = stroke.points.length;
+  }
+
+  onStrokeCompleted(data) {
+    const { strokeId } = data;
+    const stroke = this.strokes.get(strokeId);
+    
+    if (stroke) {
+      stroke.completed = true;
+    }
+  }
+
+  onStrokeErased(data) {
+    const { strokeId } = data;
+    this.strokes.delete(strokeId);
+    this.redrawCanvas();
+  }
+
+  onCanvasCleared(data) {
+    this.strokes.clear();
+    this.clearCanvasDisplay();
+  }
+
+  onCursorMoved(data) {
+    const { userId, cursor } = data;
+    if (userId === this.viewId) return; // Don't show own cursor
+    
+    this.cursors.set(userId, cursor);
+    this.renderCursors();
+  }
+
+  onToolChanged(data) {
+    // Could show tool indicators for other users
+    console.log(`User ${data.userId} changed tool:`, data.tool);
+  }
+
+  onCanvasState(data) {
+    const { strokes } = data;
+    
+    // Clear and rebuild canvas
+    this.strokes.clear();
+    this.clearCanvasDisplay();
+    
+    strokes.forEach(stroke => {
+      this.strokes.set(stroke.id, {
+        ...stroke,
+        renderedPoints: stroke.points.length
+      });
+      this.renderStroke(stroke);
+    });
+  }
+
+  // Rendering methods
+  renderStroke(stroke) {
+    if (!stroke.points || stroke.points.length === 0) return;
+    
+    this.ctx.save();
+    this.applyToolStyle(stroke.tool);
+    
+    this.ctx.beginPath();
+    this.ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+    
+    for (let i = 1; i < stroke.points.length; i++) {
+      this.ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+    }
+    
+    this.ctx.stroke();
+    this.ctx.restore();
+  }
+
+  renderStrokeSegment(stroke, fromIndex) {
+    if (!stroke.points || stroke.points.length < 2) return;
+    
+    this.ctx.save();
+    this.applyToolStyle(stroke.tool);
+    
+    this.ctx.beginPath();
+    
+    if (fromIndex === 0) {
+      this.ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+      fromIndex = 1;
+    } else {
+      this.ctx.moveTo(stroke.points[fromIndex - 1].x, stroke.points[fromIndex - 1].y);
+    }
+    
+    for (let i = fromIndex; i < stroke.points.length; i++) {
+      this.ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+    }
+    
+    this.ctx.stroke();
+    this.ctx.restore();
+  }
+
+  applyToolStyle(tool) {
+    this.ctx.globalCompositeOperation = tool.type === 'eraser' ? 'destination-out' : 'source-over';
+    this.ctx.strokeStyle = tool.color;
+    this.ctx.lineWidth = tool.size;
+    this.ctx.globalAlpha = tool.opacity;
+  }
+
+  renderCursors() {
+    // Clear previous cursors
+    this.clearCursors();
+    
+    // Draw current cursors
+    this.cursors.forEach((cursor, userId) => {
+      this.drawCursor(cursor, userId);
+    });
+  }
+
+  drawCursor(cursor, userId) {
+    this.ctx.save();
+    this.ctx.fillStyle = this.getUserColor(userId);
+    this.ctx.beginPath();
+    this.ctx.arc(cursor.x, cursor.y, 5, 0, 2 * Math.PI);
+    this.ctx.fill();
+    this.ctx.restore();
+  }
+
+  clearCursors() {
+    // This is simplified - in a real implementation,
+    // you'd track cursor areas to clear efficiently
+  }
+
+  redrawCanvas() {
+    this.clearCanvasDisplay();
+    this.strokes.forEach(stroke => {
+      this.renderStroke(stroke);
+    });
+  }
+
+  clearCanvasDisplay() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+
+  // Tool methods
+  setTool(toolType) {
+    this.currentTool.type = toolType;
+    this.publishToolChange();
+    this.updateUI();
+  }
+
+  publishToolChange() {
+    this.publish(this.sessionId, "changeTool", {
+      userId: this.viewId,
+      tool: this.currentTool
+    });
+  }
+
+  clearCanvas() {
+    this.publish(this.sessionId, "clearCanvas", {
+      userId: this.viewId
+    });
+  }
+
+  eraseAtPoint(point) {
+    // Find strokes at this point and erase them
+    for (const [strokeId, stroke] of this.strokes) {
+      if (this.isPointOnStroke(point, stroke)) {
+        this.publish(this.sessionId, "eraseStroke", {
+          strokeId,
+          userId: this.viewId
+        });
+        break; // Erase one stroke at a time
+      }
+    }
+  }
+
+  isPointOnStroke(point, stroke) {
+    // Simplified hit detection
+    const threshold = stroke.tool.size + 5;
+    
+    return stroke.points.some(strokePoint => {
+      const dx = point.x - strokePoint.x;
+      const dy = point.y - strokePoint.y;
+      return Math.sqrt(dx * dx + dy * dy) <= threshold;
+    });
+  }
+
+  updateUI() {
+    // Update tool UI state
+    document.querySelectorAll('.tool-button').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    
+    document.getElementById(`${this.currentTool.type}-tool`).classList.add('active');
+  }
+
+  generateStrokeId() {
+    return `stroke_${this.viewId}_${this.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  getUserColor(userId) {
+    // Generate consistent color for user (same as in model)
+    const colors = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+      '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'
+    ];
+    const hash = this.hashString(userId);
+    return colors[hash % colors.length];
+  }
+
+  hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash);
+  }
+}
+```
+
+## HTML Structure
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shared Whiteboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        .whiteboard-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .toolbar {
+            width: 200px;
+            background: #f5f5f5;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+        }
+        
+        .tool-section {
+            margin-bottom: 20px;
+        }
+        
+        .tool-section h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .tool-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .tool-button {
+            padding: 10px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .tool-button.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        .color-picker {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 4px;
+        }
+        
+        .size-slider {
+            width: 100%;
+        }
+        
+        .clear-button {
+            width: 100%;
+            padding: 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            overflow: hidden;
+            background: white;
+        }
+        
+        #whiteboard-canvas {
+            border: 1px solid #ddd;
+            cursor: crosshair;
+        }
+        
+        .status-bar {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="whiteboard-container">
+        <div class="toolbar">
+            <div class="tool-section">
+                <h3>Tools</h3>
+                <div class="tool-buttons">
+                    <button id="pen-tool" class="tool-button active">✏️</button>
+                    <button id="eraser-tool" class="tool-button">🗑️</button>
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Color</h3>
+                <input type="color" id="color-picker" class="color-picker" value="#000000">
+            </div>
+            
+            <div class="tool-section">
+                <h3>Size</h3>
+                <input type="range" id="size-slider" class="size-slider" min="1" max="50" value="2">
+                <div id="size-display">2px</div>
+            </div>
+            
+            <div class="tool-section">
+                <button id="clear-button" class="clear-button">Clear Canvas</button>
+            </div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="whiteboard-canvas"></canvas>
+            <div class="status-bar">
+                <span id="user-count">1 user online</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="multisynq.min.js"></script>
+    <script>
+        // Initialize application
+        Multisynq.Session.join({
+            apiKey: "your_api_key_here",
+            appId: "com.example.whiteboard",
+            name: Multisynq.App.autoSession(),
+            model: WhiteboardModel,
+            view: WhiteboardView,
+            debug: ["session"]
+        });
+    </script>
+</body>
+</html>
+```
+
+## Advanced Features
+
+### 1. **Shape Tools**
+
+Add support for drawing shapes:
+
+```javascript
+class ShapeWhiteboardModel extends WhiteboardModel {
+  handleStartShape(data) {
+    const { userId, shapeId, shapeType, startPoint, tool } = data;
+    
+    const shape = {
+      id: shapeId,
+      userId,
+      type: shapeType, // 'rectangle', 'circle', 'line'
+      startPoint,
+      endPoint: startPoint,
+      tool,
+      completed: false
+    };
+    
+    this.shapes.set(shapeId, shape);
+    this.publish(this.sessionId, "shapeStarted", shape);
+  }
+
+  handleUpdateShape(data) {
+    const { shapeId, endPoint } = data;
+    const shape = this.shapes.get(shapeId);
+    
+    if (shape && !shape.completed) {
+      shape.endPoint = endPoint;
+      this.publish(this.sessionId, "shapeUpdated", { shapeId, endPoint });
+    }
+  }
+}
+```
+
+### 2. **Text Tool**
+
+Add text annotation capability:
+
+```javascript
+class TextWhiteboardModel extends WhiteboardModel {
+  handleAddText(data) {
+    const { userId, textId, point, text, style } = data;
+    
+    const textElement = {
+      id: textId,
+      userId,
+      point,
+      text: text.substring(0, 500), // Limit text length
+      style: {
+        fontSize: style.fontSize || 16,
+        fontFamily: style.fontFamily || 'Arial',
+        color: style.color || '#000000'
+      },
+      timestamp: this.now()
+    };
+    
+    this.textElements.set(textId, textElement);
+    this.publish(this.sessionId, "textAdded", textElement);
+  }
+}
+```
+
+### 3. **Layer System**
+
+Implement drawing layers:
+
+```javascript
+class LayeredWhiteboardModel extends WhiteboardModel {
+  init(options) {
+    super.init(options);
+    this.layers = new Map(); // layerId -> layer data
+    this.activeLayer = 'layer1';
+    
+    // Create default layer
+    this.layers.set(this.activeLayer, {
+      id: this.activeLayer,
+      name: 'Layer 1',
+      visible: true,
+      strokes: new Map()
+    });
+  }
+
+  handleCreateLayer(data) {
+    const { userId, layerId, name } = data;
+    
+    const layer = {
+      id: layerId,
+      name: name || `Layer ${this.layers.size + 1}`,
+      visible: true,
+      strokes: new Map(),
+      createdBy: userId,
+      createdAt: this.now()
+    };
+    
+    this.layers.set(layerId, layer);
+    this.publish(this.sessionId, "layerCreated", layer);
+  }
+}
+```
+
+## Best Practices
+
+1. **Performance Optimization**:
+   - Use efficient data structures for stroke storage
+   - Implement viewport culling for large canvases
+   - Batch drawing operations when possible
+
+2. **User Experience**:
+   - Provide visual feedback for drawing operations
+   - Show other users' cursors and active tools
+   - Implement undo/redo functionality
+
+3. **Mobile Support**:
+   - Handle touch events properly
+   - Optimize for touch drawing performance
+   - Provide touch-friendly UI controls
+
+4. **Data Management**:
+   - Limit the number of stored strokes
+   - Implement efficient erasure algorithms
+   - Consider stroke simplification for performance
+
+5. **Collaboration Features**:
+   - Show user indicators and colors
+   - Implement permissions and moderation
+   - Add selection and manipulation tools
+
+This whiteboard implementation provides a solid foundation for building collaborative drawing applications with Multisynq.

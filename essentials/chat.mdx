@@ -1,0 +1,632 @@
+---
+title: "Real-time Chat"
+description: "Build real-time chat systems with Multisynq"
+---
+
+## Building Real-time Chat with Multisynq
+
+Real-time chat is one of the most common collaborative features. This guide shows you how to build a robust chat system using Multisynq's event-driven architecture.
+
+## Basic Chat Implementation
+
+### 1. **Chat Model**
+
+```javascript
+class ChatModel extends Multisynq.Model {
+  init(options) {
+    super.init(options);
+    
+    this.messages = [];
+    this.users = new Map();
+    this.maxMessages = 1000; // Prevent memory bloat
+    
+    // Subscribe to chat events
+    this.subscribe(this.sessionId, "sendMessage", this.handleMessage);
+    this.subscribe(this.sessionId, "setNickname", this.handleNickname);
+    this.subscribe(this.sessionId, "view-join", this.handleUserJoin);
+    this.subscribe(this.sessionId, "view-exit", this.handleUserLeave);
+  }
+
+  handleMessage(data) {
+    const { userId, text, timestamp } = data;
+    
+    // Validate message
+    if (!text || text.trim().length === 0) return;
+    if (text.length > 500) return; // Length limit
+    
+    const user = this.users.get(userId) || { nickname: "Anonymous" };
+    
+    const message = {
+      id: this.generateMessageId(),
+      userId,
+      nickname: user.nickname,
+      text: text.trim(),
+      timestamp: this.now(),
+      serverTime: this.now()
+    };
+    
+    // Add to message history
+    this.messages.push(message);
+    
+    // Trim old messages if needed
+    if (this.messages.length > this.maxMessages) {
+      this.messages = this.messages.slice(-this.maxMessages);
+    }
+    
+    // Broadcast to all users
+    this.publish(this.sessionId, "newMessage", message);
+  }
+
+  handleNickname(data) {
+    const { userId, nickname } = data;
+    
+    // Validate nickname
+    if (!nickname || nickname.trim().length === 0) return;
+    if (nickname.length > 50) return;
+    
+    const oldUser = this.users.get(userId);
+    const newUser = {
+      ...oldUser,
+      userId,
+      nickname: nickname.trim(),
+      joinedAt: oldUser?.joinedAt || this.now(),
+      lastActive: this.now()
+    };
+    
+    this.users.set(userId, newUser);
+    
+    // Announce nickname change
+    if (oldUser && oldUser.nickname !== newUser.nickname) {
+      this.publish(this.sessionId, "nicknameChanged", {
+        userId,
+        oldNickname: oldUser.nickname,
+        newNickname: newUser.nickname
+      });
+    }
+    
+    // Update user list
+    this.publishUserList();
+  }
+
+  handleUserJoin(viewId) {
+    if (!this.users.has(viewId)) {
+      this.users.set(viewId, {
+        userId: viewId,
+        nickname: this.generateRandomNickname(),
+        joinedAt: this.now(),
+        lastActive: this.now()
+      });
+    }
+    
+    // Send recent messages to new user
+    const recentMessages = this.messages.slice(-50); // Last 50 messages
+    this.publish(viewId, "messageHistory", recentMessages);
+    
+    this.publishUserList();
+    
+    // Announce user joined
+    const user = this.users.get(viewId);
+    this.publish(this.sessionId, "userJoined", {
+      userId: viewId,
+      nickname: user.nickname
+    });
+  }
+
+  handleUserLeave(viewId) {
+    const user = this.users.get(viewId);
+    if (user) {
+      this.users.delete(viewId);
+      this.publishUserList();
+      
+      // Announce user left
+      this.publish(this.sessionId, "userLeft", {
+        userId: viewId,
+        nickname: user.nickname
+      });
+    }
+  }
+
+  publishUserList() {
+    const userList = Array.from(this.users.values());
+    this.publish(this.sessionId, "userListUpdated", userList);
+  }
+
+  generateMessageId() {
+    return `msg_${this.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  generateRandomNickname() {
+    const adjectives = ["Happy", "Clever", "Bright", "Swift", "Kind"];
+    const animals = ["Panda", "Fox", "Owl", "Cat", "Dog"];
+    const adj = adjectives[Math.floor(this.random() * adjectives.length)];
+    const animal = animals[Math.floor(this.random() * animals.length)];
+    return `${adj}${animal}`;
+  }
+}
+```
+
+### 2. **Chat View**
+
+```javascript
+class ChatView extends Multisynq.View {
+  constructor(model) {
+    super(model);
+    
+    this.setupUI();
+    this.setupEventListeners();
+    this.currentNickname = "";
+  }
+
+  setupUI() {
+    this.chatContainer = document.getElementById('chat-container');
+    this.messageInput = document.getElementById('message-input');
+    this.sendButton = document.getElementById('send-button');
+    this.nicknameInput = document.getElementById('nickname-input');
+    this.userList = document.getElementById('user-list');
+    this.messagesContainer = document.getElementById('messages');
+  }
+
+  setupEventListeners() {
+    // Subscribe to model events
+    this.subscribe(this.sessionId, "newMessage", this.displayMessage);
+    this.subscribe(this.sessionId, "messageHistory", this.loadMessageHistory);
+    this.subscribe(this.sessionId, "userListUpdated", this.updateUserList);
+    this.subscribe(this.sessionId, "userJoined", this.announceUserJoined);
+    this.subscribe(this.sessionId, "userLeft", this.announceUserLeft);
+    this.subscribe(this.sessionId, "nicknameChanged", this.announceNicknameChange);
+    
+    // UI event listeners
+    this.sendButton.addEventListener('click', () => this.sendMessage());
+    this.messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.sendMessage();
+      }
+    });
+    
+    this.nicknameInput.addEventListener('change', () => this.updateNickname());
+    this.nicknameInput.addEventListener('blur', () => this.updateNickname());
+  }
+
+  sendMessage() {
+    const text = this.messageInput.value.trim();
+    if (!text) return;
+    
+    this.publish(this.sessionId, "sendMessage", {
+      userId: this.viewId,
+      text,
+      timestamp: this.now()
+    });
+    
+    this.messageInput.value = '';
+    this.messageInput.focus();
+  }
+
+  updateNickname() {
+    const nickname = this.nicknameInput.value.trim();
+    if (nickname && nickname !== this.currentNickname) {
+      this.currentNickname = nickname;
+      this.publish(this.sessionId, "setNickname", {
+        userId: this.viewId,
+        nickname
+      });
+    }
+  }
+
+  displayMessage(message) {
+    const messageElement = this.createMessageElement(message);
+    this.messagesContainer.appendChild(messageElement);
+    this.scrollToBottom();
+  }
+
+  createMessageElement(message) {
+    const div = document.createElement('div');
+    div.className = 'message';
+    if (message.userId === this.viewId) {
+      div.classList.add('own-message');
+    }
+    
+    const time = new Date(message.serverTime).toLocaleTimeString();
+    
+    div.innerHTML = `
+      <div class="message-header">
+        <span class="nickname">${this.escapeHtml(message.nickname)}</span>
+        <span class="timestamp">${time}</span>
+      </div>
+      <div class="message-text">${this.escapeHtml(message.text)}</div>
+    `;
+    
+    return div;
+  }
+
+  loadMessageHistory(messages) {
+    this.messagesContainer.innerHTML = '';
+    messages.forEach(message => this.displayMessage(message));
+  }
+
+  updateUserList(users) {
+    this.userList.innerHTML = '';
+    users.forEach(user => {
+      const userElement = document.createElement('div');
+      userElement.className = 'user';
+      if (user.userId === this.viewId) {
+        userElement.classList.add('current-user');
+      }
+      userElement.textContent = user.nickname;
+      this.userList.appendChild(userElement);
+    });
+  }
+
+  announceUserJoined(data) {
+    this.showSystemMessage(`${data.nickname} joined the chat`);
+  }
+
+  announceUserLeft(data) {
+    this.showSystemMessage(`${data.nickname} left the chat`);
+  }
+
+  announceNicknameChange(data) {
+    this.showSystemMessage(`${data.oldNickname} is now ${data.newNickname}`);
+  }
+
+  showSystemMessage(text) {
+    const div = document.createElement('div');
+    div.className = 'system-message';
+    div.textContent = text;
+    this.messagesContainer.appendChild(div);
+    this.scrollToBottom();
+  }
+
+  scrollToBottom() {
+    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+}
+```
+
+## Advanced Chat Features
+
+### 1. **Rich Message Types**
+
+Support different message types:
+
+```javascript
+class RichChatModel extends ChatModel {
+  handleMessage(data) {
+    const { userId, content, type = 'text' } = data;
+    
+    let processedContent;
+    switch (type) {
+      case 'text':
+        processedContent = this.processTextMessage(content);
+        break;
+      case 'emoji':
+        processedContent = this.processEmojiMessage(content);
+        break;
+      case 'image':
+        processedContent = this.processImageMessage(content);
+        break;
+      case 'file':
+        processedContent = this.processFileMessage(content);
+        break;
+      default:
+        return; // Unknown type
+    }
+    
+    const message = {
+      id: this.generateMessageId(),
+      userId,
+      nickname: this.users.get(userId)?.nickname || "Anonymous",
+      type,
+      content: processedContent,
+      timestamp: this.now()
+    };
+    
+    this.messages.push(message);
+    this.publish(this.sessionId, "newMessage", message);
+  }
+
+  processTextMessage(text) {
+    // Process text for mentions, links, etc.
+    return {
+      text: text.trim(),
+      mentions: this.extractMentions(text),
+      links: this.extractLinks(text)
+    };
+  }
+
+  processEmojiMessage(emojiData) {
+    return {
+      emoji: emojiData.emoji,
+      size: emojiData.size || 'normal'
+    };
+  }
+
+  extractMentions(text) {
+    const mentions = [];
+    const mentionRegex = /@(\w+)/g;
+    let match;
+    while ((match = mentionRegex.exec(text)) !== null) {
+      mentions.push(match[1]);
+    }
+    return mentions;
+  }
+}
+```
+
+### 2. **Private Messages**
+
+Add direct messaging capability:
+
+```javascript
+class PrivateMessageModel extends ChatModel {
+  init(options) {
+    super.init(options);
+    this.privateMessages = new Map(); // userId -> messages
+    this.subscribe(this.sessionId, "sendPrivateMessage", this.handlePrivateMessage);
+  }
+
+  handlePrivateMessage(data) {
+    const { fromUserId, toUserId, text } = data;
+    
+    const message = {
+      id: this.generateMessageId(),
+      fromUserId,
+      toUserId,
+      fromNickname: this.users.get(fromUserId)?.nickname || "Anonymous",
+      text: text.trim(),
+      timestamp: this.now()
+    };
+    
+    // Store private message
+    if (!this.privateMessages.has(fromUserId)) {
+      this.privateMessages.set(fromUserId, []);
+    }
+    if (!this.privateMessages.has(toUserId)) {
+      this.privateMessages.set(toUserId, []);
+    }
+    
+    this.privateMessages.get(fromUserId).push(message);
+    this.privateMessages.get(toUserId).push(message);
+    
+    // Send to both users
+    this.publish(fromUserId, "privateMessage", message);
+    this.publish(toUserId, "privateMessage", message);
+  }
+}
+```
+
+### 3. **Chat Moderation**
+
+Add moderation features:
+
+```javascript
+class ModeratedChatModel extends ChatModel {
+  init(options) {
+    super.init(options);
+    this.moderators = new Set(options.moderators || []);
+    this.bannedUsers = new Set();
+    this.bannedWords = new Set(['spam', 'inappropriate']);
+    
+    this.subscribe(this.sessionId, "moderateUser", this.handleModeration);
+  }
+
+  handleMessage(data) {
+    const { userId, text } = data;
+    
+    // Check if user is banned
+    if (this.bannedUsers.has(userId)) {
+      return;
+    }
+    
+    // Filter inappropriate content
+    if (this.containsBannedWords(text)) {
+      this.publish(userId, "messageRejected", {
+        reason: "Inappropriate content detected"
+      });
+      return;
+    }
+    
+    // Rate limiting
+    if (this.isRateLimited(userId)) {
+      this.publish(userId, "messageRejected", {
+        reason: "Sending messages too quickly"
+      });
+      return;
+    }
+    
+    super.handleMessage(data);
+  }
+
+  handleModeration(data) {
+    const { moderatorId, action, targetUserId, reason } = data;
+    
+    // Check moderator permissions
+    if (!this.moderators.has(moderatorId)) {
+      return;
+    }
+    
+    switch (action) {
+      case 'ban':
+        this.bannedUsers.add(targetUserId);
+        this.publish(this.sessionId, "userBanned", { userId: targetUserId, reason });
+        break;
+      case 'unban':
+        this.bannedUsers.delete(targetUserId);
+        this.publish(this.sessionId, "userUnbanned", { userId: targetUserId });
+        break;
+      case 'deleteMessage':
+        this.deleteMessage(data.messageId);
+        break;
+    }
+  }
+
+  containsBannedWords(text) {
+    const lowerText = text.toLowerCase();
+    return Array.from(this.bannedWords).some(word => lowerText.includes(word));
+  }
+
+  isRateLimited(userId) {
+    // Implement rate limiting logic
+    const user = this.users.get(userId);
+    if (!user) return false;
+    
+    const now = this.now();
+    const recentMessages = this.messages.filter(m => 
+      m.userId === userId && now - m.timestamp < 10000 // 10 seconds
+    );
+    
+    return recentMessages.length > 5; // Max 5 messages per 10 seconds
+  }
+}
+```
+
+## UI Styling
+
+### CSS Example
+
+```css
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.messages {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+  background: #f9f9f9;
+}
+
+.message {
+  margin-bottom: 10px;
+  padding: 8px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.message.own-message {
+  background: #007bff;
+  color: white;
+  margin-left: 20%;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8em;
+  margin-bottom: 4px;
+}
+
+.nickname {
+  font-weight: bold;
+}
+
+.timestamp {
+  color: #666;
+}
+
+.own-message .timestamp {
+  color: rgba(255,255,255,0.8);
+}
+
+.system-message {
+  text-align: center;
+  font-style: italic;
+  color: #666;
+  margin: 5px 0;
+}
+
+.chat-input {
+  display: flex;
+  padding: 10px;
+  border-top: 1px solid #ddd;
+  background: white;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+
+.chat-input button {
+  padding: 8px 16px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.user-list {
+  border-left: 1px solid #ddd;
+  padding: 10px;
+  width: 150px;
+  background: #f5f5f5;
+}
+
+.user {
+  padding: 4px 0;
+  font-size: 0.9em;
+}
+
+.user.current-user {
+  font-weight: bold;
+  color: #007bff;
+}
+```
+
+## Integration with React Together
+
+For React applications, consider using React Together's `useChat` hook:
+
+```javascript
+import { useChat } from '@react-together/react-together';
+
+function ChatComponent() {
+  const {
+    messages,
+    sendMessage,
+    users,
+    isConnected
+  } = useChat();
+
+  return (
+    <div className="chat-container">
+      <div className="messages">
+        {messages.map(message => (
+          <div key={message.id} className="message">
+            <strong>{message.nickname}:</strong> {message.text}
+          </div>
+        ))}
+      </div>
+      <ChatInput onSend={sendMessage} disabled={!isConnected} />
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+1. **Message Validation**: Always validate and sanitize user input
+2. **Rate Limiting**: Prevent spam with message rate limits
+3. **Message History**: Limit stored messages to prevent memory issues
+4. **Moderation**: Include tools for content moderation
+5. **Accessibility**: Ensure chat is accessible with proper ARIA labels
+6. **Mobile Support**: Design for mobile-friendly chat interfaces
+7. **Offline Handling**: Handle network disconnections gracefully
+
+This chat implementation provides a solid foundation for building real-time messaging features in your Multisynq applications.
