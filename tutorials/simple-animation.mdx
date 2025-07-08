@@ -1,0 +1,268 @@
+---
+title: "Simple Animation"
+description: "Learn to create multi-user shared animations and interactions with bouncing balls simulation"
+---
+
+# Simple Animation
+
+This tutorial teaches you how to create multi-user shared animations and interactions using Multisynq. You'll build a simulation with 25 bouncing balls that can be stopped and started by clicking them. This demonstrates how the Model computes simulations and how the View displays and interacts with them.
+
+<iframe
+  src="https://codepen.io/multisynq/embed/qEErMbw?height=512&theme-id=37190&default-tab=result&editable=true"
+  style={{
+    width: '100%',
+    height: '512px',
+    border: '2px solid #ccc',
+    borderRadius: '8px',
+    marginBottom: '24px'
+  }}
+  title="Simple Animation"
+  allowFullScreen
+></iframe>
+
+## Try it out!
+
+Click or scan the QR code above to launch a new CodePen instance of this session. Compare the two sessions - you'll see that the animated simulations are identical. The balls all move and bounce exactly the same way.
+
+<CardGroup cols={2}>
+  <Card title="Interactive Elements" icon="mouse-pointer">
+    Click any ball to stop/start it - changes sync to all users
+  </Card>
+  <Card title="Non-interactive Elements" icon="square">
+    The rounded rectangle bounces but ignores user actions
+  </Card>
+</CardGroup>
+
+## What You'll Learn
+
+<CardGroup cols={3}>
+  <Card title="1. Simulation Model" icon="cog">
+    How to create a model that runs physics simulations
+  </Card>
+  <Card title="2. Interactive View" icon="eye">
+    Building views that respond to user interactions
+  </Card>
+  <Card title="3. Safe Communication" icon="comments">
+    Properly communicating between Model and View
+  </Card>
+</CardGroup>
+
+## Architecture Overview
+
+This application uses **two Multisynq Model subclasses**: `MyModel` and `BallModel`. Both classes must be registered with Multisynq for proper synchronization.
+
+### Using Multisynq Constants
+
+The app uses `Multisynq.Constants` to ensure all users share the same configuration values:
+
+```javascript
+const Q = Multisynq.Constants;
+Q.BALL_NUM = 25;              // how many balls do we want?
+Q.STEP_MS = 1000 / 30;        // bouncing ball tick interval in ms
+Q.SPEED = 10;                 // max speed on a dimension, in units/s
+```
+
+<Info>
+Models must not use global variables, but global constants are fine. `Multisynq.Constants` is recursively frozen once a session starts to prevent accidental modification.
+</Info>
+
+## Simple Animation Model
+
+### MyModel - Root Model
+
+`MyModel` is the root model passed to `Multisynq.Session.join()`. It creates and stores the `BallModel` objects in the `MyModel.children` array.
+
+### BallModel - Individual Ball Logic
+
+Each `BallModel` represents a shaped, colored, bouncing ball. The model stores only the data needed for synchronization:
+
+- **Shape**: String (`'circle'` or `'roundRect'`)
+- **Color**: Random color value
+- **Position**: Current x,y coordinates  
+- **Speed**: Velocity vector
+
+#### Event Subscription
+
+```javascript
+this.subscribe(this.id, 'touch-me', this.startStop);
+```
+
+Each `BallModel` subscribes to the `'touch-me'` event using its own ID as scope. This ensures that only the specific ball responds to touch events intended for it.
+
+#### Simulation Loop
+
+```javascript
+this.future(Q.STEP_MS).step();
+```
+
+After initialization, each `BallModel` schedules its first `step()` method invocation. This creates a continuous simulation loop:
+
+```javascript
+BallModel.step() {
+    if (this.alive) this.moveBounce();
+    this.future(Q.STEP_MS).step();
+}
+```
+
+<Note>
+25 balls ticking at 30Hz generates 750 messages per second, but future messages are very efficient with minimal overhead.
+</Note>
+
+#### Movement and Bouncing
+
+```javascript
+BallModel.moveBounce() {
+    const [x, y] = this.pos;
+    if (x<=0 || x>=1000 || y<=0 || y>=1000)
+        this.speed = this.randomSpeed();
+    this.moveTo([x + this.speed[0], y + this.speed[1]]);
+}
+```
+
+The `moveBounce()` method updates ball position and handles wall collisions. When a ball hits a wall, it gets a new random speed vector.
+
+#### Deterministic Random Speed
+
+```javascript
+randomSpeed() {
+    const xs = this.random() * 2 - 1;
+    const ys = this.random() * 2 - 1;
+    const speedScale = Q.SPEED / (Math.sqrt(xs*xs + ys*ys));
+    return [xs * speedScale, ys * speedScale];
+}
+```
+
+<Warning>
+This uses Multisynq's replicated random number generator. Every session instance computes the same sequence of random numbers, ensuring identical bouncing behavior across all users.
+</Warning>
+
+## Simple Animation View
+
+The View comprises two classes: `MyView` and `BallView`.
+
+### MyView - Container View
+
+`MyView` is called when a session instance starts, receiving the `MyModel` object as an argument. It builds the visual representation and container for all balls.
+
+#### Creating Child Views
+
+```javascript
+model.children.forEach(child => this.attachChild(child));
+```
+
+The `MyView` accesses the model's children collection and creates a `BallView` for each `BallModel`.
+
+```javascript
+MyView.attachChild(child) {
+    this.element.appendChild(new BallView(child).element);
+}
+```
+
+<Info>
+It's fine for views to **read** from models directly, but views **MUST NOT** modify models in any way.
+</Info>
+
+#### Responsive Scaling
+
+`MyView` listens for browser "resize" events and adjusts the view scale accordingly. This ensures all users see the same scene regardless of their window size.
+
+#### Cleanup on Detach
+
+```javascript
+MyView.detach() {
+    super.detach();
+    let child;
+    while (child = this.element.firstChild) this.element.removeChild(child);
+}
+```
+
+When a session shuts down, the root view cleans up all child views and resources.
+
+### BallView - Individual Ball Display
+
+Each `BallView` tracks its associated `BallModel` and handles visual representation and user interaction.
+
+#### Position Updates
+
+```javascript
+this.subscribe(model.id, { event: 'pos-changed', handling: "oncePerFrame" }, this.move);
+```
+
+The `BallView` subscribes to `'pos-changed'` events from its specific model. The `"oncePerFrame"` handling ensures efficient rendering even with multiple position updates per frame.
+
+#### Touch/Click Handling
+
+```javascript
+BallView.enableTouch() {
+    const el = this.element;
+    if (TOUCH) el.ontouchstart = start => {
+        start.preventDefault();
+        this.publish(el.id, 'touch-me');
+    }; else el.onmousedown = start => {
+        start.preventDefault();
+        this.publish(el.id, 'touch-me');
+    };
+}
+```
+
+The `BallView` sets up touch/click handlers that publish `'touch-me'` events. The corresponding `BallModel` subscribes to these events and toggles ball motion on and off.
+
+## Key Concepts Demonstrated
+
+<AccordionGroup>
+  <Accordion title="Model-View Separation">
+    - Models handle all logic and state
+    - Views handle display and user input
+    - Communication happens only through events
+  </Accordion>
+  
+  <Accordion title="Deterministic Simulation">
+    - All instances run identical physics calculations
+    - Synchronized random number generation
+    - Consistent timing across all users
+  </Accordion>
+  
+  <Accordion title="Efficient Event Handling">
+    - Scoped events using object IDs
+    - Frame-rate limited updates
+    - Minimal overhead for future scheduling
+  </Accordion>
+  
+  <Accordion title="Interactive Synchronization">
+    - User actions sync across all sessions
+    - Individual object state management
+    - Immediate feedback with global updates
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that you understand basic animation and interaction patterns, you can explore:
+
+<CardGroup cols={2}>
+  <Card title="Multi-user Chat" icon="comments" href="/tutorials/multiuser-chat">
+    Learn to handle user input and message synchronization
+  </Card>
+  <Card title="View Smoothing" icon="chart-line" href="/tutorials/view-smoothing">
+    Create smoother animations with interpolation techniques
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Constants" icon="lock">
+    Store shared configuration in `Multisynq.Constants`
+  </Card>
+  <Card title="Scope Events" icon="target">
+    Use object IDs to scope events to specific instances
+  </Card>
+  <Card title="Efficient Updates" icon="gauge">
+    Use `"oncePerFrame"` handling for frequent updates
+  </Card>
+  <Card title="Clean Resources" icon="trash">
+    Implement proper cleanup in `detach()` methods
+  </Card>
+</CardGroup>
+
+This tutorial demonstrates the power of Multisynq's deterministic synchronization for creating engaging multi-user interactive experiences. The same patterns can be applied to games, simulations, and collaborative tools. 

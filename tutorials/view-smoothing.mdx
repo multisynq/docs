@@ -1,0 +1,386 @@
+---
+title: "View Smoothing"
+description: "Learn to create smooth animations by interpolating between model updates for better user experience"
+---
+
+# View Smoothing
+
+This tutorial demonstrates how to smooth the view so that objects move continually even if the model only updates intermittently. This technique is essential for creating smooth user experiences and handling connectivity issues gracefully.
+
+<iframe
+  src="https://codepen.io/multisynq/embed/gbbmdqR?height=512&theme-id=37190&default-tab=result&editable=true"
+  style={{
+    width: '100%',
+    height: '512px',
+    border: '2px solid #ccc',
+    borderRadius: '8px',
+    marginBottom: '24px'
+  }}
+  title="View Smoothing"
+  allowFullScreen
+></iframe>
+
+## Try it out!
+
+Click or scan the QR code above to launch a new CodePen instance. You'll see several moving colored dots - one for each device currently connected to the session. Some dots may even belong to other Multisynq developers reading this documentation!
+
+**Click or tap the screen** to tell your dot where to go.
+
+<Info>
+**The unsmoothed position of your dot is shown in gray.** Notice how it jumps forward every time the model performs an update. The view uses this information to calculate each dot's smoothed position.
+</Info>
+
+In this example, the model updates only **twice per second**, but the dots move smoothly at 60 frames per second because the view interpolates their position between model updates.
+
+## What You'll Learn
+
+<CardGroup cols={2}>
+  <Card title="Global Constants" icon="constants">
+    Define constants that contribute to session synchronization
+  </Card>
+  <Card title="Pure Functions" icon="function">
+    Share utility functions safely between model and view
+  </Card>
+  <Card title="Frame Optimization" icon="gauge">
+    Use `"oncePerFrame"` to limit view updates efficiently
+  </Card>
+  <Card title="Animation Interpolation" icon="chart-line">
+    Handle infrequent model updates with smooth animations
+  </Card>
+</CardGroup>
+
+## Global Constants
+
+Constants used by the model should be included in the session hash to ensure synchronization. Changing these constants will create a new session, preventing desynchronization issues.
+
+```javascript
+const Q = Multisynq.Constants;
+Q.TICK_MS = 500;    // milliseconds per actor tick
+Q.SPEED = 0.15;     // dot movement speed in pixels per millisecond
+Q.CLOSE = 0.1;      // minimum distance in pixels to a new destination
+Q.SMOOTH = 0.05;    // weighting between old and new positions (0 < SMOOTH <= 1)
+```
+
+<Info>
+`Multisynq.Constants` contributes to the hash used to generate a session ID. Use a short alias like `Q` to make your code more readable.
+</Info>
+
+## Pure Functions
+
+You can safely share utility functions between model and view as long as they are **purely functional**:
+
+```javascript
+function add(a, b) {
+    return { x: (a.x + b.x), y: (a.y + b.y) };
+}
+
+function subtract(a, b) {
+    return { x: (a.x - b.x), y: (a.y - b.y) };
+}
+
+function magnitude(vector) {
+    return Math.sqrt(vector.x * vector.x + vector.y * vector.y);
+}
+
+function normalize(vector) {
+    const mag = magnitude(vector);
+    return { x: vector.x / mag, y: vector.y / mag };
+}
+
+function scale(vector, factor) {
+    return { x: vector.x * factor, y: vector.y * factor };
+}
+
+function dotProduct(a, b) {
+    return a.x * b.x + a.y * b.y;
+}
+
+function lerp(a, b, t) {
+    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+```
+
+### Pure Function Requirements
+
+<AccordionGroup>
+  <Accordion title="No External Dependencies">
+    Function only uses parameters passed to it
+  </Accordion>
+  
+  <Accordion title="No Parameter Modification">
+    Function doesn't modify input parameters
+  </Accordion>
+  
+  <Accordion title="No State Persistence">
+    Function doesn't save state outside its execution scope
+  </Accordion>
+  
+  <Accordion title="Consistent Results">
+    Same inputs always produce same outputs
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+Pure function code isn't included in the session ID hash. If you change these functions frequently, ensure all users have the same version to maintain synchronization.
+</Warning>
+
+## Actor-Pawn Architecture
+
+### RootModel & RootView
+
+The root classes handle spawning and managing Actor-Pawn pairs:
+
+- **User joins**: `RootModel` spawns an `Actor`, which tells `RootView` to spawn a `Pawn`
+- **User exits**: `RootModel` removes the `Actor`, which tells `RootView` to remove the `Pawn`
+
+#### View Initialization Pattern
+
+```javascript
+// In RootView constructor
+model.actors.forEach(actor => this.addPawn(actor));
+```
+
+<Info>
+During initialization, the view should never assume the model's current state. Always read the model state and build accordingly, as the view might be joining a session in progress or restoring from a snapshot.
+</Info>
+
+### Actor Implementation
+
+#### Movement Planning
+
+```javascript
+goto(goal) {
+    this.goal = goal;
+    const delta = subtract(goal, this.position);
+    if (magnitude(delta) < Q.CLOSE) {
+        this.goto(randomPosition());
+    } else {
+        const unit = normalize(delta);
+        this.velocity = scale(unit, Q.SPEED);
+    }
+}
+```
+
+The `goto` method calculates movement vectors:
+1. Check if already at destination (within `Q.CLOSE` distance)
+2. If too close, pick a new random destination
+3. Otherwise, calculate velocity vector toward the goal
+
+#### Arrival Detection
+
+```javascript
+arrived() {
+    const delta = subtract(this.goal, this.position);
+    return (dotProduct(this.velocity, delta) <= 0);
+}
+```
+
+Since actors step forward fixed distances and usually overshoot goals, arrival is detected by checking if the direction to the goal has reversed (negative dot product).
+
+#### Animation Loop
+
+```javascript
+tick() {
+    this.position = add(this.position, scale(this.velocity, Q.TICK_MS));
+    if (this.arrived()) this.goto(this.randomPosition());
+    this.publish(this.id, "moved", this.now());
+    this.future(Q.TICK_MS).tick();
+}
+```
+
+Each tick:
+1. Move forward by velocity × tick duration
+2. Check if arrived and pick new destination if needed
+3. Notify view that actor has moved
+4. Schedule next tick
+
+## Pawn Implementation
+
+### Constructor with Frame Limiting
+
+```javascript
+constructor(actor) {
+    super(actor);
+    this.actor = actor;
+    this.position = {...actor.position};
+    this.actorMoved();
+    this.subscribe(actor.id, {event: "moved", handling: "oncePerFrame"}, this.actorMoved);
+}
+```
+
+Key features:
+- Copy initial position from actor
+- Subscribe to actor's movement events
+- Use `"oncePerFrame"` to optimize event handling
+
+<Info>
+`"oncePerFrame"` discards all but the last event of this type during each frame. This is crucial for high-frequency updates where only the latest position matters.
+</Info>
+
+### Event Handling
+
+```javascript
+actorMoved() {
+    this.lastMoved = viewTime;
+}
+```
+
+Simply timestamps when the actor last moved, enabling position extrapolation.
+
+### Smooth Animation Update
+
+```javascript
+update() {
+    // Special case for own pawn - show debug info
+    if (this.actor.viewId === this.viewId) {
+        this.draw(this.actor.goal, null, this.actor.color);
+        this.draw(this.actor.position, "lightgrey");
+    }
+
+    // Calculate extrapolated position
+    const delta = scale(this.actor.velocity, viewTime - this.lastMoved);
+    const extrapolation = add(this.actor.position, delta);
+    
+    // Interpolate between current and extrapolated position
+    this.position = lerp(this.position, extrapolation, Q.SMOOTH);
+    this.draw(this.position, this.actor.color);
+}
+```
+
+The smoothing algorithm:
+1. **Extrapolate**: Project actor's last known position forward using velocity
+2. **Interpolate**: Blend current pawn position with extrapolated position
+3. **Render**: Draw the smoothed position
+
+### Understanding the Smoothing Parameter
+
+The `Q.SMOOTH` value (0 < SMOOTH ≤ 1) controls interpolation behavior:
+
+<CardGroup cols={3}>
+  <Card title="SMOOTH = 1.0" icon="bolt">
+    No interpolation - instant position updates (jerky)
+  </Card>
+  <Card title="SMOOTH = 0.5" icon="balance-scale">
+    Balanced smoothing - good responsiveness
+  </Card>
+  <Card title="SMOOTH = 0.1" icon="feather">
+    Heavy smoothing - very smooth but less responsive
+  </Card>
+</CardGroup>
+
+<Note>
+**Rule of thumb**: Tune `Q.SMOOTH` so the pawn spends about half its time behind the actor's position and half ahead. This provides optimal balance between smoothness and responsiveness.
+</Note>
+
+## Reflector Heartbeat Configuration
+
+### Setting Tick Rate
+
+```javascript
+Multisynq.Session.join({
+  apiKey: "your_api_key",
+  appId: "io.codepen.multisynq.smooth",
+  name: "public",
+  password: "none",
+  model: RootModel,
+  view: RootView,
+  tps: 1000/Q.TICK_MS,  // or simply: tps: 2
+});
+```
+
+The `tps` (ticks per second) option controls reflector heartbeat frequency:
+- **Purpose**: Keeps model running when no user input is received
+- **Default**: 20 ticks per second
+- **Range**: 1-60 ticks per second
+- **Best Practice**: Match your model's internal tick rate
+
+<Info>
+In this tutorial, `Q.TICK_MS = 500` means the reflector sends heartbeat ticks twice per second maximum. Set heartbeat rate to match your model's update frequency.
+</Info>
+
+### Heartbeat vs Responsiveness
+
+<Warning>
+Increasing heartbeat tick rate will **NOT** make your app more responsive. User input events are sent immediately and processed as soon as received. Heartbeat ticks only affect model updates when no other events are received.
+</Warning>
+
+## Performance Optimization Techniques
+
+### Frame-Rate Optimization
+
+<CardGroup cols={2}>
+  <Card title="oncePerFrame" icon="frame">
+    Discards redundant events within single frame
+  </Card>
+  <Card title="Selective Updates" icon="filter">
+    Only update pawns that have actually moved
+  </Card>
+  <Card title="Extrapolation" icon="chart-line">
+    Predict position between model updates
+  </Card>
+  <Card title="Interpolation" icon="adjust">
+    Smooth transitions prevent visual "popping"
+  </Card>
+</CardGroup>
+
+### Tuning Guidelines
+
+<AccordionGroup>
+  <Accordion title="Model Tick Rate">
+    Match heartbeat rate to your model's natural update frequency
+  </Accordion>
+  
+  <Accordion title="Smoothing Factor">
+    Balance between smoothness and responsiveness based on your use case
+  </Accordion>
+  
+  <Accordion title="Movement Speed">
+    Adjust based on model tick rate and expected latency
+  </Accordion>
+  
+  <Accordion title="Proximity Threshold">
+    Set arrival detection distance appropriate for your coordinate system
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Concepts
+
+### Actor-Pawn Pattern Benefits
+
+<CardGroup cols={2}>
+  <Card title="Separation of Concerns" icon="layer-group">
+    Models handle logic, views handle presentation
+  </Card>
+  <Card title="Performance" icon="rocket">
+    Smooth 60fps animations from low-frequency model updates
+  </Card>
+  <Card title="Resilience" icon="shield">
+    Gracefully handles network hiccups and connectivity issues
+  </Card>
+  <Card title="Scalability" icon="expand">
+    Efficient event handling with frame-rate limiting
+  </Card>
+</CardGroup>
+
+### Common Pitfalls
+
+<Warning>
+**Avoid These Mistakes:**
+- Setting `Q.SMOOTH` to 0 (causes no movement)
+- Making functions impure (breaks synchronization)
+- Ignoring existing model state during view initialization
+- Using wall-clock time instead of simulation time
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="3D Animation" icon="cube" href="/tutorials/3d-animation">
+    Apply smoothing techniques to Three.js 3D scenes
+  </Card>
+  <Card title="Multiblaster Game" icon="gamepad" href="/tutorials/multiblaster">
+    See smoothing in action in a complete game
+  </Card>
+</CardGroup>
+
+This tutorial demonstrates essential techniques for creating smooth, responsive user experiences in Multisynq applications. The Actor-Pawn pattern with interpolation is fundamental for professional-quality real-time applications. 

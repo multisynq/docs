@@ -1,0 +1,363 @@
+---
+title: "Multi-user Chat"
+description: "Learn to track users, manage message history, and handle timeouts in a real-time chat application"
+---
+
+# Multi-user Chat
+
+This tutorial demonstrates how to keep track of different users within the same session through a simple chat application. The app maintains a list of currently connected users, assigns random nicknames to new users, and includes automatic cleanup features.
+
+<iframe
+  src="https://codepen.io/multisynq/embed/gbbmdem?height=512&theme-id=37190&default-tab=result&editable=true"
+  style={{
+    width: '100%',
+    height: '512px',
+    border: '2px solid #ccc',
+    borderRadius: '8px',
+    marginBottom: '24px'
+  }}
+  title="Multi-user Chat"
+  allowFullScreen
+></iframe>
+
+## Try it out!
+
+Click or scan the QR code above to launch a new CodePen instance. Typing a message in either window will post the text to the shared chat screen under a randomly assigned nickname. Other people reading this documentation can also join the conversation!
+
+## What You'll Learn
+
+<CardGroup cols={2}>
+  <Card title="User Lifecycle Events" icon="users">
+    Use `"view-join"` and `"view-exit"` events to track connections
+  </Card>
+  <Card title="View-Specific Data" icon="user-tag">
+    Store user information using `viewId` as unique identifier
+  </Card>
+  <Card title="Direct Model Reading" icon="book-open">
+    Safely read from model without breaking synchronization
+  </Card>
+  <Card title="Timeout Management" icon="clock">
+    Schedule actions with `future()` and `model.now()`
+  </Card>
+</CardGroup>
+
+## Architecture Overview
+
+The application uses a single Model subclass called `ChatModel` that handles four main responsibilities:
+
+1. **User Management**: Maps active views to their nicknames
+2. **Message History**: Maintains chat conversation history
+3. **Event Handling**: Processes chat posts and reset commands
+4. **Cleanup**: Automatically clears inactive chats
+
+## Chat Model Implementation
+
+### Initialization
+
+```javascript
+class ChatModel extends Multisynq.Model {
+  init() {
+    this.views = new Map();
+    this.participants = 0;
+    this.history = [];
+    this.inactivity_timeout_ms = 20 * 60 * 1000; // 20 minutes
+    this.lastPostTime = null;
+    
+    // System event subscriptions
+    this.subscribe(this.sessionId, "view-join", this.viewJoin);
+    this.subscribe(this.sessionId, "view-exit", this.viewExit);
+    
+    // User input event subscriptions
+    this.subscribe("input", "newPost", this.newPost);
+    this.subscribe("input", "reset", this.resetHistory);
+  }
+}
+```
+
+<Info>
+We use `Map` instead of plain objects for key-value collections to ensure identical behavior across users. Maps maintain insertion order when serialized/deserialized.
+</Info>
+
+### User Lifecycle Management
+
+#### Handling User Joins
+
+```javascript
+viewJoin(viewId) {
+  const existing = this.views.get(viewId);
+  if (!existing) {
+    const nickname = this.randomName();
+    this.views.set(viewId, nickname);
+  }
+  this.participants++;
+  this.publish("viewInfo", "refresh");
+}
+```
+
+When a user joins:
+1. Check if the `viewId` already exists (for reconnections)
+2. Generate a random nickname if it's a new user
+3. Increment the participant count
+4. Notify views to refresh their user information
+
+#### Handling User Exits
+
+```javascript
+viewExit(viewId) {
+  this.participants--;
+  this.views.delete(viewId);
+  this.publish("viewInfo", "refresh");
+}
+```
+
+<Note>
+The `viewId` remains the same if a user reconnects from the same device. However, each browser tab gets a different `viewId`, even on the same device.
+</Note>
+
+### Message Management
+
+#### Processing New Messages
+
+```javascript
+newPost(post) {
+  const postingView = post.viewId;
+  const nickname = this.views.get(postingView);
+  const chatLine = `<b>${nickname}:</b> ${this.escape(post.text)}`;
+  this.addToHistory({ viewId: postingView, html: chatLine });
+  this.lastPostTime = this.now();
+  this.future(this.inactivity_timeout_ms).resetIfInactive();
+}
+
+addToHistory(item) {
+  this.history.push(item);
+  if (this.history.length > 100) this.history.shift();
+  this.publish("history", "refresh");
+}
+```
+
+The message processing flow:
+1. Extract the sender's `viewId` from the event data
+2. Look up the user's nickname
+3. Build HTML chat line with nickname and escaped message
+4. Add to history with size limit (100 messages)
+5. Schedule inactivity timeout check
+
+#### Inactivity Management
+
+```javascript
+resetIfInactive() {
+  if (this.lastPostTime !== this.now() - this.inactivity_timeout_ms) return;
+  this.resetHistory("due to inactivity");
+}
+```
+
+This method verifies that exactly `inactivity_timeout_ms` milliseconds have passed since the last post. If another post arrived during the timeout period, `lastPostTime` will be different, and the reset is skipped.
+
+<Warning>
+The inactivity check uses simulation time (`this.now()`) rather than wall-clock time. This ensures consistent behavior across all users regardless of their local time settings.
+</Warning>
+
+#### Chat Reset Functionality
+
+```javascript
+resetHistory(reason) {
+  this.history = [{ html: `<i>chat reset ${reason}</i>` }];
+  this.lastPostTime = null;
+  this.publish("history", "refresh");
+}
+```
+
+Chat can be reset in three scenarios:
+1. **Inactivity timeout**: No posts for 20 minutes
+2. **User command**: Someone types `/reset`
+3. **New user alone**: Solo user with no previous messages
+
+### Deterministic Random Names
+
+```javascript
+randomName() {
+  const names = ["Acorn", "Banana", "Cherry", /* ... */, "Zucchini"];
+  return names[Math.floor(Math.random() * names.length)];
+}
+```
+
+<Info>
+Even though separate instances run locally for each user, they all pick the same "random" name because `Math.random()` calls from within the model are deterministic and synchronized.
+</Info>
+
+## Chat View Implementation
+
+### Constructor Setup
+
+```javascript
+class ChatView extends Multisynq.View {
+  constructor(model) {
+    super(model);
+    this.model = model;
+    
+    // Set up UI event handlers
+    sendButton.onclick = () => this.send();
+    
+    // Subscribe to model updates
+    this.subscribe("history", "refresh", this.refreshHistory);
+    this.subscribe("viewInfo", "refresh", this.refreshViewInfo);
+    
+    // Initialize display
+    this.refreshHistory();
+    this.refreshViewInfo();
+    
+    // Reset chat if alone with no contributions
+    if (model.participants === 1 &&
+        !model.history.find(item => item.viewId === this.viewId)) {
+      this.publish("input", "reset", "for new participants");
+    }
+  }
+}
+```
+
+#### Key Constructor Principles
+
+<AccordionGroup>
+  <Accordion title="Store Model Reference">
+    Keep a reference to the model for direct reading access
+  </Accordion>
+  
+  <Accordion title="Initialize from Model State">
+    Set up the view completely from current model state
+  </Accordion>
+  
+  <Accordion title="Subscribe to Updates">
+    Rely on subscriptions for ongoing synchronization
+  </Accordion>
+  
+  <Accordion title="Direct Reading Only">
+    Views can read from models but must never write directly
+  </Accordion>
+</AccordionGroup>
+
+### Message Sending
+
+```javascript
+send() {
+  const text = textIn.value;
+  textIn.value = "";
+  if (text === "/reset") {
+    this.publish("input", "reset", "at user request");
+  } else {
+    this.publish("input", "newPost", {viewId: this.viewId, text});
+  }
+}
+```
+
+The send method handles both regular messages and the special `/reset` command. Note that `this.viewId` is automatically available in all View classes.
+
+### Display Updates
+
+#### User Information Display
+
+```javascript
+refreshViewInfo() {
+  nickname.innerHTML = "<b>Nickname:</b> " + this.model.views.get(this.viewId);
+  viewCount.innerHTML = "<b>Total Views:</b> " + this.model.participants;
+}
+```
+
+#### Chat History Display
+
+```javascript
+refreshHistory() {
+  textOut.innerHTML = "<b>Welcome to Multisynq Chat!</b><br><br>" +
+    this.model.history.map(item => item.html).join("<br>");
+  textOut.scrollTop = Math.max(10000, textOut.scrollHeight);
+}
+```
+
+Both methods directly read from the model to update the display. The history display automatically scrolls to show the latest messages.
+
+## Model Safety with `modelOnly()`
+
+To prevent accidental model modification, you can use explicit getter/setter methods:
+
+```javascript
+class MyModel extends Multisynq.Model {
+  init() {
+    this.data = null;
+  }
+
+  getData() {
+    return this.data;
+  }
+
+  setData(newData) {
+    this.modelOnly(); // Throws error if called from view
+    this.data = newData;
+  }
+}
+```
+
+<Warning>
+`Model.modelOnly()` throws an error if called outside normal model execution. Use this in setter methods to prevent accidental view access.
+</Warning>
+
+## Key Architecture Patterns
+
+<CardGroup cols={2}>
+  <Card title="Event Scoping" icon="target">
+    Use different scopes (`"input"`, `"history"`, `"viewInfo"`) to organize events
+  </Card>
+  <Card title="ViewId as Key" icon="key">
+    Use `viewId` as unique identifier for user-specific data
+  </Card>
+  <Card title="Future Scheduling" icon="clock">
+    Schedule cleanup operations with `future()` method
+  </Card>
+  <Card title="Safe Model Access" icon="shield">
+    Read from model freely, but write only through events
+  </Card>
+</CardGroup>
+
+## System Events Reference
+
+<AccordionGroup>
+  <Accordion title="view-join">
+    Sent when a user joins the session. Contains the user's `viewId`. Sent to all users including the one who joined.
+  </Accordion>
+  
+  <Accordion title="view-exit">
+    Sent when a user leaves the session. Contains the user's `viewId`. Not sent to the user who left.
+  </Accordion>
+  
+  <Accordion title="Event Scope">
+    Both events use `this.sessionId` as the scope, which is the default for system-generated events.
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices Demonstrated
+
+<CardGroup cols={2}>
+  <Card title="Deterministic Behavior" icon="cog">
+    Use model's random() for consistent results across users
+  </Card>
+  <Card title="Resource Management" icon="database">
+    Limit history size to prevent memory growth
+  </Card>
+  <Card title="Graceful Cleanup" icon="broom">
+    Auto-reset inactive chats for fresh user experience
+  </Card>
+  <Card title="Reconnection Handling" icon="refresh">
+    Preserve user nicknames across reconnections
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="View Smoothing" icon="chart-line" href="/tutorials/view-smoothing">
+    Learn animation interpolation techniques
+  </Card>
+  <Card title="3D Animation" icon="cube" href="/tutorials/3d-animation">
+    Integrate Three.js for 3D synchronized experiences
+  </Card>
+</CardGroup>
+
+This tutorial demonstrates essential patterns for user management, message handling, and proper Model-View interaction in Multisynq applications. These concepts form the foundation for building more complex collaborative applications. 

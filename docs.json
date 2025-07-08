@@ -10,28 +10,107 @@
   "favicon": "/favicon.svg",
   "navigation": {
     "tabs": [
+              {
+          "tab": "Guides",
+          "groups": [
+            {
+              "group": "Get Started",
+              "pages": [
+                "index",
+                "quickstart",
+                "development"
+              ]
+            },
+            {
+              "group": "Tutorials",
+              "pages": [
+                "tutorials/hello-world",
+                "tutorials/simple-animation",
+                "tutorials/multiuser-chat",
+                "tutorials/view-smoothing",
+                "tutorials/3d-animation"
+              ]
+            },
+            {
+              "group": "Essentials",
+              "pages": [
+                "essentials/sync",
+                "essentials/collaboration",
+                "essentials/markdown",
+                "essentials/code",
+                "essentials/images",
+                "essentials/settings",
+                "essentials/navigation",
+                "essentials/reusable-snippets"
+              ]
+            }
+          ]
+        },
       {
-        "tab": "Guides",
+        "tab": "React Together",
         "groups": [
           {
-            "group": "Get Started",
+            "group": "Getting Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "react-together/getting-started"
             ]
           },
           {
-            "group": "Essentials",
+            "group": "Core Hooks",
             "pages": [
-              "essentials/sync",
-              "essentials/collaboration",
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/settings",
-              "essentials/navigation",
-              "essentials/reusable-snippets"
+              "react-together/hooks/use-state-together",
+              "react-together/hooks/use-state-together-with-per-user-values",
+              "react-together/hooks/use-function-together"
+            ]
+          },
+          {
+            "group": "Connection & Session Hooks",
+            "pages": [
+              "react-together/hooks/use-is-together",
+              "react-together/hooks/use-is-synchronized",
+              "react-together/hooks/use-connected-users",
+              "react-together/hooks/use-my-id",
+              "react-together/hooks/use-create-random-session",
+              "react-together/hooks/use-join-url",
+              "react-together/hooks/use-leave-session"
+            ]
+          },
+          {
+            "group": "Communication Hooks",
+            "pages": [
+              "react-together/hooks/use-chat",
+              "react-together/hooks/use-cursors",
+              "react-together/hooks/use-hovering-users"
+            ]
+          },
+          {
+            "group": "Utility Hooks",
+            "pages": [
+              "react-together/hooks/use-nicknames",
+              "react-together/hooks/use-all-nicknames"
+            ]
+          },
+          {
+            "group": "Components",
+            "pages": [
+              "react-together/components/react-together",
+              "react-together/components/session-manager",
+              "react-together/components/chat",
+              "react-together/components/cursors",
+              "react-together/components/connected-users",
+              "react-together/components/hover-highlighter"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": [
+              "react-together/utilities/index",
+              "react-together/utilities/get-join-url",
+              "react-together/utilities/get-clean-url",
+              "react-together/utilities/get-session-name-from-url",
+              "react-together/utilities/get-session-password-from-url",
+              "react-together/utilities/derive-nickname",
+              "react-together/utilities/get-user-color"
             ]
           }
         ]
@@ -40,18 +119,12 @@
         "tab": "API Reference",
         "groups": [
           {
-            "group": "API Documentation",
+            "group": "Core API",
             "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Sessions API",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/introduction",
+              "api-reference/session",
+              "api-reference/model",
+              "api-reference/view"
             ]
           }
         ]
