@@ -9,7 +9,7 @@ This document defines the authoritative sources for all Multisynq documentation 
 ### 1. **Core API Documentation**
 
 #### Primary Source
-- **Repository:** `/home/will/git/0croquet/croquet/`
+- **Repository:** `croquet/`
 - **Specific Path:** `packages/croquet/teatime/src/`
 - **Key Files:**
   - `model.js` - Model class implementation with JSDoc
@@ -21,8 +21,8 @@ This document defines the authoritative sources for all Multisynq documentation 
 - **Owner:** Core Croquet/Multisynq development team
 
 #### JSDoc Generation Configuration
-- **Config File:** `/home/will/git/0croquet/croquet-docs/multisynq/jsdoc.json`
-- **Output Directory:** `/home/will/git/0croquet/croquet-docs/multisynq/out/`
+- **Config File:** `croquet-docs/multisynq/jsdoc.json`
+- **Output Directory:** `croquet-docs/multisynq/out/`
 - **Generated Files:**
   - `Model.html` - Complete Model class documentation
   - `View.html` - Complete View class documentation
@@ -31,14 +31,14 @@ This document defines the authoritative sources for all Multisynq documentation 
 
 #### Current JSDoc Extraction Command
 ```bash
-cd /home/will/git/0croquet/croquet-docs/multisynq/
+cd croquet-docs/multisynq/
 ../node_modules/.bin/jsdoc -c jsdoc.json
 ```
 
 ### 2. **Tutorial Content**
 
 #### Primary Source
-- **Repository:** `/home/will/git/0croquet/multisynq-client/`
+- **Repository:** `multisynq-client/`
 - **Specific Path:** `docs/tutorials/`
 - **Key Files:**
   - `QUICKSTART.md` - Main getting started guide (223 lines)
@@ -63,7 +63,7 @@ cd /home/will/git/0croquet/croquet-docs/multisynq/
 ### 3. **React Together Documentation**
 
 #### Primary Source
-- **Repository:** `/home/will/git/0croquet/react-together/`
+- **Repository:** `react-together/`
 - **Specific Path:** `website/src/pages/`
 - **Content Structure:**
   - **Main README:** Project overview and basic usage
@@ -82,7 +82,7 @@ cd /home/will/git/0croquet/croquet-docs/multisynq/
 ### 4. **Contributing Guidelines**
 
 #### Primary Source
-- **Repository:** `/home/will/git/0croquet/react-together/`
+- **Repository:** `react-together/`
 - **Specific Path:** `contributing/`
 - **Files:**
   - `CODE_OF_CONDUCT.md`
@@ -95,8 +95,8 @@ cd /home/will/git/0croquet/croquet-docs/multisynq/
 ### Expected Changes During Croquet → Multisynq Rebrand
 
 #### 1. **Repository Structure Changes**
-- **Current:** `/home/will/git/0croquet/croquet/packages/croquet/`
-- **Expected:** `/home/will/git/0croquet/multisynq/packages/multisynq/`
+- **Current:** `croquet/packages/croquet/`
+- **Expected:** `multisynq/packages/multisynq/`
 - **Impact:** All JSDoc generation paths must be updated
 
 #### 2. **Package Name Changes**
@@ -137,7 +137,7 @@ cd /home/will/git/0croquet/croquet-docs/multisynq/
 ```bash
 # Proposed automation script
 docs/scripts/extract-jsdoc.js \
-  --source="/home/will/git/0croquet/croquet/packages/croquet/teatime/src/" \
+  --source="croquet/packages/croquet/teatime/src/" \
   --output="./api-reference/" \
   --format="mdx"
 ```
@@ -153,7 +153,7 @@ docs/scripts/extract-jsdoc.js \
 ```bash
 # Proposed tutorial sync script
 docs/scripts/sync-tutorials.js \
-  --source="/home/will/git/0croquet/multisynq-client/docs/" \
+  --source="multisynq-client/docs/" \
   --output="./tutorials/" \
   --convert-codepen \
   --update-assets
@@ -281,10 +281,10 @@ async function syncReactTogether() {
 ### 1. **File Modification Monitoring**
 ```bash
 # Watch source directories for changes
-fswatch -o /home/will/git/0croquet/croquet/packages/croquet/teatime/src/ | \
+fswatch -o croquet/packages/croquet/teatime/src/ | \
   xargs -n1 docs/scripts/api-changed.sh
 
-fswatch -o /home/will/git/0croquet/multisynq-client/docs/ | \
+fswatch -o multisynq-client/docs/ | \
   xargs -n1 docs/scripts/tutorials-changed.sh
 ```
 

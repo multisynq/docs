@@ -46,108 +46,109 @@ Build multiplayer experiences without breaking your flow. Train your AI assistan
       <p>Comprehensive context for building vanilla JavaScript multiplayer applications with Multisynq.</p>
       
       <Accordion title="📖 Enhanced JavaScript Guide (52KB, ~13K tokens)">
-        ```xml
-        <documentation>
-            <metadata>
-                <library>@multisynq/client</library>
-                <version>v3</version>
-                <purpose>A comprehensive guide for an AI assistant on building real-time, multiplayer web applications using the Multisynq JavaScript SDK. This document combines conceptual explanations, API references, best practices, and full examples.</purpose>
-            </metadata>
-
-            <instructions>
-                <role>
-                    You are an expert Multisynq web application builder who specializes in real-time multi-user experiences. You respond with high energy and enthusiasm about building multiplayer experiences. Your primary function is to generate a complete, elegant, executable web application. The application should include thoughtful and interactive features such as username input, drop-down menus, dynamic text and content, clickable buttons, and relevant state management. Ensure that the design is visually appealing, responsive, and user-friendly. The HTML, CSS, and JavaScript code should be well-structured, efficiently organized, and properly commented for readability and maintainability.
-                </role>
-                <output_format>
-                    When you do not have local filesystem access to an existing project, select the format that best matches your capabilities and environment:
-                    - HTML: Single standalone HTML file with embedded CSS/JavaScript
-                    - React: Single functional React component (JSX/TSX) with embedded CSS/JavaScript including all necessary dependencies
-                </output_format>
-                <initialization_protocol>
-                    1. If the user has not specified what to build, suggest 2-4 creative multi-user application concepts.
-                    2. If the user does not provide an apiKey, direct them to https://multisynq.io/coder.
-                </initialization_protocol>
-                <technical_requirements>
-                    <multisynq_integration>
-                        Load MultiSynq either in the HTML head:
-                        ```html
-                        <meta charset="utf-8">
-                        <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.min.js"></script>
-                        ```
-                        or directly in the javascript function:
-                        ```javascript
-                        import * as Multisynq from "https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.esm.js";
-                        ```
-                    </multisynq_integration>
-                    <styling_framework>
-                        Import TailwindCSS with:
-                        ```html
-                        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-                        ```
-                        - Use TailwindCSS classes as the primary styling method.
-                        - For React components: use inline style objects, never CSS strings.
-                        - Design for mobile-first responsive layouts.
-                    </styling_framework>
-                    <dependency_constraints>
-                        - All imports must use public CDN URLs.
-                        - Create single-file standalone applications.
-                        - No external dependencies beyond CDN imports.
-                    </dependency_constraints>
-                </technical_requirements>
-            </instructions>
-
-            <!-- Full context file content would be embedded here -->
-            <!-- For brevity in this example, showing structure only -->
-
-        </documentation>
-        ```
+        <div className="mb-4">
+          <h4 className="font-bold mb-2">Table of Contents (XML Structure)</h4>
+          <ul className="text-sm space-y-1 bg-gray-50 p-3 rounded">
+            <li><a href="#metadata" className="text-blue-600 hover:underline">&lt;metadata&gt; - Library Information</a></li>
+            <li><a href="#instructions" className="text-blue-600 hover:underline">&lt;instructions&gt; - AI Role & Output Format</a></li>
+            <li><a href="#concepts" className="text-blue-600 hover:underline">&lt;concepts&gt; - Core Architecture</a></li>
+            <li><a href="#api_reference" className="text-blue-600 hover:underline">&lt;api_reference&gt; - Complete API</a></li>
+            <li className="ml-4"><a href="#session_api" className="text-blue-600 hover:underline">&lt;session_api&gt; - Session Management</a></li>
+            <li className="ml-4"><a href="#app_api" className="text-blue-600 hover:underline">&lt;app_api&gt; - App Utilities</a></li>
+            <li className="ml-4"><a href="#model_api" className="text-blue-600 hover:underline">&lt;model_api&gt; - Model Lifecycle</a></li>
+            <li className="ml-4"><a href="#view_api" className="text-blue-600 hover:underline">&lt;view_api&gt; - View Patterns</a></li>
+            <li><a href="#examples" className="text-blue-600 hover:underline">&lt;examples&gt; - Complete Applications</a></li>
+            <li><a href="#patterns" className="text-blue-600 hover:underline">&lt;patterns&gt; - Best Practices</a></li>
+          </ul>
+        </div>
+        
+        <div className="bg-gray-100 p-4 rounded max-h-96 overflow-y-auto text-sm font-mono">
+          <strong>Preview (first 500 characters):</strong><br/><br/>
+          &lt;documentation&gt;<br/>
+          &nbsp;&nbsp;&lt;metadata&gt;<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&lt;library&gt;@multisynq/client&lt;/library&gt;<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&lt;version&gt;v3&lt;/version&gt;<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&lt;purpose&gt;A comprehensive guide for an AI assistant on building real-time, multiplayer web applications using the Multisynq JavaScript SDK. This document combines conceptual explanations, API references, best practices, and full examples.&lt;/purpose&gt;<br/>
+          &nbsp;&nbsp;&lt;/metadata&gt;<br/><br/>
+          &nbsp;&nbsp;&lt;instructions&gt;<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&lt;role&gt;<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;You are an expert Multisynq web application builder who specializes in real-time multi-user experiences...
+        </div>
         
         <div className="flex gap-2 mt-4">
-          <a 
-            href="#" 
-            onClick={(e) => {
-              e.preventDefault();
-              // Copy multisynq-js-llm.md content to clipboard
-              navigator.clipboard.writeText('Loading full JavaScript context...');
+          <button 
+            onClick={() => {
+              fetch('/multisynq-js-llm.md').then(r => r.text()).then(content => {
+                navigator.clipboard.writeText(content);
+                alert('JavaScript Enhanced Context copied to clipboard!');
+              }).catch(() => alert('Could not copy file. Please download manually.'));
             }}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
           >
             📋 Copy Full Context
+          </button>
+          <a 
+            href="/multisynq-js-llm.md"
+            download="multisynq-js-llm.md"
+            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
+          >
+            💾 Download
           </a>
           <span className="text-sm text-gray-600 flex items-center">
-            ~13,000 tokens
+            52KB • ~13,000 tokens
           </span>
         </div>
       </Accordion>
 
       <Accordion title="📄 Core JavaScript Context (191KB, ~48K tokens)">
-        <p>Raw JavaScript context file with complete API references and examples.</p>
-        
-        <div className="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
-          <h4 className="font-bold mb-2">Table of Contents</h4>
-          <ul className="text-sm space-y-1">
-            <li><a href="#session-api" className="text-blue-600 hover:underline">Session Management</a></li>
-            <li><a href="#model-api" className="text-blue-600 hover:underline">Model API</a></li>
-            <li><a href="#view-api" className="text-blue-600 hover:underline">View API</a></li>
-            <li><a href="#events" className="text-blue-600 hover:underline">Event System</a></li>
-            <li><a href="#examples" className="text-blue-600 hover:underline">Complete Examples</a></li>
+        <div className="mb-4">
+          <h4 className="font-bold mb-2">Raw API Documentation</h4>
+          <p className="text-sm text-gray-600 mb-2">Complete JavaScript context file with API references, examples, and implementation details.</p>
+          <ul className="text-sm space-y-1 bg-gray-50 p-3 rounded">
+            <li><a href="#session-management" className="text-blue-600 hover:underline">Session Management</a></li>
+            <li><a href="#model-architecture" className="text-blue-600 hover:underline">Model Architecture</a></li>
+            <li><a href="#view-patterns" className="text-blue-600 hover:underline">View Patterns</a></li>
+            <li><a href="#event-system" className="text-blue-600 hover:underline">Event System</a></li>
+            <li><a href="#complete-examples" className="text-blue-600 hover:underline">Complete Examples</a></li>
+            <li><a href="#troubleshooting" className="text-blue-600 hover:underline">Troubleshooting</a></li>
           </ul>
         </div>
         
+        <div className="bg-gray-100 p-4 rounded max-h-96 overflow-y-auto text-sm font-mono">
+          <strong>Preview (first 500 characters):</strong><br/><br/>
+          # Multisynq JavaScript SDK Documentation<br/>
+          ## For AI Assistant Training<br/><br/>
+          This comprehensive guide provides everything an AI assistant needs to build real-time multiplayer web applications with Multisynq.<br/><br/>
+          ## Table of Contents<br/>
+          1. Quick Start<br/>
+          2. Core Concepts<br/>
+          3. Session Management<br/>
+          4. Model Architecture<br/>
+          5. View Implementation<br/>
+          6. Event System...
+        </div>
+        
         <div className="flex gap-2 mt-4">
-          <a 
-            href="#" 
-            onClick={(e) => {
-              e.preventDefault();
-              // Copy multisynq-js.txt content to clipboard
-              navigator.clipboard.writeText('Loading core JavaScript context...');
+          <button 
+            onClick={() => {
+              fetch('/multisynq-js.txt').then(r => r.text()).then(content => {
+                navigator.clipboard.writeText(content);
+                alert('JavaScript Core Context copied to clipboard!');
+              }).catch(() => alert('Could not copy file. Please download manually.'));
             }}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
           >
             📋 Copy Raw Context
+          </button>
+          <a 
+            href="/multisynq-js.txt"
+            download="multisynq-js.txt"
+            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
+          >
+            💾 Download
           </a>
           <span className="text-sm text-gray-600 flex items-center">
-            ~48,000 tokens
+            191KB • ~48,000 tokens
           </span>
         </div>
       </Accordion>
@@ -159,76 +160,109 @@ Build multiplayer experiences without breaking your flow. Train your AI assistan
       <p>Complete context for building React-based collaborative applications with React Together hooks and components.</p>
       
       <Accordion title="📖 Enhanced React Guide (71KB, ~18K tokens)">
-        ```xml
-        <documentation>
-            <metadata>
-                <library>react-together</library>
-                <version>latest</version>
-                <purpose>A comprehensive guide for an AI assistant on building real-time, collaborative React applications using the `react-together` library, which is built on top of `@multisynq/client`.</purpose>
-            </metadata>
-
-            <instructions>
-                <role>
-                    You are an expert web application builder specializing in real-time, multi-user experiences with Multisynq and React. Your primary function is to generate complete, elegant, and executable React applications. You should be enthusiastic, helpful, and precise in your execution.
-                </role>
-                <output_format>
-                    <format type="react">
-                        <instruction>Generate a single, standalone React component (JSX/TSX) with all necessary dependencies imported from a CDN. The component should be fully functional and ready to run.</instruction>
-                    </format>
-                </output_format>
-            </instructions>
-
-            <!-- Full React Together context would be embedded here -->
-
-        </documentation>
-        ```
+        <div className="mb-4">
+          <h4 className="font-bold mb-2">Table of Contents (XML Structure)</h4>
+          <ul className="text-sm space-y-1 bg-gray-50 p-3 rounded">
+            <li><a href="#metadata" className="text-blue-600 hover:underline">&lt;metadata&gt; - React Together Info</a></li>
+            <li><a href="#instructions" className="text-blue-600 hover:underline">&lt;instructions&gt; - React AI Instructions</a></li>
+            <li><a href="#setup" className="text-blue-600 hover:underline">&lt;setup&gt; - Installation & Config</a></li>
+            <li><a href="#concepts" className="text-blue-600 hover:underline">&lt;concepts&gt; - React Together Concepts</a></li>
+            <li><a href="#api" className="text-blue-600 hover:underline">&lt;api&gt; - Complete Hook Reference</a></li>
+            <li className="ml-4"><a href="#provider" className="text-blue-600 hover:underline">&lt;provider&gt; - ReactTogether Provider</a></li>
+            <li className="ml-4"><a href="#hooks" className="text-blue-600 hover:underline">&lt;hooks&gt; - All React Hooks</a></li>
+            <li className="ml-4"><a href="#components" className="text-blue-600 hover:underline">&lt;components&gt; - Pre-built Components</a></li>
+            <li><a href="#examples" className="text-blue-600 hover:underline">&lt;examples&gt; - Complete React Apps</a></li>
+            <li><a href="#patterns" className="text-blue-600 hover:underline">&lt;patterns&gt; - React Patterns</a></li>
+          </ul>
+        </div>
+        
+        <div className="bg-gray-100 p-4 rounded max-h-96 overflow-y-auto text-sm font-mono">
+          <strong>Preview (first 500 characters):</strong><br/><br/>
+          &lt;documentation&gt;<br/>
+          &nbsp;&nbsp;&lt;metadata&gt;<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&lt;library&gt;react-together&lt;/library&gt;<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&lt;version&gt;latest&lt;/version&gt;<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&lt;purpose&gt;A comprehensive guide for an AI assistant on building real-time, collaborative React applications using the `react-together` library, which is built on top of `@multisynq/client`.&lt;/purpose&gt;<br/>
+          &nbsp;&nbsp;&lt;/metadata&gt;<br/><br/>
+          &nbsp;&nbsp;&lt;instructions&gt;<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&lt;role&gt;<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;You are an expert web application builder specializing in real-time, multi-user experiences with Multisynq and React...
+        </div>
         
         <div className="flex gap-2 mt-4">
-          <a 
-            href="#" 
-            onClick={(e) => {
-              e.preventDefault();
-              // Copy multisynq-react-llm.md content to clipboard
-              navigator.clipboard.writeText('Loading full React context...');
+          <button 
+            onClick={() => {
+              fetch('/multisynq-react-llm.md').then(r => r.text()).then(content => {
+                navigator.clipboard.writeText(content);
+                alert('React Enhanced Context copied to clipboard!');
+              }).catch(() => alert('Could not copy file. Please download manually.'));
             }}
             className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
           >
             📋 Copy Full Context
+          </button>
+          <a 
+            href="/multisynq-react-llm.md"
+            download="multisynq-react-llm.md"
+            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
+          >
+            💾 Download
           </a>
           <span className="text-sm text-gray-600 flex items-center">
-            ~18,000 tokens
+            71KB • ~18,000 tokens
           </span>
         </div>
       </Accordion>
 
       <Accordion title="📄 Core React Context (32KB, ~8K tokens)">
-        <p>Essential React Together hooks, components, and patterns for collaborative applications.</p>
-        
-        <div className="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
-          <h4 className="font-bold mb-2">Table of Contents</h4>
-          <ul className="text-sm space-y-1">
-            <li><a href="#hooks" className="text-blue-600 hover:underline">Core Hooks</a></li>
-            <li><a href="#components" className="text-blue-600 hover:underline">Components</a></li>
-            <li><a href="#providers" className="text-blue-600 hover:underline">Provider Setup</a></li>
-            <li><a href="#patterns" className="text-blue-600 hover:underline">Common Patterns</a></li>
-            <li><a href="#examples" className="text-blue-600 hover:underline">Complete Examples</a></li>
+        <div className="mb-4">
+          <h4 className="font-bold mb-2">React Together Essentials</h4>
+          <p className="text-sm text-gray-600 mb-2">Essential React Together hooks, components, and patterns for collaborative applications.</p>
+          <ul className="text-sm space-y-1 bg-gray-50 p-3 rounded">
+            <li><a href="#react-hooks" className="text-blue-600 hover:underline">Core Hooks</a></li>
+            <li><a href="#react-components" className="text-blue-600 hover:underline">Components</a></li>
+            <li><a href="#react-providers" className="text-blue-600 hover:underline">Provider Setup</a></li>
+            <li><a href="#react-patterns" className="text-blue-600 hover:underline">Common Patterns</a></li>
+            <li><a href="#react-examples" className="text-blue-600 hover:underline">Complete Examples</a></li>
+            <li><a href="#react-troubleshooting" className="text-blue-600 hover:underline">Troubleshooting</a></li>
           </ul>
         </div>
         
+        <div className="bg-gray-100 p-4 rounded max-h-96 overflow-y-auto text-sm font-mono">
+          <strong>Preview (first 500 characters):</strong><br/><br/>
+          # React Together Documentation<br/>
+          ## For AI Assistant Training<br/><br/>
+          Complete guide for building real-time collaborative React applications with React Together.<br/><br/>
+          ## Quick Start<br/>
+          ```tsx<br/>
+          import &#123; ReactTogether, useStateTogether &#125; from 'react-together';<br/><br/>
+          function App() &#123;<br/>
+          &nbsp;&nbsp;const [count, setCount] = useStateTogether('counter', 0);<br/>
+          &nbsp;&nbsp;return &lt;button onClick=&#123;() =&gt; setCount(c =&gt; c + 1)&#125;&gt;&#123;count&#125;&lt;/button&gt;;<br/>
+          &#125;
+        </div>
+        
         <div className="flex gap-2 mt-4">
-          <a 
-            href="#" 
-            onClick={(e) => {
-              e.preventDefault();
-              // Copy multisynq-react.txt content to clipboard
-              navigator.clipboard.writeText('Loading core React context...');
+          <button 
+            onClick={() => {
+              fetch('/multisynq-react.txt').then(r => r.text()).then(content => {
+                navigator.clipboard.writeText(content);
+                alert('React Core Context copied to clipboard!');
+              }).catch(() => alert('Could not copy file. Please download manually.'));
             }}
             className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
           >
             📋 Copy Raw Context
+          </button>
+          <a 
+            href="/multisynq-react.txt"
+            download="multisynq-react.txt"
+            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
+          >
+            💾 Download
           </a>
           <span className="text-sm text-gray-600 flex items-center">
-            ~8,000 tokens
+            32KB • ~8,000 tokens
           </span>
         </div>
       </Accordion>
@@ -302,7 +336,7 @@ Build multiplayer experiences without breaking your flow. Train your AI assistan
   <Card title="ChatGPT/Claude" icon="message-circle">
     1. Start a new conversation
     2. Paste the context file first
-    3. Wait for confirmation
+    3. Wait for confirmation  
     4. Add: "Use Multisynq for multiplayer features"
     5. Describe your app idea
   </Card>

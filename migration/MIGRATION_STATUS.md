@@ -105,15 +105,15 @@ docs/
 ## 📋 Sources of Truth Documented
 
 ### Current Content Sources
-1. **JSDoc API**: `/home/will/git/0croquet/croquet/packages/croquet/teatime/src/`
+1. **JSDoc API**: `croquet/packages/croquet/teatime/src/`
    - `model.js`, `view.js`, `session.js`, `index.js`
    - Status: Migrated to MDX format
 
-2. **Tutorial Content**: `/home/will/git/0croquet/multisynq-client/docs/tutorials/`
+2. **Tutorial Content**: `multisynq-client/docs/tutorials/`
    - 10 tutorial files + working examples + images
    - Status: 1/10 migrated (Hello World complete)
 
-3. **React Together**: `/home/will/git/0croquet/react-together/website/`
+3. **React Together**: `react-together/website/`
    - 17 hooks, 6 components, 20 UI components, 7 demos
    - Status: Getting started complete, hooks/components pending
 
@@ -180,7 +180,7 @@ docs/
 ## 🔧 Build Commands for Testing
 ```bash
 # Navigate to docs directory
-cd /home/will/git/0croquet/docs/
+cd docs/
 
 # Start development server
 npm run docs:dev

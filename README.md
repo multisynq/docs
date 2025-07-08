@@ -1,193 +1,198 @@
-# Multisynq Documentation Migration & Development Guide
+# Multisynq Documentation
 
-## Overview
+Welcome to the official documentation for Multisynq - the platform for building real-time collaborative applications.
 
-This document outlines the migration of Multisynq documentation from JSDoc-generated HTML to Mintlify-powered documentation, current state, completed work, remaining tasks, and process improvements.
+## 🚀 Quick Start
 
-## 1. Previous Documentation Generation Process (JSDoc)
+Get started building collaborative applications in minutes:
 
-### Repository Structure
-```
-0croquet/
-├── croquet-docs/                    # Documentation build environment
-│   ├── multisynq/                   # Multisynq-specific docs
-│   │   ├── jsdoc.json              # JSDoc configuration
-│   │   ├── out/                    # Generated HTML output
-│   │   └── package.json            # Dependencies
-│   ├── node_modules/               # JSDoc dependencies
-│   └── build.sh                    # Build script
-├── croquet/                        # Source code repository
-│   └── packages/
-│       └── croquet/                # Core Croquet source
-└── multisynq-client/               # Client library
-    └── docs/                       # Tutorial markdown files
-```
+1. **Get API Key**: Visit [multisynq.io/coder](https://multisynq.io/coder) for your free API key
+2. **Choose Framework**: JavaScript/HTML or React
+3. **Follow Guide**: Check our [Quickstart Guide](./quickstart.mdx)
 
-### Previous Generation Process
-1. **Source Code**: JSDoc comments in `croquet/packages/croquet/` source files
-2. **Tutorials**: Markdown files in `multisynq-client/docs/`
-3. **Configuration**: `croquet-docs/multisynq/jsdoc.json` with:
-   ```json
-   {
-     "source": {
-       "include": ["../../../croquet/packages/croquet/src/"],
-       "includePattern": "\\.(js|ts)$"
-     },
-     "opts": {
-       "destination": "./out/",
-       "tutorials": "../../../multisynq-client/docs/"
-     }
-   }
-   ```
-4. **Build Command**: `../node_modules/.bin/jsdoc -c jsdoc.json`
-5. **Output**: Static HTML files in `croquet-docs/multisynq/out/`
-6. **Integration**: Files copied to `multisynq.io/multisynq/frontend/public/docs/`
+## 📚 Documentation Structure
 
-### Frontend Integration (Before)
-- **Route**: `multisynq.io/multisynq/frontend/src/app/(main)/docs/page.tsx`
-- **Redirect**: JavaScript redirect to `/docs/index.html`
-- **Build Script**: `multisynq.io/multisynq/frontend/build-docs.sh`
-- **Serving**: Static files served from `public/docs/`
+### Core Guides
+- **[Getting Started](./index.mdx)** - Introduction to Multisynq
+- **[Quickstart](./quickstart.mdx)** - Build your first app in 5 minutes
+- **[Development Guide](./development.mdx)** - Local development setup
 
-## 2. Current Migration State (Mintlify)
+### Tutorials
+Interactive tutorials with live examples:
 
-### What Has Been Completed ✅
+#### Practical Tutorials
+- **[Hello World](./tutorials/hello-world.mdx)** - Synchronized counter app
+- **[Simple Animation](./tutorials/simple-animation.mdx)** - Real-time animations
+- **[Multi-user Chat](./tutorials/multiuser-chat.mdx)** - Live chat application
+- **[View Smoothing](./tutorials/view-smoothing.mdx)** - Smooth interpolation
+- **[3D Animation](./tutorials/3d-animation.mdx)** - Three.js integration
+- **[Multiblaster Game](./tutorials/multiblaster-game.mdx)** - Complete multiplayer game
 
-#### Repository Setup
-- **New Docs Location**: `/docs/` (root level)
-- **Mintlify Config**: `docs/docs.json` with Multisynq branding
-- **CLI Installation**: Mintlify CLI installed globally
+#### Conceptual Tutorials
+- **[Model-View-Synchronizer](./tutorials/model-view-synchronizer.mdx)** - Core architecture
+- **[Events & Pub/Sub](./tutorials/events-pub-sub.mdx)** - Event system
+- **[Snapshots](./tutorials/snapshots.mdx)** - State persistence
+- **[Persistence](./tutorials/persistence.mdx)** - Data storage
+- **[Simulation Time](./tutorials/sim-time-future.mdx)** - Time management
+- **[Writing Models](./tutorials/writing-multisynq-model.mdx)** - Model patterns
+- **[Writing Views](./tutorials/writing-multisynq-view.mdx)** - View patterns
+- **[Writing Apps](./tutorials/writing-multisynq-app.mdx)** - Application structure
+- **[Random Numbers](./tutorials/random.mdx)** - Deterministic randomness
+- **[Data API](./tutorials/data-api.mdx)** - Large data handling
 
-#### Core Content Updates
-- **Homepage** (`docs/index.mdx`): Updated to Multisynq introduction
-- **Quickstart** (`docs/quickstart.mdx`): SDK installation and setup
-- **API Reference** (`docs/api-reference/introduction.mdx`): Multisynq API overview
+### Essential Concepts
+- **[Synchronization](./essentials/sync.mdx)** - How real-time sync works
+- **[Collaboration](./essentials/collaboration.mdx)** - Multi-user patterns
+- **[Chat Systems](./essentials/chat.mdx)** - Real-time messaging
+- **[Whiteboard Apps](./essentials/whiteboard.mdx)** - Collaborative drawing
+- **[Conflict Resolution](./essentials/conflicts.mdx)** - Handling conflicts
+- **[Scaling](./essentials/scaling.mdx)** - Performance optimization
 
-#### Build System Updates
-- **Build Script**: Updated to start Mintlify dev server
-- **Frontend Integration**: Updated docs route with redirect
+### AI Development
+- **[Vibe Coding](./essentials/vibe-coding.mdx)** - Train AI assistants with Multisynq
 
-#### Branding Applied
-- **Logo**: Multisynq logo configured
-- **Colors**: Multisynq blue (#006EFF) theme
-- **Social Links**: Proper URLs configured
+### React Together
+Complete documentation for React-specific development:
+- **[Getting Started](./react-together/getting-started.mdx)** - React setup
+- **[Core Hooks](./react-together/hooks/)** - useStateTogether, useFunctionTogether
+- **[Communication](./react-together/hooks/)** - useChat, useCursors
+- **[Components](./react-together/components/)** - Pre-built React components
+- **[Utilities](./react-together/utilities/)** - Helper functions
 
-## 3. Critical Issues Identified & Fixes Needed
+### API Reference
+- **[Session API](./api-reference/session.mdx)** - Session management
+- **[Model API](./api-reference/model.mdx)** - Model lifecycle and methods
+- **[View API](./api-reference/view.mdx)** - View patterns and rendering
 
-### 🚨 CRITICAL: Deployment-Ready Frontend Integration
-**Issue**: Current implementation hardcodes localhost:3001
-**Problem**: Not deployment-ready for multisynq.io domains
-**Solution**: Use environment-based configuration
-
-### 🚨 CRITICAL: Template Content Still Present
-**Issue**: API endpoints still show "Plant Store" examples
-**Files Affected**:
-- `docs/api-reference/endpoint/get.mdx` (shows "Get Plants")
-- `docs/api-reference/endpoint/create.mdx` (shows "Create Plant")
-- `docs/api-reference/endpoint/delete.mdx` (shows "Delete Plant")
-- `docs/api-reference/endpoint/webhook.mdx` (shows "New Plant")
-- `docs/api-reference/openapi.json` (contains plant store API spec)
-
-### 🚨 CRITICAL: Navigation Links Point to Mintlify
-**Issue**: Global anchors in docs.json still point to Mintlify
-**Files Affected**: `docs/docs.json`
-
-## 4. Implementation Plan
-
-### Phase 1: Fix Critical Issues (IMMEDIATE)
-1. **Fix deployment-ready frontend integration**
-2. **Replace template API endpoints with Multisynq endpoints**
-3. **Update navigation links to proper Multisynq URLs**
-
-### Phase 2: Content Migration (HIGH PRIORITY)
-1. **Create missing essential pages**
-2. **Extract JSDoc content from source code**
-3. **Migrate tutorial content**
-
-### Phase 3: Build System Optimization (MEDIUM PRIORITY)
-1. **Implement proper static build process**
-2. **Set up CI/CD integration**
-3. **Configure proper routing in Next.js**
-
-## 5. Build & Development Scripts
+## 🛠️ Development
 
 ### Local Development
 ```bash
-# Start Mintlify dev server
-npm run docs:dev
+# Install Mintlify CLI
+npm install -g mintlify
 
-# Build static documentation
-npm run docs:build
+# Start dev server
+mintlify dev
 
-# Deploy to frontend
-npm run docs:deploy
+# Preview at http://localhost:3000
 ```
 
-### Integration with Frontend
-The documentation is served through the Next.js frontend with environment-based routing to support multiple deployment environments.
+### Project Structure
+```
+docs/
+├── index.mdx              # Homepage
+├── quickstart.mdx         # Quick start guide
+├── docs.json             # Navigation config
+├── essentials/           # Core concepts
+├── tutorials/            # Interactive tutorials
+├── react-together/       # React-specific docs
+├── api-reference/        # API documentation
+├── images/              # Static assets
+└── logo/                # Brand assets
+```
 
-## 6. Process Improvements Discovered
+### Writing Documentation
 
-### Issues with Current Approach
-1. **Two-Server Requirement**: Requires both Next.js and Mintlify servers
-2. **Hardcoded URLs**: Not environment-aware for deployment
-3. **Build Process**: Manual copying instead of automated pipeline
-4. **Content Maintenance**: Scattered across multiple repositories
+#### MDX Components
+Use Mintlify's built-in components:
 
-### Proposed Process Changes
-1. **Single Repository**: Move all docs to main repo
-2. **Environment-Aware Routing**: Use Next.js environment variables
-3. **Automated Build Pipeline**: CI/CD integration for docs updates
-4. **Static File Generation**: Build to static files instead of dev server
+```mdx
+<Card title="Feature" icon="rocket">
+  Description of the feature
+</Card>
 
-## 7. Remaining Tasks
+<CodeGroup>
+```bash npm
+npm install react-together
+```
 
-### High Priority
-- [ ] Fix deployment-ready frontend integration
-- [ ] Replace all template API endpoints
-- [ ] Update navigation links
-- [ ] Create missing essential pages
+```bash yarn
+yarn add react-together
+```
+</CodeGroup>
 
-### Medium Priority
-- [ ] Migrate JSDoc content
-- [ ] Update build process
-- [ ] Add proper OpenAPI specification
+<Tabs>
+  <Tab title="JavaScript">
+    Content for JS tab
+  </Tab>
+  <Tab title="React">
+    Content for React tab
+  </Tab>
+</Tabs>
 
-### Low Priority
-- [ ] Update hero images
-- [ ] Add SEO metadata
-- [ ] Implement analytics
+<Warning>
+Important warning message
+</Warning>
 
-## 8. Configuration
+<Note>
+Helpful note or tip
+</Note>
 
-### Environment Variables
-Documentation routing uses these environment variables from the frontend:
-- `NEXT_PUBLIC_PRODUCTION_FLAG`: local | dev | prod
-- `NEXT_PUBLIC_BASE_URL_*`: Backend URLs for different environments
+#### Code Examples
+- Always include working, complete examples
+- Use CDN imports for standalone examples
+- Include API key placeholders: `"your-api-key-here"`
+- Test all code examples before publishing
 
-### Mintlify Configuration
-See `docs.json` for:
-- Theme colors and branding
-- Navigation structure
-- Social media links
-- Logo configuration
+#### Navigation
+Update `docs.json` to add new pages:
 
-## 9. Contributing
+```json
+{
+  "group": "New Section",
+  "pages": [
+    "path/to/new-page"
+  ]
+}
+```
 
-When making changes to documentation:
-1. Edit MDX files in `/docs/`
-2. Test locally with `npm run docs:dev`
-3. Update navigation in `docs.json` if needed
-4. Follow Mintlify MDX syntax for components
+## 🎯 Best Practices
 
-## 10. Troubleshooting
+### Content Guidelines
+1. **Accuracy**: All code examples must work with current Multisynq APIs
+2. **Completeness**: Include all necessary imports and setup
+3. **Clarity**: Explain concepts clearly with examples
+4. **Consistency**: Follow established patterns and terminology
 
-### Common Issues
-- **Port conflicts**: Ensure ports 3001 and 3000 are available
-- **Build failures**: Check Mintlify CLI installation
-- **Routing issues**: Verify environment variables are set correctly
+### Code Examples
+1. Use realistic app IDs: `"com.example.myapp"`
+2. Include error handling where appropriate
+3. Show both minimal and complete examples
+4. Test all examples in isolation
 
-### Getting Help
-- Discord: https://discord.gg/multisynq
-- GitHub Issues: Create issue in main repository
-- Documentation: https://mintlify.com/docs
+### API Documentation
+1. Document all parameters and return values
+2. Include practical usage examples
+3. Note version compatibility
+4. Cross-reference related methods
+
+## 🤝 Contributing
+
+### Making Changes
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test locally with `mintlify dev`
+5. Submit a pull request
+
+### Content Reviews
+All content changes should be reviewed for:
+- Technical accuracy
+- Code example functionality
+- Clarity and readability
+- Consistency with existing docs
+
+## 📞 Support
+
+- **Community**: [Discord](https://discord.gg/multisynq)
+- **GitHub**: [multisynq](https://github.com/multisynq)
+- **Website**: [multisynq.io](https://multisynq.io)
+- **API Keys**: [multisynq.io/coder](https://multisynq.io/coder)
+
+## 📄 License
+
+This documentation is part of the Multisynq platform. See individual repositories for license information.
+
+---
+
+**Built with ❤️ using [Mintlify](https://mintlify.com)**

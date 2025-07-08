@@ -5,7 +5,7 @@
 ### Local Development
 ```bash
 # Navigate to docs directory
-cd /home/will/git/0croquet/docs/
+cd docs/
 
 # Install dependencies
 npm install
@@ -43,24 +43,24 @@ npm run docs:build
 ### Current Sources of Truth (Pre-Rebrand)
 
 #### 1. **JSDoc Source Code**
-- **Primary Location:** `/home/will/git/0croquet/croquet/packages/croquet/teatime/src/`
+- **Primary Location:** `croquet/packages/croquet/teatime/src/`
 - **Key Files:**
   - `model.js` - Model class with JSDoc comments
   - `view.js` - View class with JSDoc comments  
   - `session.js` - Session class with JSDoc comments
   - `index.js` - Main exports and global utilities
 - **Current Status:** Active development, pending Croquet → Multisynq rebrand
-- **JSDoc Generation Config:** `/home/will/git/0croquet/croquet-docs/multisynq/jsdoc.json`
+- **JSDoc Generation Config:** `croquet-docs/multisynq/jsdoc.json`
 
 #### 2. **Tutorial Content**
-- **Location:** `/home/will/git/0croquet/multisynq-client/docs/tutorials/`
+- **Location:** `multisynq-client/docs/tutorials/`
 - **Status:** Stable, comprehensive tutorial series
 - **Structure:** Defined in `structure.json`
 - **Content:** 10 tutorial markdown files + working examples
 - **Update Frequency:** Occasional updates for API changes
 
 #### 3. **React Together Documentation**
-- **Location:** `/home/will/git/0croquet/react-together/website/src/pages/`
+- **Location:** `react-together/website/src/pages/`
 - **Status:** Active development
 - **Content:** 17 hooks, 6 components, 20 UI integration components
 - **Update Frequency:** Regular updates with new features
@@ -68,7 +68,7 @@ npm run docs:build
 ### Future Sources of Truth (Post-Rebrand)
 
 #### 1. **Multisynq Core Library** (Expected)
-- **Expected Location:** `/home/will/git/0croquet/multisynq/packages/multisynq/src/`
+- **Expected Location:** `multisynq/packages/multisynq/src/`
 - **Impact:** All JSDoc generation paths will need updating
 - **Migration Required:** Update build scripts to point to new repository structure
 
@@ -81,7 +81,7 @@ npm run docs:build
 ### Manual Process (Current)
 ```bash
 # Navigate to JSDoc generation directory
-cd /home/will/git/0croquet/croquet-docs/multisynq/
+cd croquet-docs/multisynq/
 
 # Generate HTML documentation
 ../node_modules/.bin/jsdoc -c jsdoc.json
@@ -224,15 +224,15 @@ jobs:
 
 ### Repositories to Monitor
 1. **Core API Source:**
-   - Current: `/home/will/git/0croquet/croquet/packages/croquet/teatime/src/`
-   - Future: `/home/will/git/0croquet/multisynq/packages/multisynq/src/`
+   - Current: `croquet/packages/croquet/teatime/src/`
+   - Future: `multisynq/packages/multisynq/src/`
 
 2. **Tutorial Content:**
-   - Location: `/home/will/git/0croquet/multisynq-client/docs/`
+   - Location: `multisynq-client/docs/`
    - Monitor: `tutorials/` directory and `QUICKSTART.md`
 
 3. **React Together:**
-   - Location: `/home/will/git/0croquet/react-together/`
+   - Location: `react-together/`
    - Monitor: `website/src/pages/`, `packages/*/README.md`
 
 ### Change Detection Strategy

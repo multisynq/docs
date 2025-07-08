@@ -103,13 +103,13 @@ the multisynq.io docs are in the process of           │
 
   Primary Repositories:
 
-  - /home/will/git/0croquet/docs/ - Mintlify
+  - docs/ - Mintlify
   documentation (TARGET)
-  - /home/will/git/0croquet/multisynq-client/docs/ -
+  - multisynq-client/docs/ -
   Tutorial content (SOURCE)
-  - /home/will/git/0croquet/croquet-docs/multisynq/ -
+  - croquet-docs/multisynq/ -
   JSDoc API docs (SOURCE)
-  - /home/will/git/0croquet/react-together/ - React
+  - react-together/ - React
   Together docs (SOURCE)
 
   Key Configuration Files:

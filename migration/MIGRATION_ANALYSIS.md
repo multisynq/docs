@@ -9,7 +9,7 @@ This document provides a complete analysis of the multisynq.io documentation mig
 ### Primary Repositories
 
 #### 1. **Target Repository** (Mintlify Documentation)
-- **Location:** `/home/will/git/0croquet/docs/`
+- **Location:** `docs/`
 - **Purpose:** Mintlify documentation system (TARGET)
 - **Status:** Functional framework with placeholder content
 - **Key Files:**
@@ -22,7 +22,7 @@ This document provides a complete analysis of the multisynq.io documentation mig
   - `essentials/` - Core concept documentation
 
 #### 2. **Source Repository 1** (Tutorial Content)
-- **Location:** `/home/will/git/0croquet/multisynq-client/docs/`
+- **Location:** `multisynq-client/docs/`
 - **Purpose:** Tutorial content and examples (SOURCE)
 - **Content:**
   - `README.md` - Build instructions (90 lines)
@@ -32,7 +32,7 @@ This document provides a complete analysis of the multisynq.io documentation mig
   - `tutorials/images/` - Tutorial assets and screenshots
 
 #### 3. **Source Repository 2** (JSDoc API Documentation)
-- **Location:** `/home/will/git/0croquet/croquet-docs/multisynq/`
+- **Location:** `croquet-docs/multisynq/`
 - **Purpose:** JSDoc API docs (SOURCE)
 - **Content:**
   - `jsdoc.json` - JSDoc configuration
@@ -44,7 +44,7 @@ This document provides a complete analysis of the multisynq.io documentation mig
   - `out/images/` - API documentation assets
 
 #### 4. **Source Repository 3** (React Together Documentation)
-- **Location:** `/home/will/git/0croquet/react-together/`
+- **Location:** `react-together/`
 - **Purpose:** React Together documentation (SOURCE)
 - **Content:**
   - `README.md` - Project overview
@@ -220,21 +220,21 @@ This document provides a complete analysis of the multisynq.io documentation mig
 
 ### Current Sources of Truth
 1. **JSDoc Source Code:**
-   - **Location:** `/home/will/git/0croquet/croquet/packages/croquet/teatime/src/`
+   - **Location:** `croquet/packages/croquet/teatime/src/`
    - **Files:** `model.js`, `view.js`, `session.js`, `index.js`
    - **Status:** Active development (Croquet → Multisynq rebrand pending)
 
 2. **Tutorial Content:**
-   - **Location:** `/home/will/git/0croquet/multisynq-client/docs/tutorials/`
+   - **Location:** `multisynq-client/docs/tutorials/`
    - **Status:** Stable, comprehensive tutorial series
 
 3. **React Together Documentation:**
-   - **Location:** `/home/will/git/0croquet/react-together/website/`
+   - **Location:** `react-together/website/`
    - **Status:** Active development with comprehensive component docs
 
 ### Future Sources of Truth (Post-Rebrand)
 1. **Multisynq Core Library:**
-   - **Expected Location:** `/home/will/git/0croquet/multisynq/packages/multisynq/src/`
+   - **Expected Location:** `multisynq/packages/multisynq/src/`
    - **Impact:** JSDoc generation paths will change
    - **Automation Needed:** Update build scripts to point to new location
 
