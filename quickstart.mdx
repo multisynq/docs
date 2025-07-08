@@ -1,97 +1,119 @@
 ---
 title: 'Quickstart'
-description: 'Start building awesome documentation in under 5 minutes'
+description: 'Start building real-time collaborative applications with Multisynq in under 5 minutes'
 ---
 
-## Setup your development
+## Installation
 
-Learn how to update your docs locally and deploy them to the public.
+Get started with Multisynq by installing the SDK and setting up your first application.
 
-### Edit and preview
+### Install the SDK
 
 <AccordionGroup>
-  <Accordion icon="github" title="Clone your docs locally">
-    During the onboarding process, we created a repository on your Github with
-    your docs content. You can find this repository on our
-    [dashboard](https://dashboard.mintlify.com). To clone the repository
-    locally, follow these
-    [instructions](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
-    in your terminal.
+  <Accordion icon="npm" title="Install via npm">
+    Install the Multisynq SDK using npm:
+    ```bash
+    npm install @multisynq/sdk
+    ```
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Preview changes">
-    Previewing helps you make sure your changes look as intended. We built a
-    command line interface to render these changes locally. 
-    1. Install the
-    [Mintlify CLI](https://www.npmjs.com/package/mintlify) to preview the
-    documentation changes locally with this command: ``` npm i -g mintlify ```
-    2. Run the following command at the root of your documentation (where
-    `docs.json` is): ``` mintlify dev ```
-    <Note>
-      If you’re currently using the legacy ```mint.json``` configuration file, please update the Mintlify CLI:
+  <Accordion icon="code" title="Basic Setup">
+    Create a new Multisynq application:
+    ```javascript
+    import { Multisynq } from '@multisynq/sdk';
 
+    const app = new Multisynq({
+      apiKey: 'your-api-key',
+      appId: 'your-app-id'
+    });
 
-      ```npm i -g mintlify@latest```
-      And run the new upgrade command in your docs repository:
-
-      ```mintlify upgrade```
-      You should now be using the new ```docs.json``` configuration file. Feel free to delete the ```mint.json``` file from your repository.
-    </Note>
+    app.connect();
+    ```
   </Accordion>
 </AccordionGroup>
 
-### Deploy your changes
+### Your First Collaborative App
 
 <AccordionGroup>
 
-<Accordion icon="message-bot" title="Install our Github app">
-  Our Github app automatically deploys your changes to your docs site, so you
-  don't need to manage deployments yourself. You can find the link to install on
-  your [dashboard](https://dashboard.mintlify.com). Once the bot has been
-  successfully installed, there should be a check mark next to the commit hash
-  of the repo.
+<Accordion icon="users" title="Create a shared session">
+  Set up a shared session where multiple users can collaborate:
+  ```javascript
+  const session = await app.createSession({
+    name: 'my-first-session',
+    maxUsers: 10
+  });
+  ```
 </Accordion>
-<Accordion icon="rocket" title="Push your changes">
-  [Commit and push your changes to
-  Git](https://docs.github.com/en/get-started/using-git/pushing-commits-to-a-remote-repository#about-git-push)
-  for your changes to update in your docs site. If you push and don't see that
-  the Github app successfully deployed your changes, you can also manually
-  update your docs through our [dashboard](https://dashboard.mintlify.com).
+
+<Accordion icon="sync" title="Synchronize state">
+  Share state between users in real-time:
+  ```javascript
+  // Set shared state
+  session.setState('counter', 0);
+
+  // Listen for state changes
+  session.on('stateChange', (key, value) => {
+    console.log(`${key} changed to ${value}`);
+  });
+
+  // Update state (syncs across all users)
+  session.setState('counter', 42);
+  ```
 </Accordion>
 
 </AccordionGroup>
 
-## Update your docs
+## Build Your Application
 
-Add content directly in your files with MDX syntax and React components. You can use any of our components, or even build your own.
+Now that you have the basics set up, start building your collaborative features.
 
 <CardGroup>
 
-<Card title="Add Content With MDX" icon="file" href="/essentials/markdown">
-  Add content to your docs with MDX syntax.
+<Card title="Real-time Chat" icon="message" href="/essentials/chat">
+  Build a chat system with real-time messaging
 </Card>
 
 <Card
-  title="Add Code Blocks"
-  icon="square-code"
-  href="/essentials/code"
+  title="Shared Whiteboard"
+  icon="pen"
+  href="/essentials/whiteboard"
 >
-  Add code directly to your docs with syntax highlighting.
+  Create a collaborative drawing canvas
 </Card>
 
 <Card
-  title="Add Images"
-  icon="image"
-  href="/essentials/images"
+  title="Document Collaboration"
+  icon="file-text"
+  href="/essentials/documents"
 >
-  Add images to your docs to make them more engaging.
+  Build Google Docs-style collaborative editing
 </Card>
 
 <Card
-  title="Add Custom Components"
-  icon="puzzle-piece"
-  href="/essentials/reusable-snippets"
+  title="Multi-user Games"
+  icon="gamepad"
+  href="/essentials/games"
 >
-  Add templates to your docs to make them more reusable.
+  Create real-time multiplayer games
 </Card>
 
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="API Reference"
+    icon="code"
+    href="/api-reference/introduction"
+  >
+    Explore the full Multisynq API
+  </Card>
+  <Card
+    title="Advanced Features"
+    icon="rocket"
+    href="/essentials/advanced"
+  >
+    Learn about advanced Multisynq features
+  </Card>
 </CardGroup>

@@ -1,0 +1,34 @@
+{
+  "name": "multisynq-docs",
+  "version": "1.0.0",
+  "description": "Multisynq documentation powered by Mintlify",
+  "scripts": {
+    "docs:dev": "mintlify dev --port 3001",
+    "docs:build": "mintlify build",
+    "docs:deploy": "./build-docs.sh",
+    "docs:serve": "mintlify dev",
+    "lint": "echo 'No linting configured for MDX files yet'",
+    "clean": "rm -rf .mintlify"
+  },
+  "keywords": [
+    "multisynq",
+    "documentation",
+    "mintlify",
+    "collaboration",
+    "real-time"
+  ],
+  "author": "Multisynq",
+  "license": "MIT",
+  "dependencies": {
+    "mintlify": "^4.0.0"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/multisynq/multisynq"
+  },
+  "bugs": {
+    "url": "https://github.com/multisynq/multisynq/issues"
+  },
+  "homepage": "https://docs.multisynq.io"
+} 

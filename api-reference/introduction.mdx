@@ -1,33 +1,88 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: 'API Reference'
+description: 'Complete reference for the Multisynq API'
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Welcome to Multisynq API
 
-## Welcome
+The Multisynq API provides everything you need to build real-time collaborative applications. Our REST API and WebSocket connections enable seamless synchronization between multiple users and devices.
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+## Base URL
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+All API requests should be made to:
+```
+https://api.multisynq.io/v1
+```
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All API endpoints require authentication using your API key. Include your API key in the Authorization header:
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+{
+  "Authorization": "Bearer YOUR_API_KEY"
+}
 ```
+
+You can obtain your API key from the [Multisynq Dashboard](https://dashboard.multisynq.io).
+
+## Rate Limits
+
+Our API has the following rate limits:
+- **Free tier**: 1,000 requests per hour
+- **Pro tier**: 10,000 requests per hour
+- **Enterprise**: Custom limits
+
+## WebSocket Connection
+
+For real-time features, connect to our WebSocket endpoint:
+```
+wss://api.multisynq.io/v1/ws
+```
+
+## Core Concepts
+
+<CardGroup cols={2}>
+  <Card
+    title="Sessions"
+    icon="users"
+    href="/api-reference/sessions"
+  >
+    Create and manage collaborative sessions
+  </Card>
+  <Card
+    title="State Management"
+    icon="database"
+    href="/api-reference/state"
+  >
+    Synchronize application state across users
+  </Card>
+  <Card
+    title="Events"
+    icon="bolt"
+    href="/api-reference/events"
+  >
+    Handle real-time events and notifications
+  </Card>
+  <Card
+    title="Users"
+    icon="user"
+    href="/api-reference/users"
+  >
+    Manage user authentication and profiles
+  </Card>
+</CardGroup>
+
+## SDKs
+
+We provide official SDKs for popular programming languages:
+
+- **JavaScript/TypeScript**: `@multisynq/sdk`
+- **React**: `@multisynq/react`
+- **Vue**: `@multisynq/vue`
+- **Python**: `multisynq-python`
+- **Go**: `multisynq-go`
+
+## Support
+
+Need help? Check out our [support resources](https://support.multisynq.io) or join our [Discord community](https://discord.gg/multisynq).

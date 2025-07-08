@@ -24,6 +24,8 @@
           {
             "group": "Essentials",
             "pages": [
+              "essentials/sync",
+              "essentials/collaboration",
               "essentials/markdown",
               "essentials/code",
               "essentials/images",
@@ -44,7 +46,7 @@
             ]
           },
           {
-            "group": "Endpoint Examples",
+            "group": "Sessions API",
             "pages": [
               "api-reference/endpoint/get",
               "api-reference/endpoint/create",
@@ -58,19 +60,19 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "Dashboard",
+          "href": "https://multisynq.io",
+          "icon": "chart-line"
         },
         {
           "anchor": "Community",
-          "href": "https://mintlify.com/community",
-          "icon": "slack"
+          "href": "https://discord.gg/multisynq",
+          "icon": "discord"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "GitHub",
+          "href": "https://github.com/multisynq",
+          "icon": "github"
         }
       ]
     }
@@ -89,7 +91,7 @@
     "primary": {
       "type": "button",
       "label": "Start building",
-      "href": "https://multisynq.com/vibe"
+      "href": "https://multisynq.io"
     }
   },
   "footer": {

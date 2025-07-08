@@ -1,0 +1,189 @@
+---
+title: "Real-time Synchronization"
+description: "Learn how Multisynq handles real-time synchronization between users and devices"
+---
+
+# Real-time Synchronization
+
+Multisynq provides seamless real-time synchronization that keeps all users in a session perfectly in sync, regardless of network conditions or device differences.
+
+## How It Works
+
+### Automatic State Sync
+Every change in your application is automatically synchronized across all connected users:
+
+```javascript
+// Changes are automatically synced
+session.setState({
+  document: {
+    title: "Updated Title",
+    content: "New content here"
+  }
+});
+
+// All users receive the update instantly
+session.onStateChange((newState) => {
+  console.log('State updated:', newState);
+});
+```
+
+### Conflict-Free Updates
+Multisynq uses advanced conflict resolution algorithms to ensure data consistency:
+
+- **Operational Transformation**: Handles concurrent text edits
+- **Last-Write-Wins**: Simple resolution for basic data types
+- **Custom Resolvers**: Define your own conflict resolution logic
+
+## Synchronization Features
+
+<CardGroup cols={2}>
+  <Card title="Instant Updates" icon="bolt">
+    Changes appear instantly across all connected users with sub-100ms latency
+  </Card>
+  <Card title="Offline Support" icon="wifi-slash">
+    Continue working offline and sync automatically when reconnected
+  </Card>
+  <Card title="Conflict Resolution" icon="merge">
+    Automatic handling of concurrent edits without data loss
+  </Card>
+  <Card title="History Tracking" icon="clock-rotate-left">
+    Full history of all changes for debugging and rollback
+  </Card>
+</CardGroup>
+
+## Implementation Example
+
+### Basic Synchronization
+```javascript
+import { Multisynq } from '@multisynq/sdk';
+
+const session = new Multisynq.Session({
+  apiKey: 'your-api-key',
+  sessionId: 'session-123'
+});
+
+// Listen for state changes
+session.onStateChange((state, changeset) => {
+  console.log('New state:', state);
+  console.log('What changed:', changeset);
+  
+  // Update your UI
+  updateUI(state);
+});
+
+// Make changes
+session.setState({
+  cursor: { x: 100, y: 200 },
+  selection: { start: 0, end: 10 }
+});
+```
+
+### Advanced Synchronization
+```javascript
+// Custom conflict resolution
+session.setConflictResolver('document.content', (local, remote, base) => {
+  // Custom merge logic
+  return mergeTextContent(local, remote, base);
+});
+
+// Batch updates for performance
+session.batch(() => {
+  session.setState({ field1: 'value1' });
+  session.setState({ field2: 'value2' });
+  session.setState({ field3: 'value3' });
+});
+
+// Conditional updates
+session.setState({
+  counter: session.getState().counter + 1
+}, {
+  condition: (currentState) => currentState.counter < 100
+});
+```
+
+## Best Practices
+
+### Performance Optimization
+- **Batch Updates**: Group related changes together
+- **Debounce Fast Changes**: Avoid excessive updates during rapid input
+- **Selective Sync**: Only sync necessary data fields
+
+### Data Structure Design
+- **Flat Structures**: Prefer flat objects over deeply nested ones
+- **Immutable Updates**: Always create new objects instead of mutating
+- **Unique IDs**: Use consistent unique identifiers for list items
+
+### Error Handling
+```javascript
+session.onSyncError((error) => {
+  console.error('Sync failed:', error);
+  
+  // Show user-friendly error message
+  showErrorMessage('Connection lost. Reconnecting...');
+  
+  // Implement retry logic
+  setTimeout(() => session.reconnect(), 1000);
+});
+```
+
+## Network Resilience
+
+### Connection Management
+Multisynq automatically handles:
+- Network interruptions
+- Server failover
+- Reconnection with state recovery
+- Bandwidth optimization
+
+### Offline Capabilities
+```javascript
+// Detect offline state
+session.onConnectionChange((status) => {
+  if (status === 'offline') {
+    showOfflineIndicator();
+  } else {
+    hideOfflineIndicator();
+  }
+});
+
+// Queue operations while offline
+session.enableOfflineQueue({
+  maxOperations: 1000,
+  persistToDisk: true
+});
+```
+
+## Testing Synchronization
+
+### Unit Testing
+```javascript
+import { MockSession } from '@multisynq/sdk/testing';
+
+test('state synchronization', async () => {
+  const session = new MockSession();
+  
+  const statePromise = session.waitForStateChange();
+  session.setState({ test: 'value' });
+  
+  const newState = await statePromise;
+  expect(newState.test).toBe('value');
+});
+```
+
+### Integration Testing
+Test real-time sync with multiple simulated users:
+```javascript
+const session1 = new Multisynq.Session({ sessionId: 'test-session' });
+const session2 = new Multisynq.Session({ sessionId: 'test-session' });
+
+// Test cross-user synchronization
+session1.setState({ message: 'Hello' });
+await session2.waitForStateChange();
+expect(session2.getState().message).toBe('Hello');
+```
+
+## Next Steps
+
+- Learn about [Collaborative Editing](/essentials/collaboration)
+- Explore [Conflict Resolution](/essentials/conflicts)
+- Check out the [API Reference](/api-reference/introduction) 

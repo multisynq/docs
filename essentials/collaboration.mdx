@@ -1,0 +1,351 @@
+---
+title: "Collaborative Editing"
+description: "Build real-time collaborative editing experiences with Multisynq"
+---
+
+# Collaborative Editing
+
+Create powerful collaborative editing experiences where multiple users can work together on documents, code, designs, and more in real-time.
+
+## Core Concepts
+
+### User Awareness
+Track and display information about all active users:
+
+```javascript
+// Get current users in session
+const users = session.getUsers();
+
+// Listen for user changes
+session.onUserChange((users) => {
+  updateUserAvatars(users);
+  updatePresenceIndicators(users);
+});
+
+// Update user info
+session.updateUser({
+  displayName: 'John Doe',
+  avatar: 'https://example.com/avatar.jpg',
+  cursor: { line: 10, column: 5 }
+});
+```
+
+### Cursor and Selection Sharing
+Share cursor positions and selections across users:
+
+```javascript
+// Share cursor position
+session.setCursor({
+  x: 100,
+  y: 200,
+  userId: 'user-123'
+});
+
+// Share text selection
+session.setSelection({
+  start: 0,
+  end: 10,
+  userId: 'user-123'
+});
+
+// Listen for other users' cursors
+session.onCursorChange((cursors) => {
+  cursors.forEach(cursor => {
+    if (cursor.userId !== session.currentUser.id) {
+      showRemoteCursor(cursor);
+    }
+  });
+});
+```
+
+## Text Editing
+
+### Operational Transformation
+Multisynq handles complex text editing scenarios automatically:
+
+```javascript
+// Concurrent text edits are automatically resolved
+session.onTextChange((delta, userId) => {
+  if (userId !== session.currentUser.id) {
+    // Apply remote changes
+    editor.applyDelta(delta);
+  }
+});
+
+// Insert text
+session.insertText(position, 'Hello world');
+
+// Delete text
+session.deleteText(start, end);
+
+// Replace text
+session.replaceText(start, end, 'New content');
+```
+
+### Rich Text Support
+Support for formatting and rich content:
+
+```javascript
+// Apply formatting
+session.formatText(start, end, {
+  bold: true,
+  italic: false,
+  color: '#ff0000'
+});
+
+// Insert rich content
+session.insertRichText(position, {
+  text: 'Important note',
+  attributes: {
+    bold: true,
+    backgroundColor: '#yellow'
+  }
+});
+```
+
+## Building Collaborative Editors
+
+### Document Editor Example
+```javascript
+import { Multisynq } from '@multisynq/sdk';
+
+class CollaborativeEditor {
+  constructor(element, sessionId) {
+    this.element = element;
+    this.session = new Multisynq.Session({ sessionId });
+    this.setupEventHandlers();
+  }
+
+  setupEventHandlers() {
+    // Handle local text changes
+    this.element.addEventListener('input', (e) => {
+      const delta = this.computeDelta(e);
+      this.session.applyTextDelta(delta);
+    });
+
+    // Handle remote text changes
+    this.session.onTextDelta((delta, userId) => {
+      if (userId !== this.session.currentUser.id) {
+        this.applyRemoteChange(delta);
+      }
+    });
+
+    // Handle cursor changes
+    this.element.addEventListener('selectionchange', () => {
+      const selection = this.getSelection();
+      this.session.setCursor(selection);
+    });
+  }
+
+  applyRemoteChange(delta) {
+    // Apply change without triggering local events
+    this.suppressLocalEvents = true;
+    this.element.value = this.applyDelta(this.element.value, delta);
+    this.suppressLocalEvents = false;
+  }
+}
+```
+
+### Code Editor Integration
+```javascript
+// Monaco Editor integration
+import * as monaco from 'monaco-editor';
+
+class CollaborativeCodeEditor {
+  constructor(container, sessionId) {
+    this.editor = monaco.editor.create(container, {
+      value: '',
+      language: 'javascript'
+    });
+
+    this.session = new Multisynq.Session({ sessionId });
+    this.setupCollaboration();
+  }
+
+  setupCollaboration() {
+    // Handle text changes
+    this.editor.onDidChangeModelContent((e) => {
+      if (!this.suppressLocalEvents) {
+        this.session.applyTextChanges(e.changes);
+      }
+    });
+
+    // Handle cursor changes
+    this.editor.onDidChangeCursorPosition((e) => {
+      this.session.setCursor({
+        line: e.position.lineNumber,
+        column: e.position.column
+      });
+    });
+
+    // Apply remote changes
+    this.session.onTextChanges((changes, userId) => {
+      if (userId !== this.session.currentUser.id) {
+        this.suppressLocalEvents = true;
+        this.editor.executeEdits('multisynq', changes);
+        this.suppressLocalEvents = false;
+      }
+    });
+  }
+}
+```
+
+## Advanced Features
+
+### Comments and Annotations
+```javascript
+// Add comments to content
+session.addComment({
+  id: 'comment-123',
+  position: { line: 10, column: 5 },
+  author: 'user-456',
+  text: 'This needs clarification',
+  timestamp: Date.now()
+});
+
+// Listen for comments
+session.onCommentAdded((comment) => {
+  showCommentInUI(comment);
+});
+
+// Resolve comments
+session.resolveComment('comment-123');
+```
+
+### Version History
+```javascript
+// Get document history
+const history = session.getHistory();
+
+// Create snapshot
+session.createSnapshot('Version 1.0');
+
+// Restore to previous version
+session.restoreSnapshot('snapshot-id');
+
+// Compare versions
+const diff = session.compareVersions('v1', 'v2');
+```
+
+### Permissions and Access Control
+```javascript
+// Set user permissions
+session.setUserPermissions('user-123', {
+  canEdit: true,
+  canComment: true,
+  canDelete: false
+});
+
+// Check permissions before operations
+if (session.canUserEdit(userId)) {
+  session.applyEdit(edit);
+}
+```
+
+## UI Components
+
+### User Presence
+```javascript
+// Show active users
+function renderUserPresence(users) {
+  const container = document.getElementById('user-presence');
+  container.innerHTML = users.map(user => `
+    <div class="user-avatar" style="border: 2px solid ${user.color}">
+      <img src="${user.avatar}" alt="${user.displayName}">
+      <span class="user-name">${user.displayName}</span>
+    </div>
+  `).join('');
+}
+```
+
+### Remote Cursors
+```javascript
+// Display remote cursors
+function showRemoteCursor(cursor) {
+  const cursorElement = document.createElement('div');
+  cursorElement.className = 'remote-cursor';
+  cursorElement.style.left = cursor.x + 'px';
+  cursorElement.style.top = cursor.y + 'px';
+  cursorElement.style.borderColor = cursor.user.color;
+  
+  document.body.appendChild(cursorElement);
+  
+  // Remove after timeout
+  setTimeout(() => {
+    cursorElement.remove();
+  }, 5000);
+}
+```
+
+### Conflict Indicators
+```javascript
+// Show when conflicts are resolved
+session.onConflictResolved((resolution) => {
+  showNotification({
+    type: 'info',
+    message: `Conflict resolved: ${resolution.strategy}`,
+    duration: 3000
+  });
+});
+```
+
+## Performance Optimization
+
+### Debouncing Updates
+```javascript
+// Debounce rapid changes
+const debouncedUpdate = debounce((changes) => {
+  session.applyChanges(changes);
+}, 100);
+
+editor.onDidChangeModelContent((e) => {
+  debouncedUpdate(e.changes);
+});
+```
+
+### Efficient Rendering
+```javascript
+// Only update changed regions
+session.onStateChange((newState, changeset) => {
+  Object.keys(changeset).forEach(key => {
+    if (key.startsWith('document.')) {
+      updateDocumentRegion(key, changeset[key]);
+    }
+  });
+});
+```
+
+## Best Practices
+
+### 1. Handle Network Issues
+```javascript
+session.onConnectionLost(() => {
+  showOfflineIndicator();
+  enableOfflineMode();
+});
+
+session.onConnectionRestored(() => {
+  hideOfflineIndicator();
+  syncPendingChanges();
+});
+```
+
+### 2. Graceful Degradation
+```javascript
+// Fallback for unsupported features
+if (!session.supportsOperationalTransform()) {
+  enableBasicSyncMode();
+}
+```
+
+### 3. User Experience
+- Show clear indicators of other users' activities
+- Provide smooth animations for remote changes
+- Handle conflicts gracefully with user feedback
+- Maintain responsive performance during heavy collaboration
+
+## Next Steps
+
+- Explore [Conflict Resolution](/essentials/conflicts)
+- Learn about [Real-time Synchronization](/essentials/sync)
+- Check out the [Sessions API](/api-reference/endpoint/create) 
