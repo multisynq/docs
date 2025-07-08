@@ -1,0 +1,977 @@
+---
+title: "Writing a Multisynq Model"
+description: "Learn the essential constraints and best practices for building synchronized models that work perfectly across all users"
+---
+
+# Writing a Multisynq Model
+
+Models are the heart of Multisynq applications - they contain all shared state and business logic. To maintain perfect synchronization across all users, models must follow specific constraints and patterns. This guide covers everything you need to know to write robust, synchronized models.
+
+## Core Constraints
+
+<Warning>
+**Critical**: Models must follow these constraints to maintain synchronization. Violating these rules will break multi-user functionality.
+</Warning>
+
+<CardGroup cols={2}>
+<Card title="🔒 Deterministic" icon="lock">
+**Models must produce identical results**
+
+- Same inputs → Same outputs
+- No randomness (use Multisynq.Random)
+- No external dependencies
+- No system calls
+
+```js
+// ✅ Deterministic
+this.position.x += this.velocity.x;
+
+// ❌ Non-deterministic
+this.position.x += Math.random();
+```
+</Card>
+
+<Card title="🔄 Serializable" icon="database">
+**All model state must be saveable**
+
+- No functions in state
+- No DOM references
+- No external objects
+- Pure data structures
+
+```js
+// ✅ Serializable
+this.gameState = "playing";
+this.players = new Map();
+
+// ❌ Not serializable
+this.callback = () => {};
+this.element = document.div;
+```
+</Card>
+</CardGroup>
+
+## Model Registration
+
+<Note>
+**Every model class must be registered** when defined for proper serialization.
+</Note>
+
+<Tabs>
+<Tab title="Basic Registration">
+**Register simple model classes**
+
+```js
+class Player extends Multisynq.Model {
+    init(options) {
+        this.name = options.name || "Anonymous";
+        this.position = { x: 0, y: 0 };
+        this.health = 100;
+    }
+    
+    move(dx, dy) {
+        this.position.x += dx;
+        this.position.y += dy;
+    }
+}
+
+// REQUIRED: Register the class
+Player.register("Player");
+```
+
+<Warning>
+The string name **must match** the class name exactly.
+</Warning>
+</Tab>
+
+<Tab title="Nested Models">
+**Register all model subclasses**
+
+```js
+class Game extends Multisynq.Model {
+    init() {
+        this.players = new Map();
+        this.world = World.create();
+    }
+    
+    addPlayer(name) {
+        const player = Player.create({ name });
+        this.players.set(player.id, player);
+        return player;
+    }
+}
+
+class World extends Multisynq.Model {
+    init() {
+        this.width = 800;
+        this.height = 600;
+        this.obstacles = [];
+    }
+}
+
+class Player extends Multisynq.Model {
+    init(options) {
+        this.name = options.name;
+        this.position = { x: 0, y: 0 };
+    }
+}
+
+// Register ALL model classes
+Game.register("Game");
+World.register("World");
+Player.register("Player");
+```
+</Tab>
+</Tabs>
+
+## Model Creation and Destruction
+
+<Warning>
+**Never use `new`** to create model instances. Always use `create()` and `destroy()`.
+</Warning>
+
+<Tabs>
+<Tab title="✅ Correct Creation">
+**Use `create()` for model instantiation**
+
+```js
+class GameManager extends Multisynq.Model {
+    init() {
+        this.entities = new Map();
+        this.nextId = 1;
+    }
+    
+    spawnPlayer(name) {
+        // ✅ Correct: Use create()
+        const player = Player.create({
+            id: this.nextId++,
+            name: name,
+            position: this.getSpawnPoint()
+        });
+        
+        this.entities.set(player.id, player);
+        this.publish("game", "player-spawned", player.id);
+        
+        return player;
+    }
+    
+    removePlayer(playerId) {
+        const player = this.entities.get(playerId);
+        if (player) {
+            // ✅ Correct: Use destroy()
+            player.destroy();
+            this.entities.delete(playerId);
+            this.publish("game", "player-removed", playerId);
+        }
+    }
+    
+    getSpawnPoint() {
+        return {
+            x: Math.floor(this.world.width / 2),
+            y: Math.floor(this.world.height / 2)
+        };
+    }
+}
+
+class Player extends Multisynq.Model {
+    init(options) {
+        // This is called automatically by create()
+        this.id = options.id;
+        this.name = options.name;
+        this.position = options.position;
+        this.health = 100;
+        
+        console.log(`Player ${this.name} created at`, this.position);
+    }
+    
+    destroy() {
+        // Cleanup logic before destruction
+        this.publish("player", "dying", this.id);
+        
+        // Call parent destroy
+        super.destroy();
+    }
+}
+
+GameManager.register("GameManager");
+Player.register("Player");
+```
+</Tab>
+
+<Tab title="❌ Incorrect Creation">
+**Don't use `new` or constructors**
+
+```js
+class BadModel extends Multisynq.Model {
+    constructor(options) {
+        // ❌ NEVER implement constructor
+        super();
+        this.data = options.data;
+    }
+    
+    createChild() {
+        // ❌ NEVER use new
+        const child = new ChildModel({ parent: this });
+        return child;
+    }
+}
+
+// This will break synchronization!
+```
+
+<Warning>
+Using `new` or implementing constructors will break snapshot restoration and synchronization.
+</Warning>
+</Tab>
+</Tabs>
+
+## Initialization with `init()`
+
+<Info>
+**Always use `init()` for initialization**, never constructors. The `init()` method is called only for new instances, not when restoring from snapshots.
+</Info>
+
+<Tabs>
+<Tab title="Proper Initialization">
+**Structure your `init()` method correctly**
+
+```js
+class GameObject extends Multisynq.Model {
+    init(options = {}) {
+        // Set default values first
+        this.position = { x: 0, y: 0 };
+        this.velocity = { x: 0, y: 0 };
+        this.health = 100;
+        this.maxHealth = 100;
+        this.alive = true;
+        
+        // Apply options
+        if (options.position) {
+            this.position = { ...options.position };
+        }
+        if (options.health !== undefined) {
+            this.health = options.health;
+            this.maxHealth = options.health;
+        }
+        
+        // Setup behaviors
+        this.setupPhysics();
+        this.startAI();
+        
+        // Subscribe to events
+        this.subscribe(this.id, "damage", this.takeDamage);
+        this.subscribe(this.id, "heal", this.heal);
+    }
+    
+    setupPhysics() {
+        // Start physics update loop
+        this.future(1000/60).updatePhysics();
+    }
+    
+    startAI() {
+        // Start AI decision loop
+        this.future(500).makeDecision();
+    }
+    
+    takeDamage(damage) {
+        this.health = Math.max(0, this.health - damage);
+        if (this.health <= 0 && this.alive) {
+            this.die();
+        }
+    }
+    
+    heal(amount) {
+        this.health = Math.min(this.maxHealth, this.health + amount);
+    }
+    
+    die() {
+        this.alive = false;
+        this.publish("game", "entity-died", this.id);
+        
+        // Remove after death animation
+        this.future(2000).destroy();
+    }
+    
+    updatePhysics() {
+        if (!this.alive) return;
+        
+        this.position.x += this.velocity.x / 60;
+        this.position.y += this.velocity.y / 60;
+        
+        // Continue physics loop
+        this.future(1000/60).updatePhysics();
+    }
+    
+    makeDecision() {
+        if (!this.alive) return;
+        
+        // AI decision logic here
+        this.chooseAction();
+        
+        // Continue AI loop
+        this.future(500).makeDecision();
+    }
+}
+
+GameObject.register("GameObject");
+```
+</Tab>
+
+<Tab title="Common Mistakes">
+**Avoid these initialization errors**
+
+```js
+class BadModel extends Multisynq.Model {
+    constructor() {
+        // ❌ Never implement constructor
+        super();
+        this.setupData();
+    }
+    
+    init(options) {
+        // ❌ Don't call setup methods that might fail
+        this.connectToExternalAPI(); // Could fail
+        
+        // ❌ Don't use system time
+        this.createdAt = Date.now();
+        
+        // ❌ Don't store function references
+        this.callback = options.onComplete;
+        
+        // ❌ Don't access global variables
+        this.config = window.gameConfig;
+        
+        // ❌ Don't use async operations
+        this.loadDataAsync();
+    }
+    
+    async loadDataAsync() {
+        // ❌ Async not allowed in models
+        const data = await fetch('/api/data');
+        this.data = data;
+    }
+}
+```
+</Tab>
+</Tabs>
+
+## Constants and Global Data
+
+<Warning>
+**No global variables** in models. Use `Multisynq.Constants` for shared constants.
+</Warning>
+
+<Tabs>
+<Tab title="✅ Using Constants">
+**Properly define and use constants**
+
+```js
+// Define constants before session starts
+const Q = Multisynq.Constants;
+
+Q.GAME = {
+    WORLD_WIDTH: 800,
+    WORLD_HEIGHT: 600,
+    GRAVITY: 0.5,
+    JUMP_FORCE: -12,
+    PLAYER_SPEED: 200
+};
+
+Q.PHYSICS = {
+    STEP_MS: 1000 / 60,  // 60fps physics
+    MAX_VELOCITY: 500,
+    FRICTION: 0.8
+};
+
+Q.GAMEPLAY = {
+    PLAYER_HEALTH: 100,
+    DAMAGE_COOLDOWN: 1000,
+    RESPAWN_TIME: 3000
+};
+
+class Game extends Multisynq.Model {
+    init() {
+        this.world = {
+            width: Q.GAME.WORLD_WIDTH,
+            height: Q.GAME.WORLD_HEIGHT
+        };
+        
+        this.physics = {
+            gravity: Q.GAME.GRAVITY,
+            friction: Q.PHYSICS.FRICTION
+        };
+        
+        // Start physics loop
+        this.future(Q.PHYSICS.STEP_MS).physicsStep();
+    }
+    
+    physicsStep() {
+        // Use constants in calculations
+        for (const player of this.players.values()) {
+            player.velocity.y += Q.GAME.GRAVITY;
+            player.velocity.x *= Q.PHYSICS.FRICTION;
+            
+            // Clamp velocity
+            const maxVel = Q.PHYSICS.MAX_VELOCITY;
+            player.velocity.x = Math.max(-maxVel, Math.min(maxVel, player.velocity.x));
+            player.velocity.y = Math.max(-maxVel, Math.min(maxVel, player.velocity.y));
+        }
+        
+        this.future(Q.PHYSICS.STEP_MS).physicsStep();
+    }
+    
+    createPlayer(name) {
+        return Player.create({
+            name: name,
+            health: Q.GAMEPLAY.PLAYER_HEALTH,
+            speed: Q.GAME.PLAYER_SPEED
+        });
+    }
+}
+
+Game.register("Game");
+```
+
+<Info>
+Constants are recursively frozen once the session starts, preventing accidental modification.
+</Info>
+</Tab>
+
+<Tab title="❌ Global Variables">
+**Don't use global variables**
+
+```js
+// ❌ Don't do this - not synchronized
+const WORLD_WIDTH = 800;
+let gameState = "playing";
+var playerCount = 0;
+
+class BadModel extends Multisynq.Model {
+    init() {
+        // ❌ These may not be synchronized
+        this.width = WORLD_WIDTH;
+        this.state = gameState;
+        this.playerCount = playerCount;
+        
+        // ❌ Modifying globals breaks sync
+        playerCount++;
+        gameState = "active";
+    }
+}
+```
+
+This breaks synchronization because global variables aren't saved in snapshots and may have different values on different devices.
+</Tab>
+</Tabs>
+
+## Synchronization Rules
+
+<AccordionGroup>
+<Accordion title="🚫 No External Dependencies" icon="ban">
+**Models must be isolated from external systems**
+
+```js
+class SynchronizedModel extends Multisynq.Model {
+    init() {
+        // ✅ Use simulation time
+        this.startTime = this.now();
+        
+        // ✅ Use Multisynq random
+        this.randomSeed = this.random(1000);
+        
+        // ✅ Use constants
+        this.maxPlayers = Q.GAME.MAX_PLAYERS;
+    }
+    
+    gameLoop() {
+        // ✅ Deterministic calculations
+        const elapsed = this.now() - this.startTime;
+        this.updateGameState(elapsed);
+        
+        this.future(Q.PHYSICS.STEP_MS).gameLoop();
+    }
+}
+
+class UnsynchronizedModel extends Multisynq.Model {
+    init() {
+        // ❌ Never use system time
+        this.startTime = Date.now();
+        
+        // ❌ Never use Math.random
+        this.randomValue = Math.random();
+        
+        // ❌ Never access browser APIs
+        this.windowWidth = window.innerWidth;
+        
+        // ❌ Never make network requests
+        this.fetchUserData();
+    }
+    
+    async fetchUserData() {
+        // ❌ No async/await in models
+        const data = await fetch('/api/user');
+        this.userData = data;
+    }
+}
+```
+</Accordion>
+
+<Accordion title="🔄 No Async Operations" icon="clock">
+**Models must be synchronous and deterministic**
+
+```js
+class SyncModel extends Multisynq.Model {
+    init() {
+        this.data = new Map();
+        this.processQueue = [];
+        
+        // ✅ Use scheduled processing instead of async
+        this.processData();
+    }
+    
+    addWork(work) {
+        this.processQueue.push(work);
+    }
+    
+    processData() {
+        // ✅ Process work synchronously in chunks
+        const startTime = this.now();
+        while (this.processQueue.length > 0 && this.now() - startTime < 5) {
+            const work = this.processQueue.shift();
+            this.processWorkItem(work);
+        }
+        
+        // Continue processing next frame
+        this.future(16).processData();
+    }
+    
+    processWorkItem(work) {
+        // Synchronous processing only
+        const result = this.calculateResult(work);
+        this.data.set(work.id, result);
+    }
+}
+
+class AsyncModel extends Multisynq.Model {
+    async init() {
+        // ❌ Never use async init
+        this.data = await this.loadData();
+    }
+    
+    async processRequest(request) {
+        // ❌ Never use async methods
+        const response = await fetch('/api/process', {
+            method: 'POST',
+            body: JSON.stringify(request)
+        });
+        return response.json();
+    }
+    
+    handleTimer() {
+        // ❌ Never use setTimeout/setInterval
+        setTimeout(() => {
+            this.doSomething();
+        }, 1000);
+    }
+}
+```
+</Accordion>
+
+<Accordion title="📡 No View Communication" icon="satellite">
+**Don't create Model → View → Model event chains**
+
+```js
+class GoodModel extends Multisynq.Model {
+    init() {
+        this.gameState = "waiting";
+        this.players = new Map();
+        
+        // ✅ Listen to view events only
+        this.subscribe("input", "player-action", this.handlePlayerAction);
+    }
+    
+    handlePlayerAction(data) {
+        // ✅ Process input and update state
+        const player = this.players.get(data.playerId);
+        if (player) {
+            player.processAction(data.action);
+        }
+        
+        // ✅ Notify views of state change (local only)
+        this.publish("game", "state-updated", {
+            gameState: this.gameState,
+            playerCount: this.players.size
+        });
+    }
+    
+    startGame() {
+        this.gameState = "playing";
+        
+        // ✅ Notify views locally
+        this.publish("ui", "game-started", {});
+    }
+}
+
+class BadModel extends Multisynq.Model {
+    init() {
+        this.waitingForViewResponse = false;
+        
+        // ❌ Don't expect responses from views
+        this.subscribe("view-response", "confirmation", this.handleViewResponse);
+    }
+    
+    doSomething() {
+        // ❌ Don't query views for information
+        this.publish("view-query", "get-user-preference", {});
+        this.waitingForViewResponse = true;
+        
+        // ❌ Don't wait for view responses
+        this.future(100).checkViewResponse();
+    }
+    
+    checkViewResponse() {
+        if (this.waitingForViewResponse) {
+            // ❌ This creates unreliable behavior
+            this.future(100).checkViewResponse();
+        }
+    }
+}
+```
+</Accordion>
+</AccordionGroup>
+
+## Advanced: Non-Model Objects
+
+<Info>
+Sometimes you need utility classes that aren't models. Use the `types()` system to handle their serialization.
+</Info>
+
+<Tabs>
+<Tab title="Basic Non-Model Class">
+**Simple utility classes with default serialization**
+
+```js
+// Utility class that isn't a Model
+class Vector2D {
+    constructor(x = 0, y = 0) {
+        this.x = x;
+        this.y = y;
+    }
+    
+    add(other) {
+        return new Vector2D(this.x + other.x, this.y + other.y);
+    }
+    
+    multiply(scalar) {
+        return new Vector2D(this.x * scalar, this.y * scalar);
+    }
+    
+    magnitude() {
+        return Math.sqrt(this.x * this.x + this.y * this.y);
+    }
+    
+    normalize() {
+        const mag = this.magnitude();
+        return mag > 0 ? this.multiply(1 / mag) : new Vector2D(0, 0);
+    }
+}
+
+class PhysicsModel extends Multisynq.Model {
+    static types() {
+        return {
+            "Vector2D": Vector2D  // Use default serialization
+        };
+    }
+    
+    init() {
+        this.position = new Vector2D(100, 100);
+        this.velocity = new Vector2D(0, 0);
+        this.acceleration = new Vector2D(0, 0.5); // gravity
+    }
+    
+    updatePhysics() {
+        // Use Vector2D methods
+        this.velocity = this.velocity.add(this.acceleration);
+        this.position = this.position.add(this.velocity);
+        
+        // Bounce off ground
+        if (this.position.y > 500) {
+            this.position.y = 500;
+            this.velocity = new Vector2D(this.velocity.x, -this.velocity.y * 0.8);
+        }
+        
+        this.future(1000/60).updatePhysics();
+    }
+}
+
+PhysicsModel.register("PhysicsModel");
+```
+</Tab>
+
+<Tab title="Custom Serialization">
+**Complex classes with custom `write()` and `read()` methods**
+
+```js
+// Complex utility class needing custom serialization
+class GameBoard {
+    constructor(width, height) {
+        this.width = width;
+        this.height = height;
+        this.cells = new Array(width * height).fill(0);
+        this.specialData = new Map(); // Maps aren't JSON serializable
+    }
+    
+    getCellIndex(x, y) {
+        return y * this.width + x;
+    }
+    
+    setCell(x, y, value) {
+        if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+            this.cells[this.getCellIndex(x, y)] = value;
+        }
+    }
+    
+    getCell(x, y) {
+        if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+            return this.cells[this.getCellIndex(x, y)];
+        }
+        return 0;
+    }
+    
+    setSpecialData(key, value) {
+        this.specialData.set(key, value);
+    }
+}
+
+class BoardGameModel extends Multisynq.Model {
+    static types() {
+        return {
+            "GameBoard": {
+                cls: GameBoard,
+                write: (board) => ({
+                    width: board.width,
+                    height: board.height,
+                    cells: board.cells,
+                    specialData: Array.from(board.specialData.entries())
+                }),
+                read: (data) => {
+                    const board = new GameBoard(data.width, data.height);
+                    board.cells = data.cells;
+                    board.specialData = new Map(data.specialData);
+                    return board;
+                }
+            }
+        };
+    }
+    
+    init() {
+        this.board = new GameBoard(10, 10);
+        this.currentPlayer = 1;
+        
+        // Initialize board
+        this.setupInitialBoard();
+    }
+    
+    setupInitialBoard() {
+        for (let x = 0; x < this.board.width; x++) {
+            for (let y = 0; y < this.board.height; y++) {
+                // Set up initial game state
+                if (y === 0) {
+                    this.board.setCell(x, y, 1); // Player 1 pieces
+                } else if (y === this.board.height - 1) {
+                    this.board.setCell(x, y, 2); // Player 2 pieces
+                }
+            }
+        }
+        
+        // Set special data
+        this.board.setSpecialData("lastMove", null);
+        this.board.setSpecialData("turnCount", 0);
+    }
+    
+    makeMove(fromX, fromY, toX, toY) {
+        const piece = this.board.getCell(fromX, fromY);
+        if (piece === this.currentPlayer) {
+            this.board.setCell(fromX, fromY, 0);
+            this.board.setCell(toX, toY, piece);
+            
+            this.board.setSpecialData("lastMove", { fromX, fromY, toX, toY });
+            this.board.setSpecialData("turnCount", 
+                this.board.specialData.get("turnCount") + 1);
+            
+            this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+            
+            this.publish("game", "move-made", {
+                from: { x: fromX, y: fromY },
+                to: { x: toX, y: toY },
+                player: piece
+            });
+        }
+    }
+}
+
+BoardGameModel.register("BoardGameModel");
+```
+</Tab>
+</Tabs>
+
+## Best Practices Summary
+
+<CardGroup cols={2}>
+<Card title="🏗️ Structure" icon="building">
+**Organize your models properly**
+
+- Register all model classes
+- Use `create()` and `destroy()`
+- Initialize in `init()` method
+- Keep models focused and single-purpose
+
+```js
+class Player extends Multisynq.Model {
+    init(options) {
+        this.setupPlayer(options);
+        this.startBehaviors();
+    }
+}
+Player.register("Player");
+```
+</Card>
+
+<Card title="⚡ Performance" icon="bolt">
+**Optimize for synchronization**
+
+- Use constants for shared values
+- Batch operations when possible
+- Avoid unnecessary calculations
+- Clean up unused objects
+
+```js
+// ✅ Efficient batching
+batchUpdate() {
+    this.updateMultipleEntities();
+    this.future(Q.PHYSICS.STEP_MS).batchUpdate();
+}
+```
+</Card>
+
+<Card title="🔒 Safety" icon="shield">
+**Maintain synchronization**
+
+- No external dependencies
+- No async operations
+- No global variables
+- Deterministic behavior only
+
+```js
+// ✅ Safe and synchronized
+this.value = this.calculateDeterministic();
+```
+</Card>
+
+<Card title="🧪 Testing" icon="flask">
+**Test thoroughly**
+
+- Test with multiple users
+- Verify snapshot restoration
+- Check deterministic behavior
+- Test edge cases
+
+```js
+// Test both fresh start and snapshot load
+console.log("Model state:", this.getState());
+```
+</Card>
+</CardGroup>
+
+## Common Mistakes
+
+<Warning>
+**Avoid these common model development errors:**
+</Warning>
+
+<AccordionGroup>
+<Accordion title="❌ Using System APIs" icon="ban">
+```js
+// ❌ NEVER do these in models:
+const now = Date.now();              // Use this.now()
+const random = Math.random();        // Use this.random()
+const element = document.getElementById('canvas'); // No DOM access
+const data = localStorage.getItem('data');        // No storage access
+const response = fetch('/api/data'); // No network calls
+```
+</Accordion>
+
+<Accordion title="❌ Storing Functions" icon="function">
+```js
+// ❌ Don't store functions in model state
+class BadModel extends Multisynq.Model {
+    init() {
+        this.callback = () => console.log("Hi"); // Won't serialize
+        this.handlers = new Map([
+            ['click', this.handleClick]  // Won't work
+        ]);
+    }
+}
+
+// ✅ Use method names instead
+class GoodModel extends Multisynq.Model {
+    init() {
+        this.eventHandlers = ['handleClick', 'handleMove'];
+        this.subscribe("input", "click", this.handleClick);
+    }
+}
+```
+</Accordion>
+
+<Accordion title="❌ Async Operations" icon="clock">
+```js
+// ❌ No promises or async/await
+class AsyncModel extends Multisynq.Model {
+    async init() {
+        this.data = await this.loadData(); // Breaks sync
+    }
+    
+    handleClick() {
+        setTimeout(() => {
+            this.doSomething(); // Breaks sync
+        }, 1000);
+    }
+}
+
+// ✅ Use future() for timing
+class SyncModel extends Multisynq.Model {
+    init() {
+        this.loadDataSync();
+    }
+    
+    handleClick() {
+        this.future(1000).doSomething(); // Synchronized
+    }
+}
+```
+</Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+<Card title="Writing a Multisynq View" icon="eye" href="/tutorials/writing-multisynq-view">
+  Learn to build views that work with your models
+</Card>
+
+<Card title="Events & Pub-Sub" icon="satellite" href="/tutorials/events-pub-sub">
+  Master communication between models and views
+</Card>
+
+<Card title="Sim Time & Future" icon="clock" href="/tutorials/sim-time-future">
+  Understand timing and scheduling in models
+</Card>
+
+<Card title="Random" icon="dice" href="/tutorials/random">
+  Learn synchronized random number generation
+</Card>
+</CardGroup>
+
+<Note>
+Writing good Multisynq models is fundamental to building successful multiplayer applications. Follow these constraints carefully, and your models will synchronize perfectly across all users, providing a seamless collaborative experience.
+</Note> 

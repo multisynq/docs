@@ -1,0 +1,1608 @@
+---
+title: "Data API"
+description: "Learn how to handle file uploads, bulk data storage, and secure data sharing in Multisynq applications"
+---
+
+# Data API
+
+The Multisynq Data API provides secure bulk data storage for your applications. Instead of sending large files through the event system, you can upload data to Multisynq's servers and share lightweight data handles that other users can use to fetch the content.
+
+## Core Concepts
+
+<Info>
+The Data API separates large binary data from your synchronized model state, providing efficient and secure file sharing capabilities.
+</Info>
+
+<Tabs>
+<Tab title="How It Works">
+**Data flow overview**
+
+```js
+// 1. Upload data and get a handle
+const dataHandle = await session.data.store(arrayBuffer);
+
+// 2. Share the lightweight handle through events
+this.publish("game", "asset-uploaded", { handle: dataHandle });
+
+// 3. Other users fetch data using the handle
+const data = await session.data.fetch(dataHandle);
+
+// 4. Use the data (create images, audio, etc.)
+const blob = new Blob([data], { type: "image/jpeg" });
+const imageUrl = URL.createObjectURL(blob);
+```
+
+<Note>
+**Benefits**: Efficient network usage, automatic caching, end-to-end encryption, and cleaner model state.
+</Note>
+</Tab>
+
+<Tab title="Security Model">
+**End-to-end encryption and access control**
+
+```js
+class SecureDataModel extends Multisynq.Model {
+    init() {
+        this.userFiles = new Map();
+        
+        this.subscribe("files", "upload", this.handleFileUpload);
+        this.subscribe("files", "share", this.shareFile);
+    }
+    
+    handleFileUpload(data) {
+        // Store encrypted data handle in model
+        this.userFiles.set(data.fileId, {
+            id: data.fileId,
+            name: data.fileName,
+            type: data.fileType,
+            size: data.fileSize,
+            handle: data.handle, // Encrypted with session password
+            owner: data.userId,
+            uploadTime: this.now(),
+            permissions: ["owner"]
+        });
+        
+        this.publish("files", "file-uploaded", {
+            fileId: data.fileId,
+            fileName: data.fileName,
+            owner: data.userId
+        });
+    }
+    
+    shareFile(data) {
+        const file = this.userFiles.get(data.fileId);
+        
+        if (file && file.owner === data.userId) {
+            // Add permission for specific user
+            file.permissions.push(data.shareWithUserId);
+            
+            this.publish("files", "file-shared", {
+                fileId: data.fileId,
+                sharedWith: data.shareWithUserId,
+                fileName: file.name
+            });
+        }
+    }
+    
+    canUserAccessFile(userId, fileId) {
+        const file = this.userFiles.get(fileId);
+        return file && (
+            file.owner === userId || 
+            file.permissions.includes(userId) ||
+            file.permissions.includes("everyone")
+        );
+    }
+}
+
+SecureDataModel.register("SecureDataModel");
+```
+
+<Warning>
+**Default encryption**: Data is encrypted with the session password. Only users in the same session can decrypt it.
+
+**Shareable handles**: Use `{shareable: true}` for cross-session sharing, but handle with care as leaked handles expose data.
+</Warning>
+</Tab>
+</Tabs>
+
+## Basic File Upload and Sharing
+
+<Tabs>
+<Tab title="Complete Example">
+**Image sharing application**
+
+```js
+class ImageSharingModel extends Multisynq.Model {
+    init(options, persisted) {
+        this.images = new Map();
+        this.nextImageId = 1;
+        
+        // Restore from persistence
+        if (persisted) {
+            this.restoreFromPersistence(persisted);
+        }
+        
+        this.subscribe("images", "upload", this.handleImageUpload);
+        this.subscribe("images", "delete", this.handleImageDelete);
+    }
+    
+    handleImageUpload(data) {
+        const imageId = this.nextImageId++;
+        
+        const imageInfo = {
+            id: imageId,
+            name: data.fileName,
+            type: data.fileType,
+            size: data.fileSize,
+            handle: data.handle,
+            uploader: data.userId,
+            uploadTime: this.now(),
+            tags: data.tags || [],
+            description: data.description || ""
+        };
+        
+        this.images.set(imageId, imageInfo);
+        
+        // Notify all users
+        this.publish("images", "image-added", imageInfo);
+        
+        // Persist the session data
+        this.persistSession(this.saveForPersistence);
+    }
+    
+    handleImageDelete(data) {
+        const image = this.images.get(data.imageId);
+        
+        // Only uploader can delete
+        if (image && image.uploader === data.userId) {
+            this.images.delete(data.imageId);
+            
+            this.publish("images", "image-deleted", {
+                imageId: data.imageId,
+                fileName: image.name
+            });
+            
+            this.persistSession(this.saveForPersistence);
+        }
+    }
+    
+    saveForPersistence() {
+        // Convert handles to persistable IDs
+        const imageData = {};
+        
+        for (const [id, image] of this.images) {
+            imageData[id] = {
+                ...image,
+                handleId: Multisynq.Data.toId(image.handle) // Convert to string
+            };
+            delete imageData[id].handle; // Remove non-serializable handle
+        }
+        
+        return {
+            images: imageData,
+            nextImageId: this.nextImageId
+        };
+    }
+    
+    restoreFromPersistence(saved) {
+        this.nextImageId = saved.nextImageId || 1;
+        
+        // Restore images and recreate handles
+        for (const [id, imageData] of Object.entries(saved.images || {})) {
+            const image = {
+                ...imageData,
+                handle: Multisynq.Data.fromId(imageData.handleId) // Recreate handle
+            };
+            delete imageData.handleId; // Remove the ID string
+            
+            this.images.set(parseInt(id), image);
+        }
+    }
+}
+
+ImageSharingModel.register("ImageSharingModel");
+
+class ImageSharingView extends Multisynq.View {
+    init() {
+        this.model = this.wellKnownModel("ImageSharingModel");
+        this.userId = this.viewId;
+        this.imageElements = new Map();
+        
+        this.setupUI();
+        this.setupFileHandlers();
+        this.displayExistingImages();
+        
+        // Subscribe to events
+        this.subscribe("images", "image-added", this.onImageAdded);
+        this.subscribe("images", "image-deleted", this.onImageDeleted);
+    }
+    
+    setupUI() {
+        document.body.innerHTML = `
+            <div id="app">
+                <header>
+                    <h1>Image Sharing Gallery</h1>
+                    <div class="upload-area" id="upload-area">
+                        <p>Drop images here or click to upload</p>
+                        <input type="file" id="file-input" accept="image/*" multiple style="display: none;">
+                    </div>
+                </header>
+                <main>
+                    <div id="image-gallery" class="gallery"></div>
+                </main>
+                <div id="status" class="status"></div>
+            </div>
+        `;
+        
+        // Style the application
+        const style = document.createElement('style');
+        style.textContent = `
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: Arial, sans-serif; background: #f5f5f5; }
+            #app { max-width: 1200px; margin: 0 auto; padding: 20px; }
+            header { margin-bottom: 30px; }
+            h1 { color: #333; margin-bottom: 20px; }
+            .upload-area {
+                border: 3px dashed #ccc; border-radius: 10px; padding: 40px;
+                text-align: center; cursor: pointer; transition: all 0.3s;
+                background: white;
+            }
+            .upload-area:hover { border-color: #007bff; background: #f8f9fa; }
+            .upload-area.dragover { border-color: #007bff; background: #e7f3ff; }
+            .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+            .image-card {
+                background: white; border-radius: 10px; overflow: hidden;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1); transition: transform 0.2s;
+            }
+            .image-card:hover { transform: translateY(-5px); }
+            .image-container { width: 100%; height: 200px; overflow: hidden; }
+            .image-container img { width: 100%; height: 100%; object-fit: cover; }
+            .image-info { padding: 15px; }
+            .image-name { font-weight: bold; margin-bottom: 5px; }
+            .image-meta { color: #666; font-size: 12px; margin-bottom: 10px; }
+            .image-actions { display: flex; gap: 10px; }
+            .btn { padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; }
+            .btn-delete { background: #dc3545; color: white; }
+            .btn-download { background: #007bff; color: white; }
+            .status { position: fixed; bottom: 20px; right: 20px; padding: 10px 20px; 
+                     background: #333; color: white; border-radius: 5px; display: none; }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    setupFileHandlers() {
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        
+        // Click to upload
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            this.handleFiles(Array.from(e.target.files));
+            fileInput.value = ''; // Reset for repeated uploads
+        });
+        
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = Array.from(e.dataTransfer.files).filter(file => 
+                file.type.startsWith('image/')
+            );
+            
+            if (files.length > 0) {
+                this.handleFiles(files);
+            } else {
+                this.showStatus('Please drop image files only', 'error');
+            }
+        });
+    }
+    
+    async handleFiles(files) {
+        for (const file of files) {
+            await this.uploadFile(file);
+        }
+    }
+    
+    async uploadFile(file) {
+        try {
+            this.showStatus(`Reading ${file.name}...`);
+            
+            // Read file data
+            const arrayBuffer = await this.readFileAsArrayBuffer(file);
+            
+            this.showStatus(`Uploading ${file.name} (${this.formatFileSize(arrayBuffer.byteLength)})...`);
+            
+            // Store data and get handle
+            const handle = await this.session.data.store(arrayBuffer);
+            
+            // Publish upload event
+            this.publish("images", "upload", {
+                fileName: file.name,
+                fileType: file.type,
+                fileSize: arrayBuffer.byteLength,
+                handle: handle,
+                userId: this.userId,
+                tags: [],
+                description: ""
+            });
+            
+            this.showStatus(`${file.name} uploaded successfully!`, 'success');
+            
+        } catch (error) {
+            console.error('Upload failed:', error);
+            this.showStatus(`Failed to upload ${file.name}: ${error.message}`, 'error');
+        }
+    }
+    
+    readFileAsArrayBuffer(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsArrayBuffer(file);
+        });
+    }
+    
+    displayExistingImages() {
+        // Display images that are already in the model
+        for (const [id, image] of this.model.images) {
+            this.onImageAdded(image);
+        }
+    }
+    
+    async onImageAdded(imageInfo) {
+        try {
+            this.showStatus(`Loading ${imageInfo.name}...`);
+            
+            // Fetch the image data
+            const data = await this.session.data.fetch(imageInfo.handle);
+            
+            // Create blob and image URL
+            const blob = new Blob([data], { type: imageInfo.type });
+            const imageUrl = URL.createObjectURL(blob);
+            
+            // Create image card
+            this.createImageCard(imageInfo, imageUrl);
+            
+            this.showStatus(`${imageInfo.name} loaded`, 'success');
+            
+        } catch (error) {
+            console.error('Failed to load image:', error);
+            this.showStatus(`Failed to load ${imageInfo.name}`, 'error');
+        }
+    }
+    
+    createImageCard(imageInfo, imageUrl) {
+        const gallery = document.getElementById('image-gallery');
+        
+        const card = document.createElement('div');
+        card.className = 'image-card';
+        card.id = `image-${imageInfo.id}`;
+        
+        const uploadDate = new Date(imageInfo.uploadTime).toLocaleDateString();
+        const isOwner = imageInfo.uploader === this.userId;
+        
+        card.innerHTML = `
+            <div class="image-container">
+                <img src="${imageUrl}" alt="${imageInfo.name}" loading="lazy">
+            </div>
+            <div class="image-info">
+                <div class="image-name">${imageInfo.name}</div>
+                <div class="image-meta">
+                    ${this.formatFileSize(imageInfo.size)} • ${uploadDate}
+                    ${imageInfo.description ? `<br>${imageInfo.description}` : ''}
+                </div>
+                <div class="image-actions">
+                    <button class="btn btn-download" onclick="this.saveImage('${imageUrl}', '${imageInfo.name}')">
+                        Download
+                    </button>
+                    ${isOwner ? `
+                        <button class="btn btn-delete" onclick="this.deleteImage(${imageInfo.id})">
+                            Delete
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        
+        gallery.appendChild(card);
+        this.imageElements.set(imageInfo.id, { card, url: imageUrl });
+    }
+    
+    onImageDeleted(data) {
+        const element = this.imageElements.get(data.imageId);
+        if (element) {
+            // Clean up blob URL
+            URL.revokeObjectURL(element.url);
+            
+            // Remove from DOM
+            element.card.remove();
+            
+            // Remove from tracking
+            this.imageElements.delete(data.imageId);
+            
+            this.showStatus(`${data.fileName} deleted`, 'info');
+        }
+    }
+    
+    deleteImage(imageId) {
+        if (confirm('Are you sure you want to delete this image?')) {
+            this.publish("images", "delete", {
+                imageId: imageId,
+                userId: this.userId
+            });
+        }
+    }
+    
+    saveImage(url, filename) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+    
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    showStatus(message, type = 'info') {
+        const status = document.getElementById('status');
+        status.textContent = message;
+        status.className = `status ${type}`;
+        status.style.display = 'block';
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            status.style.display = 'none';
+        }, 3000);
+        
+        console.log(`[${type.toUpperCase()}] ${message}`);
+    }
+}
+
+ImageSharingView.register("ImageSharingView");
+
+// Launch the application
+document.addEventListener('DOMContentLoaded', () => {
+    Multisynq.Session.join({
+        apiKey: "your_api_key_here",  // Get from multisynq.io/coder
+        appId: "com.example.image-sharing",
+        name: Multisynq.App.autoSession(),
+        password: Multisynq.App.autoPassword(),
+        model: ImageSharingModel,
+        view: ImageSharingView,
+        tps: 0 // No regular model updates needed
+    });
+});
+```
+</Tab>
+
+<Tab title="Audio Sharing">
+**Voice message application**
+
+```js
+class AudioSharingModel extends Multisynq.Model {
+    init() {
+        this.recordings = new Map();
+        this.nextRecordingId = 1;
+        
+        this.subscribe("audio", "upload", this.handleAudioUpload);
+        this.subscribe("audio", "delete", this.handleAudioDelete);
+    }
+    
+    handleAudioUpload(data) {
+        const recordingId = this.nextRecordingId++;
+        
+        const recording = {
+            id: recordingId,
+            name: data.fileName,
+            duration: data.duration,
+            size: data.fileSize,
+            handle: data.handle,
+            uploader: data.userId,
+            uploadTime: this.now(),
+            transcription: data.transcription || ""
+        };
+        
+        this.recordings.set(recordingId, recording);
+        
+        this.publish("audio", "recording-added", recording);
+    }
+    
+    handleAudioDelete(data) {
+        const recording = this.recordings.get(data.recordingId);
+        
+        if (recording && recording.uploader === data.userId) {
+            this.recordings.delete(data.recordingId);
+            this.publish("audio", "recording-deleted", {
+                recordingId: data.recordingId
+            });
+        }
+    }
+}
+
+AudioSharingModel.register("AudioSharingModel");
+
+class AudioSharingView extends Multisynq.View {
+    init() {
+        this.model = this.wellKnownModel("AudioSharingModel");
+        this.userId = this.viewId;
+        this.mediaRecorder = null;
+        this.recordedChunks = [];
+        this.isRecording = false;
+        
+        this.setupUI();
+        this.setupAudioRecording();
+        this.displayExistingRecordings();
+        
+        this.subscribe("audio", "recording-added", this.onRecordingAdded);
+        this.subscribe("audio", "recording-deleted", this.onRecordingDeleted);
+    }
+    
+    setupUI() {
+        document.body.innerHTML = `
+            <div id="app">
+                <header>
+                    <h1>Voice Messages</h1>
+                    <div class="recording-controls">
+                        <button id="record-btn" class="btn btn-record">🎤 Start Recording</button>
+                        <span id="recording-time" class="recording-time"></span>
+                    </div>
+                </header>
+                <main>
+                    <div id="recordings-list" class="recordings"></div>
+                </main>
+            </div>
+        `;
+        
+        const style = document.createElement('style');
+        style.textContent = `
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+            #app { max-width: 800px; margin: 0 auto; }
+            header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+            .recording-controls { margin-top: 15px; }
+            .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+            .btn-record { background: #28a745; color: white; }
+            .btn-record.recording { background: #dc3545; }
+            .recording-time { margin-left: 15px; font-weight: bold; color: #dc3545; }
+            .recordings { display: flex; flex-direction: column; gap: 15px; }
+            .recording-card { background: white; padding: 20px; border-radius: 10px; }
+            .recording-header { display: flex; justify-content: between; align-items: center; }
+            .recording-meta { color: #666; margin: 10px 0; }
+            .recording-controls { display: flex; gap: 10px; align-items: center; }
+            .btn-play { background: #007bff; color: white; }
+            .btn-delete { background: #dc3545; color: white; }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    async setupAudioRecording() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.audioStream = stream;
+            
+            const recordBtn = document.getElementById('record-btn');
+            recordBtn.addEventListener('click', () => this.toggleRecording());
+            
+        } catch (error) {
+            console.error('Failed to access microphone:', error);
+            document.getElementById('record-btn').disabled = true;
+            document.getElementById('record-btn').textContent = 'Microphone access denied';
+        }
+    }
+    
+    toggleRecording() {
+        if (this.isRecording) {
+            this.stopRecording();
+        } else {
+            this.startRecording();
+        }
+    }
+    
+    startRecording() {
+        this.recordedChunks = [];
+        this.mediaRecorder = new MediaRecorder(this.audioStream);
+        
+        this.mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                this.recordedChunks.push(event.data);
+            }
+        };
+        
+        this.mediaRecorder.onstop = () => {
+            this.processRecording();
+        };
+        
+        this.mediaRecorder.start();
+        this.isRecording = true;
+        this.startTime = Date.now();
+        
+        const recordBtn = document.getElementById('record-btn');
+        recordBtn.textContent = '⏹️ Stop Recording';
+        recordBtn.classList.add('recording');
+        
+        this.updateRecordingTimer();
+    }
+    
+    stopRecording() {
+        if (this.mediaRecorder && this.isRecording) {
+            this.mediaRecorder.stop();
+            this.isRecording = false;
+            
+            const recordBtn = document.getElementById('record-btn');
+            recordBtn.textContent = '🎤 Start Recording';
+            recordBtn.classList.remove('recording');
+            
+            document.getElementById('recording-time').textContent = '';
+        }
+    }
+    
+    updateRecordingTimer() {
+        if (!this.isRecording) return;
+        
+        const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        
+        document.getElementById('recording-time').textContent = 
+            `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        setTimeout(() => this.updateRecordingTimer(), 1000);
+    }
+    
+    async processRecording() {
+        const blob = new Blob(this.recordedChunks, { type: 'audio/webm' });
+        const duration = Math.floor((Date.now() - this.startTime) / 1000);
+        
+        try {
+            // Convert to ArrayBuffer
+            const arrayBuffer = await blob.arrayBuffer();
+            
+            // Upload to Multisynq
+            const handle = await this.session.data.store(arrayBuffer);
+            
+            // Publish the recording
+            this.publish("audio", "upload", {
+                fileName: `Recording ${new Date().toLocaleString()}`,
+                duration: duration,
+                fileSize: arrayBuffer.byteLength,
+                handle: handle,
+                userId: this.userId
+            });
+            
+        } catch (error) {
+            console.error('Failed to upload recording:', error);
+        }
+    }
+    
+    displayExistingRecordings() {
+        for (const [id, recording] of this.model.recordings) {
+            this.onRecordingAdded(recording);
+        }
+    }
+    
+    async onRecordingAdded(recording) {
+        try {
+            // Fetch audio data
+            const data = await this.session.data.fetch(recording.handle);
+            const blob = new Blob([data], { type: 'audio/webm' });
+            const audioUrl = URL.createObjectURL(blob);
+            
+            this.createRecordingCard(recording, audioUrl);
+            
+        } catch (error) {
+            console.error('Failed to load recording:', error);
+        }
+    }
+    
+    createRecordingCard(recording, audioUrl) {
+        const list = document.getElementById('recordings-list');
+        
+        const card = document.createElement('div');
+        card.className = 'recording-card';
+        card.id = `recording-${recording.id}`;
+        
+        const uploadDate = new Date(recording.uploadTime).toLocaleDateString();
+        const isOwner = recording.uploader === this.userId;
+        const duration = `${Math.floor(recording.duration / 60)}:${(recording.duration % 60).toString().padStart(2, '0')}`;
+        
+        card.innerHTML = `
+            <div class="recording-header">
+                <h3>${recording.name}</h3>
+                <span class="duration">${duration}</span>
+            </div>
+            <div class="recording-meta">
+                Uploaded ${uploadDate} • ${this.formatFileSize(recording.size)}
+                ${recording.transcription ? `<br>Transcription: "${recording.transcription}"` : ''}
+            </div>
+            <div class="recording-controls">
+                <audio controls>
+                    <source src="${audioUrl}" type="audio/webm">
+                    Your browser does not support audio playback.
+                </audio>
+                ${isOwner ? `
+                    <button class="btn btn-delete" onclick="this.deleteRecording(${recording.id})">
+                        Delete
+                    </button>
+                ` : ''}
+            </div>
+        `;
+        
+        list.appendChild(card);
+    }
+    
+    onRecordingDeleted(data) {
+        const card = document.getElementById(`recording-${data.recordingId}`);
+        if (card) {
+            card.remove();
+        }
+    }
+    
+    deleteRecording(recordingId) {
+        if (confirm('Delete this recording?')) {
+            this.publish("audio", "delete", {
+                recordingId: recordingId,
+                userId: this.userId
+            });
+        }
+    }
+    
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+}
+
+AudioSharingView.register("AudioSharingView");
+```
+</Tab>
+</Tabs>
+
+## Persistence Integration
+
+<Info>
+Data handles can be persisted and restored across sessions using `Data.toId()` and `Data.fromId()`.
+</Info>
+
+<Tabs>
+<Tab title="Persistent Data Handles">
+**Converting handles for storage**
+
+```js
+class PersistentDataModel extends Multisynq.Model {
+    init(options, persisted) {
+        this.userDocuments = new Map();
+        this.sharedAssets = new Map();
+        
+        // Restore from persistence
+        if (persisted) {
+            this.restoreFromPersistence(persisted);
+        }
+        
+        this.subscribe("docs", "save", this.saveDocument);
+        this.subscribe("assets", "share", this.shareAsset);
+    }
+    
+    saveDocument(data) {
+        const docInfo = {
+            id: data.docId,
+            name: data.fileName,
+            type: data.fileType,
+            size: data.fileSize,
+            handle: data.handle,
+            owner: data.userId,
+            lastModified: this.now(),
+            version: 1
+        };
+        
+        this.userDocuments.set(data.docId, docInfo);
+        
+        // Automatically persist when documents are saved
+        this.persistSession(this.saveForPersistence);
+        
+        this.publish("docs", "document-saved", docInfo);
+    }
+    
+    shareAsset(data) {
+        // Create shareable handle for cross-session sharing
+        const asset = this.userDocuments.get(data.docId);
+        if (asset && asset.owner === data.userId) {
+            
+            this.sharedAssets.set(data.shareId, {
+                shareId: data.shareId,
+                docId: data.docId,
+                name: asset.name,
+                handle: asset.handle,
+                sharedBy: data.userId,
+                shareTime: this.now(),
+                permissions: data.permissions || ["read"]
+            });
+            
+            this.persistSession(this.saveForPersistence);
+            
+            this.publish("assets", "asset-shared", {
+                shareId: data.shareId,
+                name: asset.name
+            });
+        }
+    }
+    
+    saveForPersistence() {
+        // Convert handles to persistable string IDs
+        const persistableData = {
+            documents: {},
+            sharedAssets: {}
+        };
+        
+        // Save documents
+        for (const [id, doc] of this.userDocuments) {
+            persistableData.documents[id] = {
+                ...doc,
+                handleId: Multisynq.Data.toId(doc.handle) // Convert to string
+            };
+            delete persistableData.documents[id].handle;
+        }
+        
+        // Save shared assets
+        for (const [id, asset] of this.sharedAssets) {
+            persistableData.sharedAssets[id] = {
+                ...asset,
+                handleId: Multisynq.Data.toId(asset.handle)
+            };
+            delete persistableData.sharedAssets[id].handle;
+        }
+        
+        return persistableData;
+    }
+    
+    restoreFromPersistence(saved) {
+        // Restore documents
+        for (const [id, docData] of Object.entries(saved.documents || {})) {
+            const doc = {
+                ...docData,
+                handle: Multisynq.Data.fromId(docData.handleId) // Recreate handle
+            };
+            delete doc.handleId;
+            
+            this.userDocuments.set(id, doc);
+        }
+        
+        // Restore shared assets
+        for (const [id, assetData] of Object.entries(saved.sharedAssets || {})) {
+            const asset = {
+                ...assetData,
+                handle: Multisynq.Data.fromId(assetData.handleId)
+            };
+            delete asset.handleId;
+            
+            this.sharedAssets.set(id, asset);
+        }
+    }
+}
+
+PersistentDataModel.register("PersistentDataModel");
+```
+</Tab>
+
+<Tab title="Cross-Session Sharing">
+**Shareable handles for public content**
+
+```js
+class PublicGalleryModel extends Multisynq.Model {
+    init() {
+        this.publicImages = new Map();
+        
+        this.subscribe("gallery", "publish", this.publishImage);
+        this.subscribe("gallery", "import", this.importSharedImage);
+    }
+    
+    async publishImage(data) {
+        // Create shareable handle that works across sessions
+        try {
+            // Re-fetch and store with shareable option
+            const originalData = await this.session.data.fetch(data.handle);
+            const shareableHandle = await this.session.data.store(originalData, {
+                shareable: true // Creates cross-session shareable handle
+            });
+            
+            const publicImage = {
+                id: data.imageId,
+                name: data.fileName,
+                type: data.fileType,
+                size: data.fileSize,
+                handle: shareableHandle, // Shareable across sessions
+                publishedBy: data.userId,
+                publishTime: this.now(),
+                tags: data.tags || [],
+                description: data.description || "",
+                shareableId: Multisynq.Data.toId(shareableHandle) // Shareable string
+            };
+            
+            this.publicImages.set(data.imageId, publicImage);
+            
+            this.publish("gallery", "image-published", {
+                imageId: data.imageId,
+                shareableId: publicImage.shareableId,
+                name: data.fileName
+            });
+            
+        } catch (error) {
+            console.error('Failed to create shareable handle:', error);
+            this.publish("gallery", "publish-failed", { error: error.message });
+        }
+    }
+    
+    importSharedImage(data) {
+        // Import from another session using shareable ID
+        try {
+            const handle = Multisynq.Data.fromId(data.shareableId);
+            
+            const importedImage = {
+                id: this.generateId(),
+                name: data.fileName || "Imported Image",
+                type: "image/jpeg", // Assume JPEG if not specified
+                handle: handle,
+                importedBy: data.userId,
+                importTime: this.now(),
+                originalShareId: data.shareableId,
+                source: data.source || "unknown"
+            };
+            
+            this.publicImages.set(importedImage.id, importedImage);
+            
+            this.publish("gallery", "image-imported", importedImage);
+            
+        } catch (error) {
+            console.error('Failed to import shared image:', error);
+            this.publish("gallery", "import-failed", { error: error.message });
+        }
+    }
+    
+    generateId() {
+        return 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+}
+
+PublicGalleryModel.register("PublicGalleryModel");
+
+class PublicGalleryView extends Multisynq.View {
+    init() {
+        this.model = this.wellKnownModel("PublicGalleryModel");
+        this.userId = this.viewId;
+        
+        this.setupUI();
+        this.setupShareHandlers();
+        
+        this.subscribe("gallery", "image-published", this.onImagePublished);
+        this.subscribe("gallery", "image-imported", this.onImageImported);
+        this.subscribe("gallery", "publish-failed", this.onPublishFailed);
+    }
+    
+    setupUI() {
+        document.body.innerHTML = `
+            <div id="app">
+                <header>
+                    <h1>Public Image Gallery</h1>
+                    <div class="share-section">
+                        <h3>Share an Image</h3>
+                        <input type="file" id="image-input" accept="image/*">
+                        <button id="publish-btn" class="btn btn-publish">Publish to Gallery</button>
+                    </div>
+                    <div class="import-section">
+                        <h3>Import Shared Image</h3>
+                        <input type="text" id="share-id-input" placeholder="Enter shareable ID">
+                        <button id="import-btn" class="btn btn-import">Import Image</button>
+                    </div>
+                </header>
+                <main>
+                    <div id="gallery" class="gallery"></div>
+                </main>
+            </div>
+        `;
+    }
+    
+    setupShareHandlers() {
+        const imageInput = document.getElementById('image-input');
+        const publishBtn = document.getElementById('publish-btn');
+        const shareIdInput = document.getElementById('share-id-input');
+        const importBtn = document.getElementById('import-btn');
+        
+        publishBtn.addEventListener('click', async () => {
+            const file = imageInput.files[0];
+            if (!file) {
+                alert('Please select an image first');
+                return;
+            }
+            
+            await this.publishImage(file);
+        });
+        
+        importBtn.addEventListener('click', () => {
+            const shareId = shareIdInput.value.trim();
+            if (!shareId) {
+                alert('Please enter a shareable ID');
+                return;
+            }
+            
+            this.importImage(shareId);
+        });
+    }
+    
+    async publishImage(file) {
+        try {
+            // Read file
+            const arrayBuffer = await this.readFileAsArrayBuffer(file);
+            
+            // Store normally first
+            const handle = await this.session.data.store(arrayBuffer);
+            
+            // Publish for sharing
+            this.publish("gallery", "publish", {
+                imageId: this.generateId(),
+                fileName: file.name,
+                fileType: file.type,
+                fileSize: arrayBuffer.byteLength,
+                handle: handle,
+                userId: this.userId,
+                tags: [],
+                description: ""
+            });
+            
+        } catch (error) {
+            console.error('Failed to publish image:', error);
+            alert('Failed to publish image: ' + error.message);
+        }
+    }
+    
+    importImage(shareableId) {
+        this.publish("gallery", "import", {
+            shareableId: shareableId,
+            userId: this.userId,
+            fileName: "Imported Image",
+            source: "manual_import"
+        });
+    }
+    
+    onImagePublished(data) {
+        // Show the shareable ID to user
+        this.showShareableId(data.shareableId, data.name);
+        
+        // Display the published image
+        this.displayImage(this.model.publicImages.get(data.imageId));
+    }
+    
+    onImageImported(image) {
+        this.displayImage(image);
+        alert(`Successfully imported: ${image.name}`);
+    }
+    
+    onPublishFailed(data) {
+        alert(`Failed to publish image: ${data.error}`);
+    }
+    
+    showShareableId(shareableId, imageName) {
+        const modal = document.createElement('div');
+        modal.innerHTML = `
+            <div class="modal-overlay">
+                <div class="modal">
+                    <h3>Image Published Successfully!</h3>
+                    <p><strong>${imageName}</strong> is now publicly shareable.</p>
+                    <p>Share this ID with others:</p>
+                    <div class="share-id-box">
+                        <input type="text" value="${shareableId}" readonly>
+                        <button onclick="navigator.clipboard.writeText('${shareableId}')">Copy</button>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()">Close</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+    
+    async displayImage(image) {
+        try {
+            const data = await this.session.data.fetch(image.handle);
+            const blob = new Blob([data], { type: image.type });
+            const imageUrl = URL.createObjectURL(blob);
+            
+            const gallery = document.getElementById('gallery');
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            
+            const date = new Date(image.publishTime || image.importTime).toLocaleDateString();
+            const action = image.publishTime ? 'Published' : 'Imported';
+            
+            card.innerHTML = `
+                <img src="${imageUrl}" alt="${image.name}">
+                <div class="image-info">
+                    <h4>${image.name}</h4>
+                    <p>${action} ${date}</p>
+                    ${image.shareableId ? `
+                        <button onclick="navigator.clipboard.writeText('${image.shareableId}')">
+                            Copy Share ID
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+            
+            gallery.appendChild(card);
+            
+        } catch (error) {
+            console.error('Failed to display image:', error);
+        }
+    }
+    
+    readFileAsArrayBuffer(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsArrayBuffer(file);
+        });
+    }
+    
+    generateId() {
+        return 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+}
+
+PublicGalleryView.register("PublicGalleryView");
+```
+</Tab>
+</Tabs>
+
+## Best Practices
+
+<CardGroup cols={2}>
+<Card title="🏗️ Model-View Separation" icon="building">
+**Keep data operations in the view**
+
+```js
+// ✅ Good - Views handle data operations
+class GameView extends Multisynq.View {
+    async uploadAsset(file) {
+        // View handles file I/O
+        const data = await this.readFile(file);
+        const handle = await this.session.data.store(data);
+        
+        // Notify model with handle
+        this.publish("assets", "uploaded", { handle });
+    }
+}
+
+class GameModel extends Multisynq.Model {
+    handleAssetUpload(data) {
+        // Model stores handle metadata
+        this.assets.push({
+            id: this.nextId++,
+            handle: data.handle,
+            uploadTime: this.now()
+        });
+    }
+}
+```
+</Card>
+
+<Card title="🔒 Security Considerations" icon="shield">
+**Handle data securely**
+
+```js
+// ✅ Validate and sanitize
+class SecureDataView extends Multisynq.View {
+    async uploadFile(file) {
+        // Validate file type
+        if (!this.isAllowedType(file.type)) {
+            throw new Error('File type not allowed');
+        }
+        
+        // Check file size
+        if (file.size > 10 * 1024 * 1024) { // 10MB limit
+            throw new Error('File too large');
+        }
+        
+        // Sanitize filename
+        const safeName = this.sanitizeFilename(file.name);
+        
+        const data = await this.readFileAsArrayBuffer(file);
+        const handle = await this.session.data.store(data);
+        
+        this.publish("files", "upload", {
+            handle,
+            fileName: safeName,
+            fileSize: data.byteLength
+        });
+    }
+    
+    isAllowedType(mimeType) {
+        const allowed = [
+            'image/jpeg', 'image/png', 'image/gif',
+            'audio/mpeg', 'audio/wav',
+            'text/plain', 'application/pdf'
+        ];
+        return allowed.includes(mimeType);
+    }
+    
+    sanitizeFilename(filename) {
+        return filename
+            .replace(/[^a-zA-Z0-9.-]/g, '_')
+            .substring(0, 255);
+    }
+}
+```
+</Card>
+
+<Card title="⚡ Performance Optimization" icon="lightning">
+**Optimize data handling**
+
+```js
+// ✅ Efficient data management
+class OptimizedDataView extends Multisynq.View {
+    init() {
+        this.imageCache = new Map();
+        this.preloadQueue = [];
+        
+        // Pre-load critical assets
+        this.preloadCriticalAssets();
+    }
+    
+    async loadImage(imageHandle, priority = 'normal') {
+        // Check cache first
+        if (this.imageCache.has(imageHandle)) {
+            return this.imageCache.get(imageHandle);
+        }
+        
+        // Queue for background loading
+        if (priority === 'low') {
+            this.preloadQueue.push(imageHandle);
+            this.processPreloadQueue();
+            return null;
+        }
+        
+        // Load immediately
+        const data = await this.session.data.fetch(imageHandle);
+        const blob = new Blob([data]);
+        const url = URL.createObjectURL(blob);
+        
+        // Cache the result
+        this.imageCache.set(imageHandle, url);
+        
+        return url;
+    }
+    
+    async processPreloadQueue() {
+        if (this.preloadQueue.length === 0) return;
+        
+        // Process one item every 100ms to avoid blocking
+        const handle = this.preloadQueue.shift();
+        await this.loadImage(handle, 'normal');
+        
+        setTimeout(() => this.processPreloadQueue(), 100);
+    }
+    
+    // Clean up when view is destroyed
+    destroy() {
+        // Revoke all blob URLs to free memory
+        for (const url of this.imageCache.values()) {
+            URL.revokeObjectURL(url);
+        }
+        this.imageCache.clear();
+    }
+}
+```
+</Card>
+
+<Card title="📱 Offline Handling" icon="signal">
+**Handle network issues gracefully**
+
+```js
+// ✅ Robust offline support
+class OfflineDataView extends Multisynq.View {
+    init() {
+        this.uploadQueue = [];
+        this.isOnline = navigator.onLine;
+        
+        window.addEventListener('online', () => {
+            this.isOnline = true;
+            this.processUploadQueue();
+        });
+        
+        window.addEventListener('offline', () => {
+            this.isOnline = false;
+        });
+    }
+    
+    async uploadFile(file) {
+        const fileData = await this.readFileAsArrayBuffer(file);
+        
+        if (this.isOnline && this.session) {
+            return this.doUpload(file, fileData);
+        } else {
+            // Queue for later upload
+            this.uploadQueue.push({ file, fileData });
+            this.showMessage('Queued for upload when online');
+        }
+    }
+    
+    async processUploadQueue() {
+        while (this.uploadQueue.length > 0 && this.isOnline && this.session) {
+            const { file, fileData } = this.uploadQueue.shift();
+            
+            try {
+                await this.doUpload(file, fileData);
+                this.showMessage(`Uploaded ${file.name}`);
+            } catch (error) {
+                // Re-queue on failure
+                this.uploadQueue.unshift({ file, fileData });
+                console.error('Upload failed, re-queued:', error);
+                break;
+            }
+        }
+    }
+    
+    async doUpload(file, fileData) {
+        const handle = await this.session.data.store(fileData);
+        
+        this.publish("files", "upload", {
+            handle,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: fileData.byteLength
+        });
+        
+        return handle;
+    }
+}
+```
+</Card>
+</CardGroup>
+
+## Common Patterns
+
+<AccordionGroup>
+<Accordion title="📄 Document Collaboration" icon="file">
+```js
+// Real-time document sharing with version control
+class DocumentModel extends Multisynq.Model {
+    init() {
+        this.documents = new Map();
+        this.versions = new Map();
+        
+        this.subscribe("docs", "create", this.createDocument);
+        this.subscribe("docs", "update", this.updateDocument);
+    }
+    
+    createDocument(data) {
+        const doc = {
+            id: data.docId,
+            name: data.name,
+            handle: data.handle,
+            owner: data.userId,
+            created: this.now(),
+            currentVersion: 1,
+            collaborators: [data.userId]
+        };
+        
+        this.documents.set(data.docId, doc);
+        this.versions.set(`${data.docId}_v1`, {
+            docId: data.docId,
+            version: 1,
+            handle: data.handle,
+            timestamp: this.now(),
+            author: data.userId
+        });
+        
+        this.publish("docs", "document-created", doc);
+    }
+    
+    updateDocument(data) {
+        const doc = this.documents.get(data.docId);
+        
+        if (doc && doc.collaborators.includes(data.userId)) {
+            doc.currentVersion++;
+            doc.lastModified = this.now();
+            
+            this.versions.set(`${data.docId}_v${doc.currentVersion}`, {
+                docId: data.docId,
+                version: doc.currentVersion,
+                handle: data.newHandle,
+                timestamp: this.now(),
+                author: data.userId,
+                changes: data.changes
+            });
+            
+            this.publish("docs", "document-updated", {
+                docId: data.docId,
+                version: doc.currentVersion,
+                author: data.userId
+            });
+        }
+    }
+}
+```
+</Accordion>
+
+<Accordion title="🎵 Media Library" icon="music">
+```js
+// Music/podcast sharing platform
+class MediaLibraryModel extends Multisynq.Model {
+    init() {
+        this.tracks = new Map();
+        this.playlists = new Map();
+        this.nowPlaying = null;
+        
+        this.subscribe("media", "upload-track", this.addTrack);
+        this.subscribe("media", "create-playlist", this.createPlaylist);
+        this.subscribe("media", "play", this.playTrack);
+    }
+    
+    addTrack(data) {
+        const track = {
+            id: data.trackId,
+            title: data.title,
+            artist: data.artist,
+            duration: data.duration,
+            handle: data.handle,
+            uploader: data.userId,
+            uploadTime: this.now(),
+            genre: data.genre || "Unknown",
+            playCount: 0
+        };
+        
+        this.tracks.set(data.trackId, track);
+        this.publish("media", "track-added", track);
+    }
+    
+    createPlaylist(data) {
+        const playlist = {
+            id: data.playlistId,
+            name: data.name,
+            creator: data.userId,
+            tracks: [],
+            isPublic: data.isPublic || false,
+            created: this.now()
+        };
+        
+        this.playlists.set(data.playlistId, playlist);
+        this.publish("media", "playlist-created", playlist);
+    }
+    
+    playTrack(data) {
+        const track = this.tracks.get(data.trackId);
+        
+        if (track) {
+            track.playCount++;
+            this.nowPlaying = {
+                trackId: data.trackId,
+                startedBy: data.userId,
+                startTime: this.now()
+            };
+            
+            this.publish("media", "now-playing", this.nowPlaying);
+        }
+    }
+}
+```
+</Accordion>
+</AccordionGroup>
+
+## API Reference
+
+<AccordionGroup>
+<Accordion title="📤 session.data.store()" icon="upload">
+**Upload data and get a handle**
+
+```js
+// Basic usage
+const handle = await session.data.store(arrayBuffer);
+
+// With options
+const handle = await session.data.store(arrayBuffer, {
+    keep: true,       // Keep original ArrayBuffer (default: false)
+    shareable: true   // Create cross-session handle (default: false)
+});
+
+// Example
+const fileData = await file.arrayBuffer();
+const handle = await session.data.store(fileData, { shareable: true });
+```
+
+**Parameters:**
+- `arrayBuffer`: ArrayBuffer containing the data to store
+- `options.keep`: Boolean - preserve original ArrayBuffer (transferred by default for efficiency)
+- `options.shareable`: Boolean - create handle that works across sessions
+
+**Returns:** Promise that resolves to a data handle
+</Accordion>
+
+<Accordion title="📥 session.data.fetch()" icon="download">
+**Download data using a handle**
+
+```js
+// Fetch data
+const arrayBuffer = await session.data.fetch(handle);
+
+// Use the data
+const blob = new Blob([arrayBuffer], { type: 'image/jpeg' });
+const url = URL.createObjectURL(blob);
+```
+
+**Parameters:**
+- `handle`: Data handle returned from `store()`
+
+**Returns:** Promise that resolves to an ArrayBuffer
+</Accordion>
+
+<Accordion title="🔗 Data.toId() / Data.fromId()" icon="link">
+**Convert handles for persistence**
+
+```js
+// Convert handle to string for persistence
+const handleId = Multisynq.Data.toId(handle);
+
+// Recreate handle from string
+const recreatedHandle = Multisynq.Data.fromId(handleId);
+
+// Persistence example
+class PersistentModel extends Multisynq.Model {
+    saveData() {
+        return {
+            imageHandleId: Multisynq.Data.toId(this.imageHandle)
+        };
+    }
+    
+    restoreData(saved) {
+        this.imageHandle = Multisynq.Data.fromId(saved.imageHandleId);
+    }
+}
+```
+
+**toId(handle):** Convert handle to persistable string
+**fromId(id):** Recreate handle from string ID
+</Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+<Card title="Persistence" icon="save" href="/tutorials/persistence">
+  Learn how to persist data handles across sessions
+</Card>
+
+<Card title="Writing a Multisynq View" icon="eye" href="/tutorials/writing-multisynq-view">
+  Master view patterns for handling user uploads
+</Card>
+
+<Card title="Multi-user Chat" icon="message" href="/tutorials/multiuser-chat">
+  See data sharing in action with file attachments
+</Card>
+
+<Card title="Simple Animation" icon="play" href="/tutorials/simple-animation">
+  Apply data techniques to animated content
+</Card>
+</CardGroup>
+
+<Note>
+The Data API enables powerful file sharing capabilities while maintaining security and performance. Use it for media content, documents, and any large binary data that would be inefficient to send through the event system. Remember to handle data operations in views and store only lightweight handles in your models.
+</Note> 

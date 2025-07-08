@@ -1,0 +1,1352 @@
+---
+title: "Writing a Multisynq App"
+description: "Learn how to structure and launch complete Multisynq applications with models, views, and session management"
+---
+
+# Writing a Multisynq App
+
+A complete Multisynq application consists of two main components: a **Model** that contains all shared state and logic, and a **View** that handles user interface and input. This guide shows you how to structure and launch your applications.
+
+## Application Structure
+
+<Info>
+Every Multisynq app requires exactly **two classes**: one Model and one View.
+</Info>
+
+<Tabs>
+<Tab title="Basic Structure">
+**Essential application template**
+
+```js
+// 1. Define your Model class
+class MyModel extends Multisynq.Model {
+    init() {
+        // Initialize shared state and logic
+        this.gameState = "waiting";
+        this.players = new Map();
+        this.startTime = this.now();
+        
+        // Subscribe to user input events
+        this.subscribe("input", "player-action", this.handlePlayerAction);
+        
+        // Start main game loop
+        this.future(1000/60).gameLoop();
+    }
+    
+    handlePlayerAction(data) {
+        // Process user input and update state
+        console.log("Player action:", data);
+    }
+    
+    gameLoop() {
+        // Main simulation logic
+        if (this.gameState === "playing") {
+            this.updateGame();
+        }
+        
+        // Continue the loop
+        this.future(1000/60).gameLoop();
+    }
+    
+    updateGame() {
+        // Game simulation logic here
+    }
+}
+
+// 2. REQUIRED: Register your model
+MyModel.register("MyModel");
+
+// 3. Define your View class
+class MyView extends Multisynq.View {
+    init() {
+        // Get reference to the model
+        this.model = this.wellKnownModel("MyModel");
+        
+        // Set up user interface
+        this.setupUI();
+        this.setupInputHandlers();
+        this.startRenderLoop();
+        
+        // Subscribe to model events
+        this.subscribe("game", "state-changed", this.updateDisplay);
+    }
+    
+    setupUI() {
+        // Create DOM elements
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        
+        // Style the interface
+        document.body.style.margin = '0';
+        document.body.style.backgroundColor = '#222';
+    }
+    
+    setupInputHandlers() {
+        // Handle user input
+        this.canvas.addEventListener('click', (event) => {
+            const rect = this.canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            // Send input to model
+            this.publish("input", "player-action", { x, y, type: "click" });
+        });
+        
+        document.addEventListener('keydown', (event) => {
+            this.publish("input", "player-action", { 
+                key: event.key, 
+                type: "keydown" 
+            });
+        });
+    }
+    
+    startRenderLoop() {
+        this.render();
+    }
+    
+    render() {
+        // Clear canvas
+        this.ctx.fillStyle = '#222';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Draw current state
+        this.drawGame();
+        
+        // Continue render loop
+        requestAnimationFrame(() => this.render());
+    }
+    
+    drawGame() {
+        // Read model state and draw UI
+        this.ctx.fillStyle = 'white';
+        this.ctx.font = '24px Arial';
+        this.ctx.fillText(
+            `Game State: ${this.model.gameState}`, 
+            20, 40
+        );
+        this.ctx.fillText(
+            `Players: ${this.model.players.size}`, 
+            20, 70
+        );
+    }
+    
+    updateDisplay() {
+        // React to model changes (optional)
+        console.log("Model state updated");
+    }
+}
+
+// 4. Register your view
+MyView.register("MyView");
+```
+
+<Warning>
+**Critical**: Every Model subclass must call `.register("ClassName")` with the exact class name.
+</Warning>
+</Tab>
+
+<Tab title="Complete Game Example">
+**Real-world application structure**
+
+```js
+class ClickerGameModel extends Multisynq.Model {
+    init() {
+        this.score = 0;
+        this.multiplier = 1;
+        this.players = new Map();
+        this.powerUps = [];
+        
+        // Event subscriptions
+        this.subscribe("input", "click", this.handleClick);
+        this.subscribe("input", "player-join", this.addPlayer);
+        this.subscribe("input", "buy-powerup", this.buyPowerUp);
+        
+        // Start game systems
+        this.future(5000).spawnPowerUp();
+        this.future(1000).saveProgress();
+    }
+    
+    handleClick(data) {
+        // Award points for clicking
+        const points = this.multiplier * (this.powerUps.length + 1);
+        this.score += points;
+        
+        // Track player activity
+        const player = this.players.get(data.playerId);
+        if (player) {
+            player.clicks++;
+            player.lastActive = this.now();
+        }
+        
+        // Notify views of score update
+        this.publish("game", "score-updated", {
+            score: this.score,
+            pointsAwarded: points,
+            clickPosition: { x: data.x, y: data.y }
+        });
+    }
+    
+    addPlayer(data) {
+        this.players.set(data.playerId, {
+            id: data.playerId,
+            name: data.name,
+            clicks: 0,
+            joinTime: this.now(),
+            lastActive: this.now()
+        });
+        
+        this.publish("game", "player-joined", data);
+    }
+    
+    buyPowerUp(data) {
+        const cost = Math.pow(2, this.powerUps.length) * 100;
+        
+        if (this.score >= cost) {
+            this.score -= cost;
+            this.powerUps.push({
+                type: data.type,
+                purchaseTime: this.now(),
+                player: data.playerId
+            });
+            
+            this.updateMultiplier();
+            
+            this.publish("game", "powerup-purchased", {
+                type: data.type,
+                cost: cost,
+                newMultiplier: this.multiplier
+            });
+        }
+    }
+    
+    updateMultiplier() {
+        this.multiplier = 1 + (this.powerUps.length * 0.5);
+    }
+    
+    spawnPowerUp() {
+        // Random power-up spawn
+        if (this.random() < 0.3) {
+            this.publish("game", "powerup-spawned", {
+                x: this.random() * 400,
+                y: this.random() * 300,
+                type: this.random() < 0.5 ? "double" : "bonus"
+            });
+        }
+        
+        this.future(5000).spawnPowerUp();
+    }
+    
+    saveProgress() {
+        // Periodic save
+        this.publish("game", "progress-saved", {
+            score: this.score,
+            players: this.players.size
+        });
+        
+        this.future(30000).saveProgress();
+    }
+}
+
+ClickerGameModel.register("ClickerGameModel");
+
+class ClickerGameView extends Multisynq.View {
+    init() {
+        this.model = this.wellKnownModel("ClickerGameModel");
+        this.playerId = this.viewId; // Unique player ID
+        this.effects = [];
+        
+        this.setupUI();
+        this.setupEventHandlers();
+        this.joinGame();
+        this.startRenderLoop();
+        
+        // Subscribe to game events
+        this.subscribe("game", "score-updated", this.onScoreUpdate);
+        this.subscribe("game", "player-joined", this.onPlayerJoined);
+        this.subscribe("game", "powerup-spawned", this.onPowerUpSpawned);
+    }
+    
+    setupUI() {
+        document.body.innerHTML = `
+            <div id="game-container">
+                <div id="score-display">Score: 0</div>
+                <div id="multiplier-display">Multiplier: x1</div>
+                <canvas id="game-canvas" width="800" height="600"></canvas>
+                <div id="player-list">Players: 0</div>
+                <button id="buy-powerup">Buy Power-up (100 points)</button>
+            </div>
+        `;
+        
+        this.canvas = document.getElementById('game-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.scoreDisplay = document.getElementById('score-display');
+        this.multiplierDisplay = document.getElementById('multiplier-display');
+        this.playerList = document.getElementById('player-list');
+    }
+    
+    setupEventHandlers() {
+        this.canvas.addEventListener('click', (event) => {
+            const rect = this.canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            this.publish("input", "click", {
+                x, y,
+                playerId: this.playerId
+            });
+        });
+        
+        document.getElementById('buy-powerup').addEventListener('click', () => {
+            this.publish("input", "buy-powerup", {
+                type: "multiplier",
+                playerId: this.playerId
+            });
+        });
+    }
+    
+    joinGame() {
+        this.publish("input", "player-join", {
+            playerId: this.playerId,
+            name: `Player ${this.playerId.slice(0, 4)}`
+        });
+    }
+    
+    startRenderLoop() {
+        this.render();
+    }
+    
+    render() {
+        // Clear canvas
+        this.ctx.fillStyle = '#1a1a2e';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Draw main game area
+        this.drawBackground();
+        this.drawEffects();
+        this.updateUI();
+        
+        requestAnimationFrame(() => this.render());
+    }
+    
+    drawBackground() {
+        // Draw clickable area
+        this.ctx.strokeStyle = '#0f3460';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(50, 50, 700, 500);
+        
+        // Draw click instruction
+        this.ctx.fillStyle = '#e94560';
+        this.ctx.font = '24px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Click anywhere to score!', 400, 300);
+    }
+    
+    drawEffects() {
+        // Draw click effects
+        this.effects = this.effects.filter(effect => {
+            const age = Date.now() - effect.startTime;
+            const life = 1000; // 1 second
+            
+            if (age < life) {
+                const alpha = 1 - (age / life);
+                const size = 10 + (age / life) * 20;
+                
+                this.ctx.fillStyle = `rgba(233, 69, 96, ${alpha})`;
+                this.ctx.beginPath();
+                this.ctx.arc(effect.x, effect.y, size, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                return true;
+            }
+            return false;
+        });
+    }
+    
+    updateUI() {
+        // Update score display
+        this.scoreDisplay.textContent = `Score: ${this.model.score}`;
+        this.multiplierDisplay.textContent = `Multiplier: x${this.model.multiplier}`;
+        this.playerList.textContent = `Players: ${this.model.players.size}`;
+        
+        // Update power-up button cost
+        const cost = Math.pow(2, this.model.powerUps.length) * 100;
+        const button = document.getElementById('buy-powerup');
+        button.textContent = `Buy Power-up (${cost} points)`;
+        button.disabled = this.model.score < cost;
+    }
+    
+    onScoreUpdate(data) {
+        // Add visual effect for score increase
+        this.effects.push({
+            x: data.clickPosition.x,
+            y: data.clickPosition.y,
+            startTime: Date.now()
+        });
+        
+        // Play sound effect (view can use browser APIs)
+        this.playClickSound();
+    }
+    
+    onPlayerJoined(data) {
+        console.log(`${data.name} joined the game!`);
+    }
+    
+    onPowerUpSpawned(data) {
+        // Visual notification of power-up
+        this.showNotification(`Power-up spawned: ${data.type}`);
+    }
+    
+    playClickSound() {
+        // Views can use browser APIs
+        const audioContext = new AudioContext();
+        const oscillator = audioContext.createOscillator();
+        oscillator.frequency.value = 800;
+        oscillator.connect(audioContext.destination);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.1);
+    }
+    
+    showNotification(message) {
+        // Create temporary notification
+        const notification = document.createElement('div');
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed; top: 20px; right: 20px;
+            background: #e94560; color: white; padding: 10px;
+            border-radius: 5px; z-index: 1000;
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => notification.remove(), 3000);
+    }
+}
+
+ClickerGameView.register("ClickerGameView");
+```
+</Tab>
+</Tabs>
+
+## Launching a Session
+
+<Warning>
+You need an API key from [multisynq.io/coder](https://multisynq.io/coder) to launch sessions.
+</Warning>
+
+<Tabs>
+<Tab title="Basic Session Launch">
+**Standard session setup**
+
+```js
+// Configure your session
+const apiKey = "your_api_key_here";         // Get from multisynq.io/coder
+const appId = "com.example.myapp";          // Unique app identifier
+const name = Multisynq.App.autoSession();   // Auto-generate session name
+const password = Multisynq.App.autoPassword(); // Auto-generate password
+
+// Launch the session
+Multisynq.Session.join({ 
+    apiKey, 
+    appId, 
+    name, 
+    password, 
+    model: MyModel, 
+    view: MyView 
+});
+```
+
+<Note>
+The `autoSession()` and `autoPassword()` helpers parse URL parameters and create random values if needed.
+</Note>
+</Tab>
+
+<Tab title="Production Session Setup">
+**Session with user-friendly options**
+
+```js
+class GameLauncher {
+    static async launchGame() {
+        const apiKey = "your_production_api_key";
+        const appId = "com.yourcompany.yourgame";
+        
+        // Get session details from user or URL
+        const sessionInfo = await this.getSessionInfo();
+        
+        try {
+            const session = await Multisynq.Session.join({
+                apiKey: apiKey,
+                appId: appId,
+                name: sessionInfo.name,
+                password: sessionInfo.password,
+                model: GameModel,
+                view: GameView,
+                
+                // Optional: Custom session options
+                tps: 20,              // Ticks per second
+                step: "auto",         // Automatic stepping
+                autoSleep: 60000,     // Sleep after 1 minute of inactivity
+                rejoinLimit: 5        // Allow 5 rejoin attempts
+            });
+            
+            console.log("Game session started successfully!");
+            return session;
+            
+        } catch (error) {
+            console.error("Failed to start session:", error);
+            this.showErrorMessage(error.message);
+        }
+    }
+    
+    static async getSessionInfo() {
+        // Check URL parameters first
+        const urlParams = new URLSearchParams(window.location.search);
+        const hash = window.location.hash.slice(1);
+        
+        let sessionName = urlParams.get('session');
+        let password = hash || urlParams.get('password');
+        
+        // If no session name, show UI to create/join
+        if (!sessionName) {
+            sessionName = await this.showSessionDialog();
+        }
+        
+        // If no password, generate one and update URL
+        if (!password) {
+            password = this.generatePassword();
+            this.updateURLWithPassword(password);
+        }
+        
+        return { name: sessionName, password: password };
+    }
+    
+    static async showSessionDialog() {
+        return new Promise((resolve) => {
+            // Create session selection UI
+            const dialog = document.createElement('div');
+            dialog.innerHTML = `
+                <div class="session-dialog">
+                    <h2>Join or Create Game Session</h2>
+                    <input type="text" id="session-name" placeholder="Enter session name or leave blank for random">
+                    <button onclick="this.parentElement.dispatchEvent(new CustomEvent('session-selected'))">
+                        Start Game
+                    </button>
+                </div>
+            `;
+            
+            dialog.addEventListener('session-selected', () => {
+                const input = dialog.querySelector('#session-name');
+                const sessionName = input.value.trim() || this.generateSessionName();
+                document.body.removeChild(dialog);
+                resolve(sessionName);
+            });
+            
+            document.body.appendChild(dialog);
+        });
+    }
+    
+    static generateSessionName() {
+        const adjectives = ['epic', 'super', 'mega', 'ultra', 'cosmic'];
+        const nouns = ['battle', 'quest', 'adventure', 'challenge', 'arena'];
+        const random1 = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const random2 = nouns[Math.floor(Math.random() * nouns.length)];
+        const number = Math.floor(Math.random() * 1000);
+        return `${random1}-${random2}-${number}`;
+    }
+    
+    static generatePassword() {
+        return Math.random().toString(36).substring(2, 15) + 
+               Math.random().toString(36).substring(2, 15);
+    }
+    
+    static updateURLWithPassword(password) {
+        const url = new URL(window.location);
+        url.hash = password;
+        window.history.replaceState({}, '', url);
+    }
+    
+    static showErrorMessage(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.innerHTML = `
+            <div class="error-message">
+                <h3>Connection Error</h3>
+                <p>${message}</p>
+                <button onclick="this.parentElement.remove()">Try Again</button>
+            </div>
+        `;
+        document.body.appendChild(errorDiv);
+    }
+}
+
+// Launch when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    GameLauncher.launchGame();
+});
+```
+</Tab>
+</Tabs>
+
+## Session Lifecycle
+
+<Info>
+Understanding the session lifecycle helps you build robust applications that handle joining, leaving, and persistence correctly.
+</Info>
+
+<Tabs>
+<Tab title="Session Startup Process">
+**What happens when you join a session**
+
+```js
+// When Session.join() is called, this sequence occurs:
+
+// 1. Connect to synchronizer
+console.log("Connecting to Multisynq synchronizer...");
+
+// 2. Check for existing session state
+// If session exists: Load from snapshot
+// If new session: Initialize fresh
+
+// 3. Instantiate Model
+console.log("Creating model instance...");
+const model = MyModel.create();
+
+// 4. Initialize or restore model state
+if (isNewSession) {
+    // First user - run init()
+    model.init();
+    console.log("Model initialized with fresh state");
+} else {
+    // Joining existing session - load snapshot
+    // model.init() is NOT called
+    console.log("Model restored from snapshot");
+}
+
+// 5. Instantiate View
+console.log("Creating view instance...");
+const view = new MyView();
+view.setModel(model);
+
+// 6. Start main execution loop
+console.log("Starting main loop...");
+startMainLoop(model, view);
+```
+
+<Warning>
+**Critical**: `model.init()` only runs for the **first user** in a session. Subsequent users get the model from a snapshot.
+</Warning>
+</Tab>
+
+<Tab title="Handling User Joins/Leaves">
+**Manage dynamic user participation**
+
+```js
+class MultiUserGameModel extends Multisynq.Model {
+    init() {
+        this.activePlayers = new Map();
+        this.gameState = "waiting";
+        this.minPlayers = 2;
+        
+        // Track user connections
+        this.subscribe("multisynq", "view-join", this.onUserJoin);
+        this.subscribe("multisynq", "view-exit", this.onUserLeave);
+        
+        // Game state management
+        this.future(1000).checkGameState();
+    }
+    
+    onUserJoin(data) {
+        // New user joined the session
+        console.log(`User ${data.viewId} joined`);
+        
+        // Add to active players
+        this.activePlayers.set(data.viewId, {
+            id: data.viewId,
+            joinTime: this.now(),
+            isActive: true,
+            score: 0
+        });
+        
+        // Notify all views
+        this.publish("game", "player-joined", {
+            playerId: data.viewId,
+            playerCount: this.activePlayers.size
+        });
+        
+        // Check if we can start the game
+        if (this.gameState === "waiting" && this.activePlayers.size >= this.minPlayers) {
+            this.startGame();
+        }
+    }
+    
+    onUserLeave(data) {
+        // User left the session
+        console.log(`User ${data.viewId} left`);
+        
+        const player = this.activePlayers.get(data.viewId);
+        if (player) {
+            player.isActive = false;
+            player.leaveTime = this.now();
+            
+            // Notify remaining users
+            this.publish("game", "player-left", {
+                playerId: data.viewId,
+                playerCount: this.getActivePlayerCount()
+            });
+            
+            // Check if game should pause/end
+            if (this.getActivePlayerCount() < this.minPlayers) {
+                this.pauseGame();
+            }
+        }
+    }
+    
+    getActivePlayerCount() {
+        return Array.from(this.activePlayers.values())
+            .filter(player => player.isActive).length;
+    }
+    
+    startGame() {
+        this.gameState = "playing";
+        this.gameStartTime = this.now();
+        
+        this.publish("game", "game-started", {
+            playerCount: this.getActivePlayerCount()
+        });
+        
+        console.log("Game started with", this.getActivePlayerCount(), "players");
+    }
+    
+    pauseGame() {
+        if (this.gameState === "playing") {
+            this.gameState = "paused";
+            this.publish("game", "game-paused", {
+                reason: "insufficient-players",
+                playerCount: this.getActivePlayerCount()
+            });
+        }
+    }
+    
+    checkGameState() {
+        // Periodic game state maintenance
+        const activeCount = this.getActivePlayerCount();
+        
+        if (this.gameState === "paused" && activeCount >= this.minPlayers) {
+            this.resumeGame();
+        }
+        
+        // Continue checking
+        this.future(5000).checkGameState();
+    }
+    
+    resumeGame() {
+        this.gameState = "playing";
+        this.publish("game", "game-resumed", {
+            playerCount: this.getActivePlayerCount()
+        });
+    }
+}
+
+MultiUserGameModel.register("MultiUserGameModel");
+
+class MultiUserGameView extends Multisynq.View {
+    init() {
+        this.model = this.wellKnownModel("MultiUserGameModel");
+        this.myPlayerId = this.viewId;
+        
+        this.setupUI();
+        
+        // Listen for player events
+        this.subscribe("game", "player-joined", this.onPlayerJoined);
+        this.subscribe("game", "player-left", this.onPlayerLeft);
+        this.subscribe("game", "game-started", this.onGameStarted);
+        this.subscribe("game", "game-paused", this.onGamePaused);
+        this.subscribe("game", "game-resumed", this.onGameResumed);
+        
+        // Announce our presence (redundant but useful for debugging)
+        console.log(`I am player ${this.myPlayerId}`);
+    }
+    
+    onPlayerJoined(data) {
+        this.showNotification(`Player ${data.playerId.slice(0, 6)} joined! (${data.playerCount} total)`);
+        this.updatePlayerList();
+    }
+    
+    onPlayerLeft(data) {
+        this.showNotification(`Player ${data.playerId.slice(0, 6)} left. (${data.playerCount} remaining)`);
+        this.updatePlayerList();
+    }
+    
+    onGameStarted(data) {
+        this.showNotification(`Game started with ${data.playerCount} players!`);
+        this.enableGameControls();
+    }
+    
+    onGamePaused(data) {
+        this.showNotification("Game paused - waiting for more players...");
+        this.disableGameControls();
+    }
+    
+    onGameResumed(data) {
+        this.showNotification("Game resumed!");
+        this.enableGameControls();
+    }
+    
+    updatePlayerList() {
+        const playerList = document.getElementById('player-list');
+        const activePlayers = Array.from(this.model.activePlayers.values())
+            .filter(p => p.isActive);
+        
+        playerList.innerHTML = activePlayers
+            .map(p => `<div>Player ${p.id.slice(0, 6)} - Score: ${p.score}</div>`)
+            .join('');
+    }
+    
+    enableGameControls() {
+        document.querySelectorAll('.game-control').forEach(el => {
+            el.disabled = false;
+        });
+    }
+    
+    disableGameControls() {
+        document.querySelectorAll('.game-control').forEach(el => {
+            el.disabled = true;
+        });
+    }
+    
+    showNotification(message) {
+        console.log(message);
+        // Also show visual notification...
+    }
+}
+
+MultiUserGameView.register("MultiUserGameView");
+```
+</Tab>
+</Tabs>
+
+## Main Loop Execution
+
+<Note>
+Multisynq automatically manages the main loop, processing model events first, then view events, then rendering.
+</Note>
+
+<AccordionGroup>
+<Accordion title="🔄 Automatic Main Loop" icon="refresh">
+**Default behavior (recommended)**
+
+```js
+// Standard session with automatic main loop
+const session = await Multisynq.Session.join({
+    apiKey: "your_api_key",
+    appId: "com.example.app",
+    name: "my-session",
+    password: "my-password",
+    model: MyModel,
+    view: MyView
+    // step: "auto" is the default
+});
+
+// The automatic main loop does this every frame:
+// 1. Process all pending model events
+// 2. Process all pending view events  
+// 3. Call view.render() if it exists
+// 4. Repeat at ~60fps
+
+class MyView extends Multisynq.View {
+    init() {
+        this.model = this.wellKnownModel("MyModel");
+        this.setupCanvas();
+        
+        // Optional: Define render method for automatic calling
+    }
+    
+    render() {
+        // This gets called automatically every frame
+        this.clearCanvas();
+        this.drawGame();
+        this.drawUI();
+    }
+    
+    clearCanvas() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+    
+    drawGame() {
+        // Read model state and draw
+        for (const entity of this.model.entities) {
+            this.drawEntity(entity);
+        }
+    }
+    
+    drawUI() {
+        // Draw user interface elements
+        this.drawScore();
+        this.drawHealth();
+        this.drawMinimap();
+    }
+}
+```
+</Accordion>
+
+<Accordion title="⚙️ Manual Main Loop" icon="gear">
+**Custom control for advanced applications**
+
+```js
+// Manual stepping for custom main loops
+const session = await Multisynq.Session.join({
+    apiKey: "your_api_key",
+    appId: "com.example.app", 
+    name: "my-session",
+    password: "my-password",
+    model: MyModel,
+    view: MyView,
+    step: "manual"  // Disable automatic stepping
+});
+
+// Create your own main loop
+window.requestAnimationFrame(mainLoop);
+
+function mainLoop(timestamp) {
+    if (session.view) {
+        // Custom pre-processing
+        handleCustomInput();
+        updateAnimations(timestamp);
+        
+        // Process Multisynq events and models
+        session.step(timestamp);
+        
+        // Custom post-processing  
+        renderEffects();
+        updateAudio();
+        handleNetworking();
+    }
+    
+    // Continue the loop
+    window.requestAnimationFrame(mainLoop);
+}
+
+function handleCustomInput() {
+    // Custom input processing before model updates
+    if (inputBuffer.length > 0) {
+        const inputs = inputBuffer.splice(0, inputBuffer.length);
+        
+        // Batch process inputs
+        session.view.publish("input", "batch-actions", inputs);
+    }
+}
+
+function updateAnimations(timestamp) {
+    // Update view-only animations
+    tweenManager.update(timestamp);
+    particleSystem.update(timestamp);
+}
+
+function renderEffects() {
+    // Custom rendering after model processing
+    effectsRenderer.render();
+    uiAnimator.render();
+}
+
+function updateAudio() {
+    // Audio processing
+    audioManager.update(session.model.gameState);
+    soundEffects.process();
+}
+
+function handleNetworking() {
+    // Custom networking (be careful not to break sync!)
+    if (shouldSendAnalytics()) {
+        sendAnalyticsData(session.model.getStats());
+    }
+}
+
+// Advanced: Custom frame rate control
+let lastUpdateTime = 0;
+const targetFPS = 30; // Custom frame rate
+const frameTime = 1000 / targetFPS;
+
+function customFrameRateLoop(timestamp) {
+    if (timestamp - lastUpdateTime >= frameTime) {
+        // Run update logic
+        session.step(timestamp);
+        
+        lastUpdateTime = timestamp;
+    }
+    
+    requestAnimationFrame(customFrameRateLoop);
+}
+```
+</Accordion>
+
+<Accordion title="🎮 Game-Specific Loops" icon="gamepad">
+**Specialized main loops for different game types**
+
+```js
+// Real-time action game
+class ActionGameLoop {
+    constructor(session) {
+        this.session = session;
+        this.fixedTimeStep = 1000 / 60; // 60fps simulation
+        this.accumulator = 0;
+        this.lastTime = 0;
+    }
+    
+    start() {
+        requestAnimationFrame((time) => this.loop(time));
+    }
+    
+    loop(currentTime) {
+        const deltaTime = currentTime - this.lastTime;
+        this.lastTime = currentTime;
+        
+        this.accumulator += deltaTime;
+        
+        // Fixed timestep updates for consistent physics
+        while (this.accumulator >= this.fixedTimeStep) {
+            this.session.step(currentTime);
+            this.accumulator -= this.fixedTimeStep;
+        }
+        
+        // Interpolated rendering for smooth visuals
+        const alpha = this.accumulator / this.fixedTimeStep;
+        this.interpolateRender(alpha);
+        
+        requestAnimationFrame((time) => this.loop(time));
+    }
+    
+    interpolateRender(alpha) {
+        // Smooth rendering between fixed updates
+        this.session.view.renderInterpolated(alpha);
+    }
+}
+
+// Turn-based strategy game
+class TurnBasedLoop {
+    constructor(session) {
+        this.session = session;
+        this.isWaitingForInput = false;
+        this.turnTimeLimit = 30000; // 30 seconds per turn
+    }
+    
+    start() {
+        this.processLoop();
+    }
+    
+    async processLoop() {
+        while (this.session.isActive) {
+            if (this.session.model.gameState === "waiting-for-turn") {
+                await this.handleTurnInput();
+            } else {
+                // Process any pending events
+                this.session.step(performance.now());
+            }
+            
+            // Update display
+            this.session.view.render();
+            
+            // Small delay to prevent busy waiting
+            await this.sleep(16); // ~60fps display updates
+        }
+    }
+    
+    async handleTurnInput() {
+        this.isWaitingForInput = true;
+        
+        // Wait for player input or timeout
+        const inputPromise = this.waitForPlayerInput();
+        const timeoutPromise = this.sleep(this.turnTimeLimit);
+        
+        await Promise.race([inputPromise, timeoutPromise]);
+        
+        this.isWaitingForInput = false;
+    }
+    
+    waitForPlayerInput() {
+        return new Promise((resolve) => {
+            const handler = (event) => {
+                if (event.type === "turn-submitted") {
+                    this.session.view.unsubscribe("input", "turn-submitted", handler);
+                    resolve();
+                }
+            };
+            
+            this.session.view.subscribe("input", "turn-submitted", handler);
+        });
+    }
+    
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}
+
+// Usage
+const session = await Multisynq.Session.join({...options, step: "manual"});
+
+// Choose appropriate loop for your game type
+if (gameType === "action") {
+    new ActionGameLoop(session).start();
+} else if (gameType === "turn-based") {
+    new TurnBasedLoop(session).start();
+}
+```
+</Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+<Card title="🏗️ Application Structure" icon="building">
+**Organize your code effectively**
+
+```js
+// ✅ Good structure
+class GameModel extends Multisynq.Model {
+    init() {
+        this.initializeGameState();
+        this.setupEventHandlers();
+        this.startGameSystems();
+    }
+    
+    initializeGameState() {
+        // Clear separation of concerns
+    }
+}
+
+// ✅ Modular views
+class GameView extends Multisynq.View {
+    init() {
+        this.ui = new UIManager(this);
+        this.renderer = new GameRenderer(this);
+        this.input = new InputHandler(this);
+    }
+}
+```
+</Card>
+
+<Card title="🔄 Session Management" icon="refresh">
+**Handle session lifecycle properly**
+
+```js
+// ✅ Robust session handling
+try {
+    const session = await Multisynq.Session.join(options);
+    
+    // Add error handling
+    session.on('error', handleSessionError);
+    session.on('disconnect', handleDisconnect);
+    
+    return session;
+} catch (error) {
+    console.error("Session failed:", error);
+    showErrorDialog(error);
+}
+```
+</Card>
+
+<Card title="🎯 Performance" icon="target">
+**Optimize for smooth gameplay**
+
+```js
+// ✅ Efficient rendering
+render() {
+    if (this.needsRedraw) {
+        this.drawGame();
+        this.needsRedraw = false;
+    }
+}
+
+// ✅ Batch operations
+handleMultipleInputs(inputs) {
+    // Process inputs in batches
+    this.publish("input", "batch", inputs);
+}
+```
+</Card>
+
+<Card title="🛡️ Error Handling" icon="shield">
+**Build resilient applications**
+
+```js
+// ✅ Graceful error handling
+class RobustModel extends Multisynq.Model {
+    init() {
+        try {
+            this.setupGame();
+        } catch (error) {
+            this.handleInitError(error);
+        }
+    }
+    
+    handleInitError(error) {
+        console.error("Init failed:", error);
+        this.gameState = "error";
+        this.publish("error", "init-failed", error);
+    }
+}
+```
+</Card>
+</CardGroup>
+
+## Common Patterns
+
+<AccordionGroup>
+<Accordion title="🎮 Game State Management" icon="gamepad">
+```js
+class StateManagedGame extends Multisynq.Model {
+    init() {
+        this.gameState = "menu";
+        this.stateData = {};
+        
+        this.subscribe("game", "change-state", this.changeState);
+    }
+    
+    changeState(newState, data = {}) {
+        const oldState = this.gameState;
+        
+        // Exit current state
+        this.exitState(oldState);
+        
+        // Enter new state
+        this.gameState = newState;
+        this.stateData = data;
+        this.enterState(newState);
+        
+        this.publish("game", "state-changed", {
+            from: oldState,
+            to: newState,
+            data: data
+        });
+    }
+    
+    enterState(state) {
+        switch (state) {
+            case "menu":
+                this.setupMenu();
+                break;
+            case "playing":
+                this.startGameplay();
+                break;
+            case "paused":
+                this.pauseGameplay();
+                break;
+            case "game-over":
+                this.endGameplay();
+                break;
+        }
+    }
+    
+    exitState(state) {
+        // Cleanup state-specific resources
+        switch (state) {
+            case "playing":
+                this.pauseAllSounds();
+                break;
+        }
+    }
+}
+```
+</Accordion>
+
+<Accordion title="🔧 Configuration Management" icon="wrench">
+```js
+class ConfigurableApp {
+    static async launch(userConfig = {}) {
+        // Merge user config with defaults
+        const config = {
+            apiKey: "",
+            appId: "com.example.default",
+            sessionName: null,
+            password: null,
+            maxPlayers: 8,
+            gameMode: "casual",
+            ...userConfig
+        };
+        
+        // Validate required config
+        this.validateConfig(config);
+        
+        // Auto-generate missing values
+        if (!config.sessionName) {
+            config.sessionName = await Multisynq.App.autoSession();
+        }
+        if (!config.password) {
+            config.password = await Multisynq.App.autoPassword();
+        }
+        
+        // Create model and view with config
+        const ModelClass = this.getModelClass(config.gameMode);
+        const ViewClass = this.getViewClass(config.gameMode);
+        
+        return Multisynq.Session.join({
+            apiKey: config.apiKey,
+            appId: config.appId,
+            name: config.sessionName,
+            password: config.password,
+            model: ModelClass,
+            view: ViewClass,
+            options: {
+                maxPlayers: config.maxPlayers
+            }
+        });
+    }
+    
+    static validateConfig(config) {
+        if (!config.apiKey) {
+            throw new Error("API key is required");
+        }
+        if (!config.appId) {
+            throw new Error("App ID is required");
+        }
+    }
+    
+    static getModelClass(gameMode) {
+        const models = {
+            casual: CasualGameModel,
+            competitive: CompetitiveGameModel,
+            sandbox: SandboxGameModel
+        };
+        return models[gameMode] || CasualGameModel;
+    }
+    
+    static getViewClass(gameMode) {
+        const views = {
+            casual: CasualGameView,
+            competitive: CompetitiveGameView,
+            sandbox: SandboxGameView
+        };
+        return views[gameMode] || CasualGameView;
+    }
+}
+
+// Usage
+ConfigurableApp.launch({
+    apiKey: "your_key",
+    appId: "com.yourcompany.yourgame",
+    gameMode: "competitive",
+    maxPlayers: 16
+});
+```
+</Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+<Card title="Writing a Multisynq Model" icon="database" href="/tutorials/writing-multisynq-model">
+  Deep dive into model development and constraints
+</Card>
+
+<Card title="Writing a Multisynq View" icon="eye" href="/tutorials/writing-multisynq-view">
+  Learn advanced view patterns and user interface development
+</Card>
+
+<Card title="Events & Pub-Sub" icon="satellite" href="/tutorials/events-pub-sub">
+  Master communication between models and views
+</Card>
+
+<Card title="Simple Animation" icon="play" href="/tutorials/simple-animation">
+  See complete applications in action
+</Card>
+</CardGroup>
+
+<Note>
+Building a complete Multisynq application requires understanding both the technical structure (Model + View + Session) and the patterns for managing user interaction, state changes, and session lifecycle. Start with simple applications and gradually add complexity as you master these fundamentals.
+</Note> 

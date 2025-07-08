@@ -1,0 +1,1098 @@
+---
+title: "Random"
+description: "Understand how random number generation works in Multisynq models and views to maintain perfect synchronization"
+---
+
+# Random
+
+Random number generation in Multisynq is designed to maintain perfect synchronization while giving you flexibility where you need it. Understanding how randomness works in models versus views is crucial for building applications that stay synchronized across all users.
+
+## Core Concept
+
+<Info>
+**Models**: `Math.random()` produces **identical** sequences across all devices for perfect synchronization.
+
+**Views**: `Math.random()` produces **different** sequences on each device for local variety.
+</Info>
+
+<Tabs>
+<Tab title="✅ Synchronized Model Random">
+**Models use deterministic random sequences**
+
+```js
+class GameModel extends Multisynq.Model {
+    init() {
+        this.enemies = [];
+        this.powerUps = [];
+        
+        // Start spawning systems
+        this.future(2000).spawnEnemy();
+        this.future(5000).spawnPowerUp();
+    }
+    
+    spawnEnemy() {
+        // ✅ This random call is synchronized across all devices
+        const x = Math.random() * 800; // Same value on all devices
+        const y = Math.random() * 600; // Same value on all devices
+        const type = Math.random() < 0.3 ? "fast" : "normal"; // Same decision
+        
+        const enemy = Enemy.create({
+            position: { x, y },
+            type: type,
+            health: 100
+        });
+        
+        this.enemies.push(enemy);
+        
+        // Notify views of new enemy
+        this.publish("game", "enemy-spawned", {
+            id: enemy.id,
+            position: enemy.position,
+            type: enemy.type
+        });
+        
+        // Schedule next spawn
+        const nextSpawnDelay = 1000 + (Math.random() * 3000); // Synchronized delay
+        this.future(nextSpawnDelay).spawnEnemy();
+    }
+    
+    spawnPowerUp() {
+        // ✅ All random decisions are identical across devices
+        if (Math.random() < 0.4) { // Same probability check result
+            const powerUpTypes = ["health", "speed", "damage", "shield"];
+            const typeIndex = Math.floor(Math.random() * powerUpTypes.length);
+            const selectedType = powerUpTypes[typeIndex]; // Same selection
+            
+            const powerUp = {
+                id: this.generateId(),
+                type: selectedType,
+                position: {
+                    x: 50 + Math.random() * 700, // Same position
+                    y: 50 + Math.random() * 500
+                },
+                duration: 10000 + Math.random() * 5000 // Same duration
+            };
+            
+            this.powerUps.push(powerUp);
+            this.publish("game", "powerup-spawned", powerUp);
+        }
+        
+        this.future(5000).spawnPowerUp();
+    }
+    
+    handleCombat(attackerId, defenderId) {
+        const attacker = this.getEntity(attackerId);
+        const defender = this.getEntity(defenderId);
+        
+        if (attacker && defender) {
+            // ✅ Critical hit calculation is synchronized
+            const criticalChance = 0.15;
+            const isCritical = Math.random() < criticalChance; // Same result everywhere
+            
+            const baseDamage = attacker.damage;
+            const finalDamage = isCritical ? baseDamage * 2 : baseDamage;
+            
+            defender.health -= finalDamage;
+            
+            this.publish("game", "combat-result", {
+                attackerId,
+                defenderId,
+                damage: finalDamage,
+                isCritical,
+                defenderHealth: defender.health
+            });
+            
+            if (defender.health <= 0) {
+                this.handleEntityDeath(defender);
+            }
+        }
+    }
+    
+    generateDrops(entity) {
+        // ✅ Loot generation is synchronized
+        const drops = [];
+        
+        // Each item has a chance to drop
+        const lootTable = [
+            { item: "gold", chance: 0.8, amount: () => 10 + Math.floor(Math.random() * 20) },
+            { item: "potion", chance: 0.3, amount: () => 1 },
+            { item: "gem", chance: 0.1, amount: () => 1 },
+            { item: "rare_weapon", chance: 0.05, amount: () => 1 }
+        ];
+        
+        for (const loot of lootTable) {
+            if (Math.random() < loot.chance) { // Same drop decision
+                drops.push({
+                    item: loot.item,
+                    amount: loot.amount() // Same amount
+                });
+            }
+        }
+        
+        return drops;
+    }
+}
+
+GameModel.register("GameModel");
+```
+
+<Note>
+Every call to `Math.random()` in the model produces the **exact same value** on all devices, ensuring perfect synchronization.
+</Note>
+</Tab>
+
+<Tab title="🎨 Independent View Random">
+**Views use local random for visual variety**
+
+```js
+class GameView extends Multisynq.View {
+    init() {
+        this.model = this.wellKnownModel("GameModel");
+        this.canvas = document.getElementById('canvas');
+        this.ctx = this.canvas.getContext('2d');
+        
+        this.particles = [];
+        this.visualEffects = [];
+        
+        this.setupEventHandlers();
+        this.startRenderLoop();
+        
+        // Subscribe to model events
+        this.subscribe("game", "enemy-spawned", this.onEnemySpawned);
+        this.subscribe("game", "combat-result", this.onCombatResult);
+        this.subscribe("game", "powerup-spawned", this.onPowerUpSpawned);
+    }
+    
+    onEnemySpawned(data) {
+        // ✅ Visual effects use local random for variety
+        this.createSpawnEffect(data.position);
+        
+        // Each user sees different particle patterns
+        for (let i = 0; i < 20; i++) {
+            this.particles.push({
+                x: data.position.x + (Math.random() - 0.5) * 100, // Different on each device
+                y: data.position.y + (Math.random() - 0.5) * 100,
+                vx: (Math.random() - 0.5) * 5, // Different velocities
+                vy: (Math.random() - 0.5) * 5,
+                life: 1.0,
+                decay: 0.02 + Math.random() * 0.02, // Different decay rates
+                color: this.getRandomSpawnColor() // Different colors
+            });
+        }
+    }
+    
+    onCombatResult(data) {
+        const defender = this.getEntityElement(data.defenderId);
+        
+        // ✅ Damage number animations vary per device
+        this.showDamageNumber(defender.position, data.damage, data.isCritical);
+        
+        if (data.isCritical) {
+            // Critical hit screen shake - different intensity per user
+            this.screenShake(2 + Math.random() * 3); // Different shake amounts
+        }
+        
+        // Blood/impact particles - each user sees different pattern
+        this.createImpactEffect(defender.position, data.isCritical);
+    }
+    
+    onPowerUpSpawned(data) {
+        // ✅ Spawn animation varies per user
+        this.createPowerUpAnimation(data);
+    }
+    
+    createSpawnEffect(position) {
+        // ✅ Each device shows different visual effects
+        const effect = {
+            x: position.x,
+            y: position.y,
+            scale: 0,
+            rotation: Math.random() * Math.PI * 2, // Random initial rotation
+            rotationSpeed: (Math.random() - 0.5) * 0.2, // Random spin speed
+            color: `hsl(${Math.random() * 60 + 30}, 80%, 60%)`, // Random color
+            particles: []
+        };
+        
+        // Generate random particles for this effect
+        for (let i = 0; i < 15; i++) {
+            effect.particles.push({
+                angle: Math.random() * Math.PI * 2,
+                speed: 2 + Math.random() * 4,
+                size: 2 + Math.random() * 6,
+                life: 1.0
+            });
+        }
+        
+        this.visualEffects.push(effect);
+    }
+    
+    showDamageNumber(position, damage, isCritical) {
+        // ✅ Damage number animation varies per user
+        const damageText = {
+            x: position.x + (Math.random() - 0.5) * 40, // Random offset
+            y: position.y - 20 + Math.random() * 10,
+            damage: damage,
+            isCritical: isCritical,
+            life: 1.5,
+            vx: (Math.random() - 0.5) * 2, // Random drift
+            vy: -2 - Math.random() * 2, // Random upward speed
+            scale: isCritical ? 1.5 + Math.random() * 0.5 : 1.0, // Random critical scale
+            color: isCritical ? 
+                `hsl(${10 + Math.random() * 20}, 100%, 60%)` : // Random red hue
+                `hsl(${Math.random() * 60 + 200}, 80%, 70%)` // Random blue hue
+        };
+        
+        this.damageNumbers.push(damageText);
+    }
+    
+    createImpactEffect(position, isCritical) {
+        // ✅ Impact particles are unique per device
+        const particleCount = isCritical ? 30 + Math.random() * 20 : 15 + Math.random() * 10;
+        
+        for (let i = 0; i < particleCount; i++) {
+            this.particles.push({
+                x: position.x,
+                y: position.y,
+                vx: (Math.random() - 0.5) * 8, // Random spray direction
+                vy: (Math.random() - 0.5) * 8,
+                size: 1 + Math.random() * 4, // Random sizes
+                life: 0.5 + Math.random() * 1.0, // Random lifespans
+                color: isCritical ? 
+                    `hsl(${Math.random() * 60}, 100%, ${50 + Math.random() * 30}%)` :
+                    `hsl(${200 + Math.random() * 60}, 80%, ${40 + Math.random() * 40}%)`
+            });
+        }
+    }
+    
+    createPowerUpAnimation(powerUp) {
+        // ✅ Power-up spawn effects vary per user
+        const glitterCount = 50 + Math.random() * 30;
+        
+        for (let i = 0; i < glitterCount; i++) {
+            this.particles.push({
+                x: powerUp.position.x + (Math.random() - 0.5) * 60,
+                y: powerUp.position.y + (Math.random() - 0.5) * 60,
+                vx: (Math.random() - 0.5) * 3,
+                vy: -1 - Math.random() * 2, // Upward drift
+                size: 1 + Math.random() * 3,
+                life: 2 + Math.random() * 2,
+                decay: 0.005 + Math.random() * 0.01,
+                color: this.getPowerUpColor(powerUp.type),
+                twinkle: Math.random() * Math.PI * 2 // Random twinkle phase
+            });
+        }
+    }
+    
+    getRandomSpawnColor() {
+        // ✅ Each device picks different colors
+        const colors = [
+            '#ff6b6b', '#4ecdc4', '#45b7d1', 
+            '#96ceb4', '#feca57', '#ff9ff3'
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+    
+    getPowerUpColor(type) {
+        // Base color by type, but random variation
+        const baseColors = {
+            health: [0, 100, 50], // Green HSL
+            speed: [60, 100, 50], // Yellow
+            damage: [0, 100, 40], // Red  
+            shield: [240, 100, 50] // Blue
+        };
+        
+        const base = baseColors[type] || [180, 50, 50];
+        
+        // ✅ Add random variation per device
+        return `hsl(${base[0] + (Math.random() - 0.5) * 30}, ${base[1]}%, ${base[2] + (Math.random() - 0.5) * 20}%)`;
+    }
+    
+    screenShake(intensity) {
+        // ✅ Screen shake varies per user
+        this.shakeOffset = {
+            x: (Math.random() - 0.5) * intensity * 2,
+            y: (Math.random() - 0.5) * intensity * 2
+        };
+        
+        // Gradually reduce shake
+        setTimeout(() => {
+            this.shakeOffset = { x: 0, y: 0 };
+        }, 100 + Math.random() * 100); // Random shake duration
+    }
+    
+    updateParticles() {
+        // ✅ Particle physics can have random elements per device
+        this.particles = this.particles.filter(particle => {
+            // Update particle
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            particle.life -= particle.decay || 0.02;
+            
+            // Random wind effect (different per device)
+            if (Math.random() < 0.1) {
+                particle.vx += (Math.random() - 0.5) * 0.1;
+            }
+            
+            return particle.life > 0;
+        });
+    }
+}
+
+GameView.register("GameView");
+```
+
+<Warning>
+**Never use view random for game logic!** View randomness should only affect visual presentation, not gameplay mechanics.
+</Warning>
+</Tab>
+</Tabs>
+
+## Practical Examples
+
+<AccordionGroup>
+<Accordion title="🎯 Synchronized Game Logic" icon="target">
+**Examples where models MUST use synchronized random**
+
+```js
+class RPGModel extends Multisynq.Model {
+    init() {
+        this.players = new Map();
+        this.npcs = new Map();
+        this.lootSystem = new LootSystem();
+    }
+    
+    // ✅ Combat calculations must be synchronized
+    rollAttack(attackerId, defenderId) {
+        const attacker = this.players.get(attackerId);
+        const defender = this.players.get(defenderId);
+        
+        // ✅ Dice rolls are the same on all devices
+        const attackRoll = Math.floor(Math.random() * 20) + 1; // d20
+        const defenseRoll = Math.floor(Math.random() * 20) + 1;
+        
+        const attackTotal = attackRoll + attacker.attackBonus;
+        const defenseTotal = defenseRoll + defender.defenseBonus;
+        
+        const hit = attackTotal > defenseTotal;
+        
+        let damage = 0;
+        if (hit) {
+            // ✅ Damage roll synchronized
+            damage = Math.floor(Math.random() * attacker.damageDie) + 1 + attacker.damageBonus;
+            
+            // ✅ Critical hit check synchronized
+            if (attackRoll === 20) { // Natural 20
+                damage *= 2;
+            }
+        }
+        
+        // All devices get the same result
+        this.publish("combat", "attack-result", {
+            attackerId,
+            defenderId,
+            attackRoll,
+            defenseRoll,
+            hit,
+            damage,
+            critical: attackRoll === 20
+        });
+        
+        if (hit) {
+            defender.health -= damage;
+            if (defender.health <= 0) {
+                this.handlePlayerDeath(defenderId);
+            }
+        }
+    }
+    
+    // ✅ Procedural generation must be synchronized
+    generateDungeon(seed, width, height) {
+        // ✅ Same random sequence produces identical dungeons
+        const dungeon = {
+            width,
+            height,
+            rooms: [],
+            corridors: [],
+            treasures: [],
+            monsters: []
+        };
+        
+        // Generate rooms
+        const roomCount = 5 + Math.floor(Math.random() * 8); // Same count
+        
+        for (let i = 0; i < roomCount; i++) {
+            const room = {
+                x: Math.floor(Math.random() * (width - 10)) + 5,
+                y: Math.floor(Math.random() * (height - 10)) + 5,
+                width: 4 + Math.floor(Math.random() * 8),
+                height: 4 + Math.floor(Math.random() * 8),
+                type: Math.random() < 0.3 ? "treasure" : "normal"
+            };
+            
+            dungeon.rooms.push(room);
+            
+            // Place monsters in rooms
+            if (Math.random() < 0.7) { // 70% chance
+                const monsterCount = 1 + Math.floor(Math.random() * 4);
+                for (let j = 0; j < monsterCount; j++) {
+                    dungeon.monsters.push({
+                        x: room.x + Math.floor(Math.random() * room.width),
+                        y: room.y + Math.floor(Math.random() * room.height),
+                        type: this.getRandomMonsterType(),
+                        level: 1 + Math.floor(Math.random() * 5)
+                    });
+                }
+            }
+        }
+        
+        return dungeon;
+    }
+    
+    // ✅ Loot drops must be synchronized
+    generateLoot(monsterLevel, rarity) {
+        const loot = [];
+        
+        // Base chance for loot
+        if (Math.random() < 0.8) { // 80% chance for basic loot
+            // Gold amount
+            const goldAmount = (monsterLevel * 10) + Math.floor(Math.random() * (monsterLevel * 20));
+            loot.push({ type: "gold", amount: goldAmount });
+        }
+        
+        // Magic item chance based on rarity
+        const magicChance = rarity === "rare" ? 0.5 : rarity === "epic" ? 0.8 : 0.2;
+        
+        if (Math.random() < magicChance) {
+            const itemTypes = ["weapon", "armor", "accessory", "consumable"];
+            const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+            
+            loot.push({
+                type: "magic_item",
+                category: itemType,
+                level: monsterLevel + Math.floor(Math.random() * 3) - 1,
+                rarity: rarity
+            });
+        }
+        
+        return loot;
+    }
+    
+    // ✅ Random events must be synchronized
+    triggerRandomEvent() {
+        const events = [
+            { type: "treasure_chest", chance: 0.3 },
+            { type: "wandering_monster", chance: 0.4 },
+            { type: "mysterious_portal", chance: 0.1 },
+            { type: "helpful_npc", chance: 0.2 }
+        ];
+        
+        const roll = Math.random();
+        let accumulator = 0;
+        
+        for (const event of events) {
+            accumulator += event.chance;
+            if (roll < accumulator) {
+                this.executeRandomEvent(event.type);
+                break;
+            }
+        }
+    }
+    
+    getRandomMonsterType() {
+        const monsters = ["goblin", "orc", "skeleton", "spider", "wolf"];
+        return monsters[Math.floor(Math.random() * monsters.length)];
+    }
+}
+
+RPGModel.register("RPGModel");
+```
+</Accordion>
+
+<Accordion title="🎨 Visual Variety in Views" icon="palette">
+**Examples where views SHOULD use local random**
+
+```js
+class RPGView extends Multisynq.View {
+    init() {
+        this.model = this.wellKnownModel("RPGModel");
+        this.canvas = document.getElementById('canvas');
+        this.ctx = this.canvas.getContext('2d');
+        
+        this.weatherParticles = [];
+        this.ambientEffects = [];
+        this.uiAnimations = [];
+        
+        this.setupEventHandlers();
+        this.startWeatherSystem();
+        this.startAmbientSystem();
+        
+        // Subscribe to game events
+        this.subscribe("combat", "attack-result", this.onAttackResult);
+        this.subscribe("game", "treasure-found", this.onTreasureFound);
+        this.subscribe("game", "level-up", this.onLevelUp);
+    }
+    
+    // ✅ Weather effects vary per device for atmosphere
+    startWeatherSystem() {
+        this.updateWeather();
+    }
+    
+    updateWeather() {
+        const weatherType = this.model.currentWeather || "clear";
+        
+        switch (weatherType) {
+            case "rain":
+                this.spawnRaindrops();
+                break;
+            case "snow":
+                this.spawnSnowflakes();
+                break;
+            case "fog":
+                this.updateFogParticles();
+                break;
+        }
+        
+        // Continue weather updates
+        setTimeout(() => this.updateWeather(), 100);
+    }
+    
+    spawnRaindrops() {
+        // ✅ Each device shows different raindrop patterns
+        if (Math.random() < 0.8) { // 80% chance each frame
+            const count = 2 + Math.floor(Math.random() * 5);
+            
+            for (let i = 0; i < count; i++) {
+                this.weatherParticles.push({
+                    type: "rain",
+                    x: Math.random() * this.canvas.width,
+                    y: -10,
+                    vx: -2 + Math.random() * 4, // Random wind
+                    vy: 5 + Math.random() * 10, // Random fall speed
+                    length: 5 + Math.random() * 15, // Random raindrop length
+                    alpha: 0.3 + Math.random() * 0.4 // Random transparency
+                });
+            }
+        }
+    }
+    
+    spawnSnowflakes() {
+        // ✅ Each device shows different snowfall patterns
+        if (Math.random() < 0.6) { // 60% chance each frame
+            const count = 1 + Math.floor(Math.random() * 3);
+            
+            for (let i = 0; i < count; i++) {
+                this.weatherParticles.push({
+                    type: "snow",
+                    x: Math.random() * this.canvas.width,
+                    y: -10,
+                    vx: (Math.random() - 0.5) * 2, // Random horizontal drift
+                    vy: 1 + Math.random() * 3, // Random fall speed
+                    size: 2 + Math.random() * 6, // Random size
+                    rotation: Math.random() * Math.PI * 2, // Random initial rotation
+                    rotationSpeed: (Math.random() - 0.5) * 0.1, // Random spin
+                    alpha: 0.5 + Math.random() * 0.5
+                });
+            }
+        }
+    }
+    
+    // ✅ Combat effects vary per device for visual interest
+    onAttackResult(data) {
+        const attackerPos = this.getPlayerPosition(data.attackerId);
+        const defenderPos = this.getPlayerPosition(data.defenderId);
+        
+        // Create hit effect at defender
+        this.createHitEffect(defenderPos, data.damage, data.critical);
+        
+        // Show damage number with random variation
+        this.showDamageNumber(defenderPos, data.damage, data.critical);
+        
+        if (data.hit) {
+            // Screen flash effect - different timing per device
+            this.flashScreen(data.critical ? "red" : "white", Math.random() * 200 + 100);
+            
+            // Particle burst - different pattern per device
+            this.createParticleBurst(defenderPos, data.critical ? 30 : 15);
+        }
+    }
+    
+    createHitEffect(position, damage, isCritical) {
+        // ✅ Hit effects have random visual variety
+        const effect = {
+            x: position.x,
+            y: position.y,
+            scale: 0,
+            maxScale: isCritical ? 1.5 + Math.random() * 0.5 : 1.0 + Math.random() * 0.3,
+            rotation: Math.random() * Math.PI * 2,
+            rotationSpeed: (Math.random() - 0.5) * 0.3,
+            color: isCritical ? 
+                `hsl(${Math.random() * 60}, 100%, 60%)` : // Random warm color
+                `hsl(${200 + Math.random() * 80}, 80%, 70%)`, // Random cool color
+            life: 1.0,
+            decay: 0.05 + Math.random() * 0.03,
+            pulsePhase: Math.random() * Math.PI * 2, // Random pulse timing
+            pulseSpeed: 0.2 + Math.random() * 0.1
+        };
+        
+        this.visualEffects.push(effect);
+    }
+    
+    createParticleBurst(position, count) {
+        // ✅ Each device shows different particle patterns
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2 + Math.random() * 6;
+            
+            this.particles.push({
+                x: position.x,
+                y: position.y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: 1 + Math.random() * 4,
+                life: 0.5 + Math.random() * 1.0,
+                decay: 0.02 + Math.random() * 0.02,
+                color: `hsl(${Math.random() * 360}, 80%, 60%)`,
+                gravity: Math.random() * 0.2 // Random gravity effect
+            });
+        }
+    }
+    
+    // ✅ UI animations can have random timing for liveliness
+    onTreasureFound(data) {
+        // Treasure sparkle effect
+        this.createTreasureSparkles(data.position);
+        
+        // Show treasure notification with random slide-in direction
+        this.showTreasureNotification(data.treasure, Math.random() < 0.5 ? "left" : "right");
+    }
+    
+    createTreasureSparkles(position) {
+        // ✅ Sparkle effects vary per device
+        const sparkleCount = 20 + Math.random() * 20;
+        
+        for (let i = 0; i < sparkleCount; i++) {
+            this.particles.push({
+                x: position.x + (Math.random() - 0.5) * 100,
+                y: position.y + (Math.random() - 0.5) * 100,
+                vx: (Math.random() - 0.5) * 4,
+                vy: -2 - Math.random() * 3, // Upward motion
+                size: 2 + Math.random() * 4,
+                life: 1 + Math.random() * 2,
+                decay: 0.01 + Math.random() * 0.02,
+                color: `hsl(${45 + Math.random() * 30}, 100%, ${60 + Math.random() * 30}%)`, // Random gold hue
+                twinkle: Math.random() * Math.PI * 2,
+                twinkleSpeed: 0.1 + Math.random() * 0.2
+            });
+        }
+    }
+    
+    // ✅ Ambient effects create atmosphere with random variety
+    startAmbientSystem() {
+        setInterval(() => {
+            this.spawnAmbientEffects();
+        }, 2000 + Math.random() * 3000); // Random interval
+    }
+    
+    spawnAmbientEffects() {
+        // Random ambient effects for atmosphere
+        const effectType = Math.random();
+        
+        if (effectType < 0.3) {
+            this.spawnFireflies();
+        } else if (effectType < 0.6) {
+            this.spawnDustMotes();
+        } else if (effectType < 0.8) {
+            this.spawnLeaves();
+        }
+        // Sometimes no effect for natural rhythm
+    }
+    
+    spawnFireflies() {
+        // ✅ Firefly patterns vary per device
+        const count = 1 + Math.floor(Math.random() * 4);
+        
+        for (let i = 0; i < count; i++) {
+            this.ambientEffects.push({
+                type: "firefly",
+                x: Math.random() * this.canvas.width,
+                y: Math.random() * this.canvas.height,
+                vx: (Math.random() - 0.5) * 1,
+                vy: (Math.random() - 0.5) * 1,
+                brightness: 0.5 + Math.random() * 0.5,
+                blinkPhase: Math.random() * Math.PI * 2,
+                blinkSpeed: 0.05 + Math.random() * 0.1,
+                life: 10 + Math.random() * 20 // Random lifespan
+            });
+        }
+    }
+    
+    flashScreen(color, duration) {
+        // ✅ Screen flash timing varies per device
+        const flash = document.createElement('div');
+        flash.style.cssText = `
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: ${color}; pointer-events: none; z-index: 1000;
+            opacity: 0.${3 + Math.floor(Math.random() * 5)}; // Random opacity
+        `;
+        
+        document.body.appendChild(flash);
+        
+        // Random fade-out timing
+        setTimeout(() => {
+            flash.style.transition = `opacity ${duration}ms ease-out`;
+            flash.style.opacity = '0';
+            setTimeout(() => flash.remove(), duration);
+        }, 50 + Math.random() * 50);
+    }
+}
+
+RPGView.register("RPGView");
+```
+</Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+<Card title="🎯 Model Randomness" icon="target">
+**Use for synchronized game logic**
+
+```js
+// ✅ Good model random usage
+class GameModel extends Multisynq.Model {
+    // Game mechanics
+    rollDice(sides) {
+        return Math.floor(Math.random() * sides) + 1;
+    }
+    
+    // Procedural generation
+    generateLevel() {
+        const layout = [];
+        for (let i = 0; i < 100; i++) {
+            layout.push(Math.random() < 0.3 ? "wall" : "floor");
+        }
+        return layout;
+    }
+    
+    // AI decisions
+    makeAIChoice(options) {
+        return options[Math.floor(Math.random() * options.length)];
+    }
+}
+```
+</Card>
+
+<Card title="🎨 View Randomness" icon="palette">
+**Use for visual variety only**
+
+```js
+// ✅ Good view random usage
+class GameView extends Multisynq.View {
+    // Visual effects
+    createExplosion(pos) {
+        for (let i = 0; i < 50; i++) {
+            this.addParticle({
+                x: pos.x + (Math.random() - 0.5) * 20,
+                y: pos.y + (Math.random() - 0.5) * 20,
+                color: `hsl(${Math.random() * 60}, 100%, 60%)`
+            });
+        }
+    }
+    
+    // Animation timing
+    startIdleAnimation() {
+        const delay = 1000 + Math.random() * 2000;
+        setTimeout(() => this.playIdleAnim(), delay);
+    }
+}
+```
+</Card>
+</CardGroup>
+
+## Common Mistakes
+
+<Warning>
+**Avoid these random number generation errors:**
+</Warning>
+
+<AccordionGroup>
+<Accordion title="❌ Using View Random for Game Logic" icon="ban">
+```js
+// ❌ NEVER do this - breaks synchronization
+class BadView extends Multisynq.View {
+    handleAttack() {
+        // ❌ This calculation will be different on each device!
+        const damage = Math.floor(Math.random() * 20) + 1;
+        
+        // ❌ This will cause desync!
+        this.publish("combat", "deal-damage", { damage });
+    }
+    
+    checkCriticalHit() {
+        // ❌ Critical hit checks must be in the model!
+        if (Math.random() < 0.1) {
+            this.publish("combat", "critical-hit", {});
+        }
+    }
+}
+
+// ✅ Do this instead
+class GoodView extends Multisynq.View {
+    handleAttack() {
+        // ✅ Let the model handle calculations
+        this.publish("combat", "attack-attempt", {
+            attackerId: this.playerId,
+            targetId: this.selectedTarget
+        });
+    }
+}
+```
+</Accordion>
+
+<Accordion title="❌ Inconsistent Random Seeds" icon="warning">
+```js
+// ❌ Don't try to manually seed random in models
+class BadModel extends Multisynq.Model {
+    init() {
+        // ❌ This doesn't work - Math.random is already deterministic
+        Math.seedrandom(this.sessionId);
+        
+        // ❌ Each device might set different seeds
+        const seed = Date.now();
+        this.random = new SomeRandomLibrary(seed);
+    }
+}
+
+// ✅ Just use Math.random directly
+class GoodModel extends Multisynq.Model {
+    init() {
+        // ✅ Math.random is automatically synchronized
+        this.generateLevel();
+    }
+    
+    generateLevel() {
+        // ✅ This will be identical on all devices
+        for (let i = 0; i < 100; i++) {
+            if (Math.random() < 0.3) {
+                this.placeObstacle(i);
+            }
+        }
+    }
+}
+```
+</Accordion>
+
+<Accordion title="❌ Mixing Random Sources" icon="shuffle">
+```js
+// ❌ Don't mix different random sources
+class ConfusedModel extends Multisynq.Model {
+    init() {
+        this.customRandom = new CustomRandom(12345);
+    }
+    
+    spawnEnemy() {
+        // ❌ Mixing Math.random with custom random breaks sync
+        const x = Math.random() * 800;              // Synchronized
+        const y = this.customRandom.next() * 600;   // NOT synchronized!
+        const type = Math.random() < 0.5 ? "A" : "B"; // Synchronized again
+        
+        // This will cause desyncs because y values differ
+    }
+}
+
+// ✅ Use only Math.random in models
+class ConsistentModel extends Multisynq.Model {
+    spawnEnemy() {
+        // ✅ All random calls use Math.random
+        const x = Math.random() * 800;
+        const y = Math.random() * 600;  
+        const type = Math.random() < 0.5 ? "A" : "B";
+        
+        // Perfect synchronization
+    }
+}
+```
+</Accordion>
+</AccordionGroup>
+
+## Advanced Patterns
+
+<AccordionGroup>
+<Accordion title="🎲 Dice Rolling Systems" icon="dice">
+```js
+class DiceRollingModel extends Multisynq.Model {
+    // Standard dice rolling
+    rollDie(sides) {
+        return Math.floor(Math.random() * sides) + 1;
+    }
+    
+    rollMultiple(count, sides, modifier = 0) {
+        let total = 0;
+        const rolls = [];
+        
+        for (let i = 0; i < count; i++) {
+            const roll = this.rollDie(sides);
+            rolls.push(roll);
+            total += roll;
+        }
+        
+        return {
+            rolls: rolls,
+            total: total + modifier,
+            modifier: modifier
+        };
+    }
+    
+    // Advantage/disadvantage system
+    rollWithAdvantage(sides) {
+        const roll1 = this.rollDie(sides);
+        const roll2 = this.rollDie(sides);
+        return Math.max(roll1, roll2);
+    }
+    
+    rollWithDisadvantage(sides) {
+        const roll1 = this.rollDie(sides);
+        const roll2 = this.rollDie(sides);
+        return Math.min(roll1, roll2);
+    }
+    
+    // Exploding dice (roll again on max)
+    rollExploding(sides) {
+        let total = 0;
+        let roll;
+        
+        do {
+            roll = this.rollDie(sides);
+            total += roll;
+        } while (roll === sides);
+        
+        return total;
+    }
+}
+```
+</Accordion>
+
+<Accordion title="🌍 Procedural Generation" icon="globe">
+```js
+class ProceduralModel extends Multisynq.Model {
+    generateIsland(size) {
+        const island = [];
+        
+        for (let y = 0; y < size; y++) {
+            const row = [];
+            for (let x = 0; x < size; x++) {
+                // Distance from center
+                const centerX = size / 2;
+                const centerY = size / 2;
+                const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                const maxDistance = size / 2;
+                
+                // Base height based on distance
+                let height = 1 - (distance / maxDistance);
+                
+                // Add noise
+                height += (Math.random() - 0.5) * 0.3;
+                
+                // Determine terrain type
+                let terrain;
+                if (height < 0.2) {
+                    terrain = "water";
+                } else if (height < 0.4) {
+                    terrain = "beach";
+                } else if (height < 0.7) {
+                    terrain = "grass";
+                } else {
+                    terrain = "mountain";
+                }
+                
+                row.push({ height, terrain });
+            }
+            island.push(row);
+        }
+        
+        return island;
+    }
+    
+    generateMaze(width, height) {
+        // Initialize maze with walls
+        const maze = Array(height).fill().map(() => Array(width).fill("wall"));
+        
+        // Recursive backtracker algorithm
+        const stack = [];
+        const start = { x: 1, y: 1 };
+        maze[start.y][start.x] = "path";
+        stack.push(start);
+        
+        while (stack.length > 0) {
+            const current = stack[stack.length - 1];
+            const neighbors = this.getUnvisitedNeighbors(maze, current, width, height);
+            
+            if (neighbors.length > 0) {
+                // Choose random neighbor
+                const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                
+                // Remove wall between current and next
+                const wallX = current.x + (next.x - current.x) / 2;
+                const wallY = current.y + (next.y - current.y) / 2;
+                maze[wallY][wallX] = "path";
+                maze[next.y][next.x] = "path";
+                
+                stack.push(next);
+            } else {
+                stack.pop();
+            }
+        }
+        
+        return maze;
+    }
+    
+    getUnvisitedNeighbors(maze, pos, width, height) {
+        const neighbors = [];
+        const directions = [
+            { x: 0, y: -2 }, // Up
+            { x: 2, y: 0 },  // Right
+            { x: 0, y: 2 },  // Down
+            { x: -2, y: 0 }  // Left
+        ];
+        
+        for (const dir of directions) {
+            const newX = pos.x + dir.x;
+            const newY = pos.y + dir.y;
+            
+            if (newX > 0 && newX < width - 1 && 
+                newY > 0 && newY < height - 1 && 
+                maze[newY][newX] === "wall") {
+                neighbors.push({ x: newX, y: newY });
+            }
+        }
+        
+        return neighbors;
+    }
+}
+```
+</Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+<Card title="Writing a Multisynq Model" icon="database" href="/tutorials/writing-multisynq-model">
+  Learn more about model constraints and synchronization
+</Card>
+
+<Card title="Writing a Multisynq View" icon="eye" href="/tutorials/writing-multisynq-view">
+  Understand view-specific patterns and local randomness
+</Card>
+
+<Card title="Sim Time & Future" icon="clock" href="/tutorials/sim-time-future">
+  Master timing and scheduling with synchronized randomness
+</Card>
+
+<Card title="Simple Animation" icon="play" href="/tutorials/simple-animation">
+  See randomness in action with animated examples
+</Card>
+</CardGroup>
+
+<Note>
+Random number generation in Multisynq is a powerful feature that ensures perfect synchronization when used correctly. Remember: **models get identical random sequences** for game logic synchronization, while **views get independent random sequences** for visual variety. Use this distinction to build engaging, synchronized multiplayer experiences.
+</Note> 
