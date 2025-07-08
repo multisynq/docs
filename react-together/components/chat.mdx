@@ -1,0 +1,782 @@
+---
+title: "Chat"
+description: "A complete real-time chat component with customizable UI elements and automatic message synchronization."
+---
+
+## Overview
+
+The `Chat` component provides a fully functional real-time chat interface that synchronizes messages across all connected users. It includes a header, message list, input field, and can be minimized. All UI elements are customizable through the `components` prop.
+
+<Info>
+**Perfect for**: Team communication, customer support chat, collaborative comments, real-time discussions, and any application requiring instant messaging.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { Chat } from 'react-together'
+
+function MyApp() {
+  return (
+    <div className="app">
+      <main>
+        {/* Your app content */}
+      </main>
+      
+      {/* Chat positioned in corner */}
+      <div className="fixed bottom-4 right-4 w-80 h-96">
+        <Chat rtKey="main-chat" chatName="Team Chat" />
+      </div>
+    </div>
+  )
+}
+```
+
+## Props
+
+<ParamField path="rtKey" type="string" required>
+  Unique identifier for the chat session. All users with the same key will share the same chat
+</ParamField>
+
+<ParamField path="chatName" type="string | React.ReactElement" default="'Group Chat'">
+  Display name shown in the chat header
+</ParamField>
+
+<ParamField path="hideWhenDisconnected" type="boolean" default="false">
+  Whether to hide the entire chat component when not connected to a session
+</ParamField>
+
+<ParamField path="components" type="ChatComponents">
+  Custom components to override default chat UI elements
+</ParamField>
+
+### ChatComponents Interface
+
+The `components` prop allows you to customize every part of the chat interface:
+
+```tsx
+interface ChatComponents {
+  ChatMinimized?: React.ComponentType<ChatMinimizedProps>
+  ChatExpanded?: React.ComponentType<ChatExpandedProps>
+  ChatHeader?: React.ComponentType<ChatHeaderProps>
+  MessageList?: React.ComponentType<MessageListProps>
+  MessageRow?: React.ComponentType<MessageRowProps>
+  MessageAvatar?: React.ComponentType<MessageAvatarProps>
+  MessageBody?: React.ComponentType<MessageBodyProps>
+  ChatInput?: React.ComponentType<ChatInputProps>
+  ConnectPrompt?: React.ComponentType<unknown>
+  WelcomeMessage?: React.ComponentType<unknown>
+}
+```
+
+## Examples
+
+### Basic Team Chat
+
+Simple chat implementation for team communication:
+
+```tsx
+import { Chat, useConnectedUsers } from 'react-together'
+
+function TeamChat() {
+  const connectedUsers = useConnectedUsers()
+  
+  return (
+    <div className="team-dashboard">
+      <div className="header">
+        <h1>Team Dashboard</h1>
+        <div className="user-count">
+          {connectedUsers.length} user(s) online
+        </div>
+      </div>
+      
+      <div className="main-content">
+        {/* Your main app content */}
+        <div className="workspace">
+          <p>Main workspace content here...</p>
+        </div>
+        
+        {/* Sidebar chat */}
+        <div className="chat-sidebar">
+          <Chat 
+            rtKey="team-chat"
+            chatName="💬 Team Chat"
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Custom Chat Header
+
+Customize the chat header with additional information:
+
+```tsx
+import { Chat, ChatHeaderProps, useConnectedUsers } from 'react-together'
+
+function CustomChatHeader({ chatName, minimizeChat }: ChatHeaderProps) {
+  const connectedUsers = useConnectedUsers()
+  
+  return (
+    <div className="custom-chat-header">
+      <div className="header-main">
+        <h3 className="chat-title">{chatName}</h3>
+        <button 
+          onClick={minimizeChat}
+          className="minimize-btn"
+          title="Minimize chat"
+        >
+          −
+        </button>
+      </div>
+      <div className="header-info">
+        <span className="online-indicator">
+          🟢 {connectedUsers.length} online
+        </span>
+        <span className="chat-status">
+          Real-time chat active
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function ChatWithCustomHeader() {
+  return (
+    <Chat
+      rtKey="team-discussion"
+      chatName="Team Discussion"
+      components={{
+        ChatHeader: CustomChatHeader
+      }}
+    />
+  )
+}
+```
+
+### Custom Message Display
+
+Create custom message bubbles with enhanced styling:
+
+```tsx
+import { Chat, MessageRowProps, MessageBodyProps, useMyId } from 'react-together'
+
+function CustomMessageBody({ 
+  senderId, 
+  message, 
+  sentAt, 
+  isMe,
+  formatTime = (ts) => new Date(ts).toLocaleTimeString()
+}: MessageBodyProps) {
+  return (
+    <div className={`message-bubble ${isMe ? 'my-message' : 'other-message'}`}>
+      <div className="message-content">
+        {message}
+      </div>
+      <div className="message-meta">
+        <span className="timestamp">
+          {formatTime(sentAt)}
+        </span>
+        {isMe && (
+          <span className="message-status">
+            ✓ Sent
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function CustomMessageRow({
+  senderId,
+  message,
+  sentAt,
+  isMe,
+  MessageAvatar,
+  MessageBody
+}: MessageRowProps) {
+  return (
+    <div className={`message-row ${isMe ? 'message-from-me' : 'message-from-other'}`}>
+      {!isMe && (
+        <div className="avatar-container">
+          <MessageAvatar senderId={senderId} isMe={isMe} />
+        </div>
+      )}
+      
+      <div className="message-container">
+        <MessageBody
+          senderId={senderId}
+          message={message}
+          sentAt={sentAt}
+          isMe={isMe}
+        />
+      </div>
+      
+      {isMe && (
+        <div className="avatar-container">
+          <MessageAvatar senderId={senderId} isMe={isMe} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function StyledChat() {
+  return (
+    <Chat
+      rtKey="styled-chat"
+      chatName="🎨 Styled Chat"
+      components={{
+        MessageBody: CustomMessageBody,
+        MessageRow: CustomMessageRow
+      }}
+    />
+  )
+}
+```
+
+### Custom Input with Rich Features
+
+Enhanced chat input with additional features:
+
+```tsx
+import { Chat, ChatInputProps } from 'react-together'
+import { useState, useRef } from 'react'
+
+function RichChatInput({ sendMessage }: ChatInputProps) {
+  const [input, setInput] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  
+  const handleSend = () => {
+    if (input.trim()) {
+      sendMessage(input.trim())
+      setInput('')
+      setIsTyping(false)
+    }
+  }
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value)
+    setIsTyping(e.target.value.length > 0)
+  }
+  
+  return (
+    <div className="rich-chat-input">
+      <div className="input-container">
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
+          className="message-textarea"
+          rows={1}
+          style={{
+            minHeight: '40px',
+            maxHeight: '120px',
+            resize: 'none'
+          }}
+        />
+        
+        <div className="input-actions">
+          <button
+            onClick={handleSend}
+            disabled={!input.trim()}
+            className={`send-button ${input.trim() ? 'active' : 'disabled'}`}
+          >
+            📤 Send
+          </button>
+        </div>
+      </div>
+      
+      <div className="input-footer">
+        <div className="input-hints">
+          💡 Use Shift+Enter for line breaks
+        </div>
+        {isTyping && (
+          <div className="typing-indicator">
+            You are typing...
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ChatWithRichInput() {
+  return (
+    <Chat
+      rtKey="rich-chat"
+      chatName="Rich Chat"
+      components={{
+        ChatInput: RichChatInput
+      }}
+    />
+  )
+}
+```
+
+### Support Chat System
+
+Build a customer support chat with custom components:
+
+```tsx
+import { Chat, useMyId, useConnectedUsers } from 'react-together'
+
+function SupportChatHeader({ chatName, minimizeChat }: ChatHeaderProps) {
+  const connectedUsers = useConnectedUsers()
+  const supportAgents = connectedUsers.filter(user => 
+    user.nickname.includes('Agent') || user.nickname.includes('Support')
+  )
+  
+  return (
+    <div className="support-chat-header">
+      <div className="header-content">
+        <div className="support-info">
+          <h3>🎧 Customer Support</h3>
+          {supportAgents.length > 0 ? (
+            <span className="agent-status">
+              ✅ {supportAgents.length} agent(s) available
+            </span>
+          ) : (
+            <span className="no-agents">
+              ⏳ Waiting for agent...
+            </span>
+          )}
+        </div>
+        <button onClick={minimizeChat} className="minimize-btn">
+          −
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function SupportMessageBody({ 
+  senderId, 
+  message, 
+  sentAt, 
+  isMe 
+}: MessageBodyProps) {
+  const connectedUsers = useConnectedUsers()
+  const sender = connectedUsers.find(u => u.userId === senderId)
+  const isAgent = sender?.nickname.includes('Agent') || sender?.nickname.includes('Support')
+  
+  return (
+    <div className={`support-message ${isMe ? 'customer-message' : 'agent-message'}`}>
+      {!isMe && isAgent && (
+        <div className="agent-badge">
+          🎧 Support Agent
+        </div>
+      )}
+      <div className="message-content">
+        {message}
+      </div>
+      <div className="message-time">
+        {new Date(sentAt).toLocaleTimeString()}
+      </div>
+    </div>
+  )
+}
+
+function SupportWelcomeMessage() {
+  return (
+    <div className="support-welcome">
+      <div className="welcome-icon">🎧</div>
+      <h3>Welcome to Support Chat</h3>
+      <p>A support agent will be with you shortly.</p>
+      <p>Please describe your issue in detail.</p>
+    </div>
+  )
+}
+
+function SupportChat() {
+  return (
+    <div className="support-widget">
+      <Chat
+        rtKey="support-chat"
+        chatName="Customer Support"
+        components={{
+          ChatHeader: SupportChatHeader,
+          MessageBody: SupportMessageBody,
+          WelcomeMessage: SupportWelcomeMessage
+        }}
+      />
+    </div>
+  )
+}
+```
+
+### Multi-Channel Chat
+
+Create a chat system with multiple channels:
+
+```tsx
+import { Chat } from 'react-together'
+import { useState } from 'react'
+
+interface ChatChannel {
+  id: string
+  name: string
+  description: string
+  emoji: string
+}
+
+function MultiChannelChat() {
+  const [activeChannel, setActiveChannel] = useState<ChatChannel>({
+    id: 'general',
+    name: 'General',
+    description: 'General discussion',
+    emoji: '💬'
+  })
+  
+  const channels: ChatChannel[] = [
+    { id: 'general', name: 'General', description: 'General discussion', emoji: '💬' },
+    { id: 'dev-team', name: 'Development', description: 'Dev team chat', emoji: '⚡' },
+    { id: 'design', name: 'Design', description: 'Design discussions', emoji: '🎨' },
+    { id: 'random', name: 'Random', description: 'Off-topic chat', emoji: '🎲' }
+  ]
+  
+  return (
+    <div className="multi-channel-chat">
+      {/* Channel Selector */}
+      <div className="channel-selector">
+        <h3>Channels</h3>
+        <div className="channel-list">
+          {channels.map(channel => (
+            <button
+              key={channel.id}
+              onClick={() => setActiveChannel(channel)}
+              className={`channel-button ${
+                activeChannel.id === channel.id ? 'active' : ''
+              }`}
+            >
+              <span className="channel-emoji">{channel.emoji}</span>
+              <div className="channel-info">
+                <span className="channel-name">{channel.name}</span>
+                <span className="channel-description">{channel.description}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {/* Chat Area */}
+      <div className="chat-area">
+        <Chat
+          rtKey={`channel-${activeChannel.id}`}
+          chatName={
+            <div className="channel-header">
+              <span className="channel-emoji">{activeChannel.emoji}</span>
+              <span className="channel-name">#{activeChannel.name}</span>
+            </div>
+          }
+        />
+      </div>
+    </div>
+  )
+}
+```
+
+### Chat with File Sharing Simulation
+
+Enhanced chat with simulated file sharing:
+
+```tsx
+import { Chat, ChatInputProps } from 'react-together'
+import { useState } from 'react'
+
+function FileShareChatInput({ sendMessage }: ChatInputProps) {
+  const [input, setInput] = useState('')
+  const [isUploading, setIsUploading] = useState(false)
+  
+  const handleSend = () => {
+    if (input.trim()) {
+      sendMessage(input.trim())
+      setInput('')
+    }
+  }
+  
+  const handleFileShare = async () => {
+    setIsUploading(true)
+    
+    // Simulate file upload
+    setTimeout(() => {
+      sendMessage('📎 Shared a file: project-mockup.png')
+      setIsUploading(false)
+    }, 2000)
+  }
+  
+  return (
+    <div className="file-share-input">
+      <div className="input-row">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type a message..."
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              handleSend()
+            }
+          }}
+          className="message-input"
+        />
+        
+        <button
+          onClick={handleFileShare}
+          disabled={isUploading}
+          className="file-button"
+          title="Share file"
+        >
+          {isUploading ? '⏳' : '📎'}
+        </button>
+        
+        <button
+          onClick={handleSend}
+          disabled={!input.trim()}
+          className="send-button"
+        >
+          Send
+        </button>
+      </div>
+      
+      {isUploading && (
+        <div className="upload-progress">
+          📤 Uploading file...
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FileShareChat() {
+  return (
+    <Chat
+      rtKey="file-share-chat"
+      chatName="📁 File Share Chat"
+      components={{
+        ChatInput: FileShareChatInput
+      }}
+    />
+  )
+}
+```
+
+### Moderated Chat
+
+Chat with message moderation features:
+
+```tsx
+import { Chat, MessageBodyProps, useMyId } from 'react-together'
+
+function ModeratedMessageBody({ 
+  senderId, 
+  message, 
+  sentAt, 
+  isMe 
+}: MessageBodyProps) {
+  const myId = useMyId()
+  const isModerator = myId?.includes('moderator') || myId?.includes('admin')
+  
+  const [isHidden, setIsHidden] = useState(false)
+  
+  // Simple content filtering
+  const containsInappropriate = /\b(spam|inappropriate)\b/i.test(message)
+  
+  return (
+    <div className={`moderated-message ${isMe ? 'my-message' : 'other-message'}`}>
+      {isHidden ? (
+        <div className="hidden-message">
+          <span>Message hidden by moderator</span>
+          {isModerator && (
+            <button onClick={() => setIsHidden(false)}>
+              Show
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className={`message-content ${containsInappropriate ? 'flagged' : ''}`}>
+            {message}
+            {containsInappropriate && (
+              <span className="flag-indicator" title="Flagged content">
+                ⚠️
+              </span>
+            )}
+          </div>
+          
+          <div className="message-actions">
+            <span className="timestamp">
+              {new Date(sentAt).toLocaleTimeString()}
+            </span>
+            
+            {isModerator && !isMe && (
+              <button
+                onClick={() => setIsHidden(true)}
+                className="moderate-button"
+                title="Hide message"
+              >
+                🚫
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function ModeratedChat() {
+  return (
+    <Chat
+      rtKey="moderated-chat"
+      chatName="🛡️ Moderated Chat"
+      components={{
+        MessageBody: ModeratedMessageBody
+      }}
+    />
+  )
+}
+```
+
+## Built-in Features
+
+### Message Structure
+
+Each message contains:
+
+```tsx
+interface ChatMessage {
+  id: number
+  senderId: string
+  message: string
+  sentAt: number
+}
+```
+
+### Auto-scrolling
+
+Messages automatically scroll to the bottom when new messages arrive.
+
+### Minimize/Expand
+
+The chat can be minimized to save screen space and expanded when needed.
+
+### Connection Awareness
+
+The chat automatically handles disconnection states with appropriate UI feedback.
+
+## Styling
+
+The Chat component includes default CSS classes that you can customize:
+
+```css
+/* Main chat container */
+.rt-chat { /* Chat wrapper */ }
+
+/* Chat states */
+.rt-chatContainer { /* Expanded chat */ }
+
+/* Message area */
+.rt-messageContainer { /* Message list container */ }
+
+/* Input area */
+.rt-input-container { /* Input wrapper */ }
+.rt-input-text { /* Text input field */ }
+.rt-input-button { /* Send button */ }
+```
+
+## Best Practices
+
+### Performance
+
+```tsx
+// ✅ Good - Use stable rtKey
+<Chat rtKey="team-chat" />
+
+// ❌ Bad - Dynamic rtKey causes reconnections
+<Chat rtKey={`chat-${Math.random()}`} />
+```
+
+### Accessibility
+
+```tsx
+// ✅ Good - Descriptive chat name
+<Chat rtKey="support" chatName="Customer Support Chat" />
+
+// ✅ Good - Custom accessible components
+const AccessibleChatInput = ({ sendMessage }: ChatInputProps) => (
+  <div className="chat-input">
+    <label htmlFor="message-input" className="sr-only">
+      Type your message
+    </label>
+    <input
+      id="message-input"
+      aria-label="Message input"
+      // ... other props
+    />
+    <button aria-label="Send message">
+      Send
+    </button>
+  </div>
+)
+```
+
+### User Experience
+
+```tsx
+// ✅ Good - Hide when not needed
+<Chat 
+  rtKey="customer-support"
+  hideWhenDisconnected={true}
+/>
+
+// ✅ Good - Clear channel identification
+<Chat 
+  rtKey={`channel-${channelId}`}
+  chatName={`#${channelName}`}
+/>
+```
+
+## Common Patterns
+
+- **Sidebar Chat**: Fixed position chat for ongoing communication
+- **Modal Chat**: Chat opened in a modal dialog
+- **Multi-channel**: Different chat rooms for different topics
+- **Support Chat**: Customer service with agent identification
+- **Threaded Chat**: Replies to specific messages (requires custom implementation)
+
+## Related Hooks
+
+- [`useChat`](/docs/react-together/hooks/use-chat) - The underlying hook powering the Chat component
+- [`useConnectedUsers`](/docs/react-together/hooks/use-connected-users) - Get connected users for chat features
+- [`useMyId`](/docs/react-together/hooks/use-my-id) - Identify current user in messages
+- [`useNicknames`](/docs/react-together/hooks/use-nicknames) - User display names
+
+## TypeScript Support
+
+The Chat component is fully typed with comprehensive interfaces:
+
+```tsx
+import { Chat, ChatProps, ChatComponents } from 'react-together'
+
+const chatProps: ChatProps = {
+  rtKey: "typed-chat",
+  chatName: "Typed Chat",
+  hideWhenDisconnected: false,
+  components: {
+    // All component props are typed
+  }
+}
+``` 

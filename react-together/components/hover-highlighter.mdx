@@ -1,0 +1,851 @@
+---
+title: "HoverHighlighter"
+description: "Wrap elements to highlight them when other users hover over them. Perfect for showing real-time user interactions and collaborative awareness."
+---
+
+## Overview
+
+The `HoverHighlighter` component wraps content to visually highlight it when other users hover over it. It provides real-time visual feedback about where other users are focusing their attention, making it perfect for collaborative interfaces where awareness of others' activity is important.
+
+<Info>
+**Perfect for**: Collaborative design tools, document editing, form interactions, interactive tutorials, and any interface where showing user attention enhances the collaborative experience.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { HoverHighlighter } from 'react-together'
+
+function InteractiveDocument() {
+  return (
+    <div className="document">
+      <HoverHighlighter rtKey="title-section">
+        <h1>Collaborative Document Title</h1>
+      </HoverHighlighter>
+      
+      <HoverHighlighter rtKey="content-section">
+        <div className="content">
+          <p>This content will be highlighted when others hover over it.</p>
+        </div>
+      </HoverHighlighter>
+      
+      <HoverHighlighter rtKey="action-buttons">
+        <div className="actions">
+          <button>Edit</button>
+          <button>Share</button>
+          <button>Delete</button>
+        </div>
+      </HoverHighlighter>
+    </div>
+  )
+}
+```
+
+## Props
+
+<ParamField path="rtKey" type="string" required>
+  Unique identifier for this hoverable area. Users hovering over elements with the same key will trigger highlighting
+</ParamField>
+
+<ParamField path="children" type="React.ReactNode" required>
+  The content to be wrapped and made hover-aware
+</ParamField>
+
+<ParamField path="className" type="string">
+  Optional CSS class for styling the wrapper div
+</ParamField>
+
+<ParamField path="highlightMyself" type="boolean" default="false">
+  Whether to highlight when the local user hovers over the element (in addition to other users)
+</ParamField>
+
+## Examples
+
+### Document Editing Interface
+
+Create hover highlights for different document sections:
+
+```tsx
+import { HoverHighlighter } from 'react-together'
+
+function CollaborativeDocument() {
+  return (
+    <div className="document-editor">
+      <HoverHighlighter rtKey="document-header">
+        <header className="document-header">
+          <h1>Team Project Proposal</h1>
+          <div className="document-meta">
+            <span>Last edited: 2 minutes ago</span>
+            <span>Version: 1.3</span>
+          </div>
+        </header>
+      </HoverHighlighter>
+      
+      <div className="document-content">
+        <HoverHighlighter rtKey="section-1">
+          <section className="document-section">
+            <h2>1. Executive Summary</h2>
+            <p>This project aims to revolutionize team collaboration by implementing real-time editing capabilities...</p>
+          </section>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="section-2">
+          <section className="document-section">
+            <h2>2. Project Goals</h2>
+            <ul>
+              <li>Improve team productivity</li>
+              <li>Enable real-time collaboration</li>
+              <li>Reduce communication overhead</li>
+            </ul>
+          </section>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="section-3">
+          <section className="document-section">
+            <h2>3. Implementation Plan</h2>
+            <div className="timeline">
+              <div className="timeline-item">
+                <strong>Phase 1:</strong> Research and planning
+              </div>
+              <div className="timeline-item">
+                <strong>Phase 2:</strong> Development
+              </div>
+              <div className="timeline-item">
+                <strong>Phase 3:</strong> Testing and deployment
+              </div>
+            </div>
+          </section>
+        </HoverHighlighter>
+      </div>
+      
+      <HoverHighlighter rtKey="document-footer">
+        <footer className="document-footer">
+          <div className="footer-actions">
+            <button>Save Draft</button>
+            <button>Publish</button>
+            <button>Share</button>
+          </div>
+        </footer>
+      </HoverHighlighter>
+    </div>
+  )
+}
+```
+
+### Form Collaboration
+
+Highlight form fields when users interact with them:
+
+```tsx
+import { HoverHighlighter } from 'react-together'
+
+function CollaborativeForm() {
+  return (
+    <div className="collaborative-form">
+      <h2>Team Registration Form</h2>
+      <form className="form">
+        <HoverHighlighter rtKey="name-field">
+          <div className="form-group">
+            <label htmlFor="name">Team Name</label>
+            <input
+              id="name"
+              type="text"
+              placeholder="Enter team name"
+              className="form-input"
+            />
+          </div>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="email-field">
+          <div className="form-group">
+            <label htmlFor="email">Contact Email</label>
+            <input
+              id="email"
+              type="email"
+              placeholder="team@company.com"
+              className="form-input"
+            />
+          </div>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="description-field">
+          <div className="form-group">
+            <label htmlFor="description">Project Description</label>
+            <textarea
+              id="description"
+              placeholder="Describe your project..."
+              className="form-textarea"
+              rows={4}
+            />
+          </div>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="category-field">
+          <div className="form-group">
+            <label htmlFor="category">Category</label>
+            <select id="category" className="form-select">
+              <option value="">Select category</option>
+              <option value="web">Web Development</option>
+              <option value="mobile">Mobile App</option>
+              <option value="design">Design</option>
+              <option value="marketing">Marketing</option>
+            </select>
+          </div>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="submit-section">
+          <div className="form-actions">
+            <button type="submit" className="btn-primary">
+              Submit Registration
+            </button>
+            <button type="button" className="btn-secondary">
+              Save Draft
+            </button>
+          </div>
+        </HoverHighlighter>
+      </form>
+    </div>
+  )
+}
+```
+
+### Design Tool Interface
+
+Create hover highlights for design elements:
+
+```tsx
+import { HoverHighlighter } from 'react-together'
+
+function DesignTool() {
+  return (
+    <div className="design-tool">
+      <div className="design-toolbar">
+        <HoverHighlighter rtKey="toolbar-shapes">
+          <div className="tool-group">
+            <h3>Shapes</h3>
+            <div className="tool-buttons">
+              <button className="tool-btn">🔲 Rectangle</button>
+              <button className="tool-btn">⭕ Circle</button>
+              <button className="tool-btn">🔺 Triangle</button>
+            </div>
+          </div>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="toolbar-colors">
+          <div className="tool-group">
+            <h3>Colors</h3>
+            <div className="color-palette">
+              <div className="color-swatch" style={{ backgroundColor: '#ff6b6b' }}></div>
+              <div className="color-swatch" style={{ backgroundColor: '#4ecdc4' }}></div>
+              <div className="color-swatch" style={{ backgroundColor: '#45b7d1' }}></div>
+              <div className="color-swatch" style={{ backgroundColor: '#96ceb4' }}></div>
+            </div>
+          </div>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="toolbar-text">
+          <div className="tool-group">
+            <h3>Text</h3>
+            <div className="tool-buttons">
+              <button className="tool-btn">🔤 Add Text</button>
+              <button className="tool-btn">🎨 Font Style</button>
+            </div>
+          </div>
+        </HoverHighlighter>
+      </div>
+      
+      <div className="design-canvas">
+        <HoverHighlighter rtKey="canvas-area">
+          <div className="canvas">
+            <div className="canvas-grid">
+              <p>Design Canvas</p>
+              <p>Hover over elements to see highlights</p>
+            </div>
+          </div>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="canvas-element-1">
+          <div className="design-element rectangle">
+            <span>Rectangle Element</span>
+          </div>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="canvas-element-2">
+          <div className="design-element circle">
+            <span>Circle Element</span>
+          </div>
+        </HoverHighlighter>
+      </div>
+      
+      <HoverHighlighter rtKey="properties-panel">
+        <div className="properties-panel">
+          <h3>Properties</h3>
+          <div className="property-controls">
+            <div className="property-group">
+              <label>Width</label>
+              <input type="number" value="200" />
+            </div>
+            <div className="property-group">
+              <label>Height</label>
+              <input type="number" value="100" />
+            </div>
+            <div className="property-group">
+              <label>Color</label>
+              <input type="color" value="#3b82f6" />
+            </div>
+          </div>
+        </div>
+      </HoverHighlighter>
+    </div>
+  )
+}
+```
+
+### Interactive Tutorial
+
+Guide users through tutorials with hover highlights:
+
+```tsx
+import { HoverHighlighter } from 'react-together'
+import { useState } from 'react'
+
+function InteractiveTutorial() {
+  const [currentStep, setCurrentStep] = useState(0)
+  
+  const tutorialSteps = [
+    { key: 'step-1', title: 'Welcome', description: 'Hover over the header to begin' },
+    { key: 'step-2', title: 'Navigation', description: 'Explore the navigation menu' },
+    { key: 'step-3', title: 'Content', description: 'Review the main content area' },
+    { key: 'step-4', title: 'Actions', description: 'Try the action buttons' },
+    { key: 'step-5', title: 'Complete', description: 'Tutorial completed!' }
+  ]
+  
+  return (
+    <div className="tutorial-interface">
+      <div className="tutorial-progress">
+        <h2>Interactive Tutorial</h2>
+        <div className="step-indicator">
+          Step {currentStep + 1} of {tutorialSteps.length}
+        </div>
+        <div className="step-description">
+          {tutorialSteps[currentStep].description}
+        </div>
+      </div>
+      
+      <div className="tutorial-content">
+        <HoverHighlighter rtKey="tutorial-header">
+          <header className="tutorial-header">
+            <h1>Welcome to the Application</h1>
+            <p>This is the main header area</p>
+          </header>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="tutorial-nav">
+          <nav className="tutorial-nav">
+            <ul>
+              <li><a href="#home">Home</a></li>
+              <li><a href="#about">About</a></li>
+              <li><a href="#services">Services</a></li>
+              <li><a href="#contact">Contact</a></li>
+            </ul>
+          </nav>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="tutorial-main">
+          <main className="tutorial-main">
+            <h2>Main Content Area</h2>
+            <p>This is where your primary content will be displayed.</p>
+            <div className="content-grid">
+              <div className="content-card">
+                <h3>Feature 1</h3>
+                <p>Description of feature 1</p>
+              </div>
+              <div className="content-card">
+                <h3>Feature 2</h3>
+                <p>Description of feature 2</p>
+              </div>
+            </div>
+          </main>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="tutorial-actions">
+          <div className="tutorial-actions">
+            <button
+              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+              disabled={currentStep === 0}
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setCurrentStep(Math.min(tutorialSteps.length - 1, currentStep + 1))}
+              disabled={currentStep === tutorialSteps.length - 1}
+            >
+              Next
+            </button>
+          </div>
+        </HoverHighlighter>
+      </div>
+    </div>
+  )
+}
+```
+
+### Dashboard Widgets
+
+Highlight dashboard widgets for collaborative review:
+
+```tsx
+import { HoverHighlighter } from 'react-together'
+
+function CollaborativeDashboard() {
+  return (
+    <div className="dashboard">
+      <div className="dashboard-header">
+        <h1>Team Dashboard</h1>
+        <p>Collaborative analytics and insights</p>
+      </div>
+      
+      <div className="dashboard-grid">
+        <HoverHighlighter rtKey="widget-metrics">
+          <div className="dashboard-widget">
+            <h3>📊 Key Metrics</h3>
+            <div className="metrics-grid">
+              <div className="metric">
+                <div className="metric-value">1,234</div>
+                <div className="metric-label">Users</div>
+              </div>
+              <div className="metric">
+                <div className="metric-value">5.67%</div>
+                <div className="metric-label">Conversion</div>
+              </div>
+              <div className="metric">
+                <div className="metric-value">$12,345</div>
+                <div className="metric-label">Revenue</div>
+              </div>
+            </div>
+          </div>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="widget-chart">
+          <div className="dashboard-widget">
+            <h3>📈 Performance Chart</h3>
+            <div className="chart-placeholder">
+              <div className="chart-bars">
+                <div className="bar" style={{ height: '60%' }}></div>
+                <div className="bar" style={{ height: '80%' }}></div>
+                <div className="bar" style={{ height: '45%' }}></div>
+                <div className="bar" style={{ height: '90%' }}></div>
+                <div className="bar" style={{ height: '70%' }}></div>
+              </div>
+            </div>
+          </div>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="widget-activity">
+          <div className="dashboard-widget">
+            <h3>🔔 Recent Activity</h3>
+            <div className="activity-list">
+              <div className="activity-item">
+                <span className="activity-time">2 min ago</span>
+                <span className="activity-text">User registered</span>
+              </div>
+              <div className="activity-item">
+                <span className="activity-time">5 min ago</span>
+                <span className="activity-text">Order completed</span>
+              </div>
+              <div className="activity-item">
+                <span className="activity-time">12 min ago</span>
+                <span className="activity-text">Payment processed</span>
+              </div>
+            </div>
+          </div>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="widget-team">
+          <div className="dashboard-widget">
+            <h3>👥 Team Performance</h3>
+            <div className="team-stats">
+              <div className="team-member">
+                <span className="member-name">Alice</span>
+                <span className="member-score">92%</span>
+              </div>
+              <div className="team-member">
+                <span className="member-name">Bob</span>
+                <span className="member-score">88%</span>
+              </div>
+              <div className="team-member">
+                <span className="member-name">Charlie</span>
+                <span className="member-score">95%</span>
+              </div>
+            </div>
+          </div>
+        </HoverHighlighter>
+      </div>
+      
+      <HoverHighlighter rtKey="dashboard-actions">
+        <div className="dashboard-actions">
+          <button className="action-btn">📊 Generate Report</button>
+          <button className="action-btn">🔄 Refresh Data</button>
+          <button className="action-btn">⚙️ Settings</button>
+          <button className="action-btn">📤 Export</button>
+        </div>
+      </HoverHighlighter>
+    </div>
+  )
+}
+```
+
+### Card-Based Interface
+
+Highlight cards in a collaborative interface:
+
+```tsx
+import { HoverHighlighter } from 'react-together'
+
+function ProjectBoard() {
+  const projects = [
+    { id: 1, title: 'Website Redesign', status: 'In Progress', priority: 'High' },
+    { id: 2, title: 'Mobile App', status: 'Planning', priority: 'Medium' },
+    { id: 3, title: 'Marketing Campaign', status: 'Review', priority: 'Low' },
+    { id: 4, title: 'Database Migration', status: 'Completed', priority: 'High' }
+  ]
+  
+  return (
+    <div className="project-board">
+      <div className="board-header">
+        <h1>Project Board</h1>
+        <p>Collaborative project management</p>
+      </div>
+      
+      <div className="board-columns">
+        <div className="board-column">
+          <h2>📋 Planning</h2>
+          <div className="cards-container">
+            {projects.filter(p => p.status === 'Planning').map(project => (
+              <HoverHighlighter key={project.id} rtKey={`project-${project.id}`}>
+                <div className="project-card">
+                  <h3>{project.title}</h3>
+                  <div className="card-meta">
+                    <span className={`priority ${project.priority.toLowerCase()}`}>
+                      {project.priority}
+                    </span>
+                    <span className="status">{project.status}</span>
+                  </div>
+                </div>
+              </HoverHighlighter>
+            ))}
+          </div>
+        </div>
+        
+        <div className="board-column">
+          <h2>🚀 In Progress</h2>
+          <div className="cards-container">
+            {projects.filter(p => p.status === 'In Progress').map(project => (
+              <HoverHighlighter key={project.id} rtKey={`project-${project.id}`}>
+                <div className="project-card">
+                  <h3>{project.title}</h3>
+                  <div className="card-meta">
+                    <span className={`priority ${project.priority.toLowerCase()}`}>
+                      {project.priority}
+                    </span>
+                    <span className="status">{project.status}</span>
+                  </div>
+                </div>
+              </HoverHighlighter>
+            ))}
+          </div>
+        </div>
+        
+        <div className="board-column">
+          <h2>👀 Review</h2>
+          <div className="cards-container">
+            {projects.filter(p => p.status === 'Review').map(project => (
+              <HoverHighlighter key={project.id} rtKey={`project-${project.id}`}>
+                <div className="project-card">
+                  <h3>{project.title}</h3>
+                  <div className="card-meta">
+                    <span className={`priority ${project.priority.toLowerCase()}`}>
+                      {project.priority}
+                    </span>
+                    <span className="status">{project.status}</span>
+                  </div>
+                </div>
+              </HoverHighlighter>
+            ))}
+          </div>
+        </div>
+        
+        <div className="board-column">
+          <h2>✅ Completed</h2>
+          <div className="cards-container">
+            {projects.filter(p => p.status === 'Completed').map(project => (
+              <HoverHighlighter key={project.id} rtKey={`project-${project.id}`}>
+                <div className="project-card">
+                  <h3>{project.title}</h3>
+                  <div className="card-meta">
+                    <span className={`priority ${project.priority.toLowerCase()}`}>
+                      {project.priority}
+                    </span>
+                    <span className="status">{project.status}</span>
+                  </div>
+                </div>
+              </HoverHighlighter>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Self-Highlighting Mode
+
+Use `highlightMyself` to include your own hover interactions:
+
+```tsx
+import { HoverHighlighter } from 'react-together'
+
+function SelfHighlightingDemo() {
+  return (
+    <div className="self-highlight-demo">
+      <h2>Self-Highlighting Mode</h2>
+      <p>These elements will highlight when you hover over them too!</p>
+      
+      <div className="demo-grid">
+        <HoverHighlighter rtKey="self-demo-1" highlightMyself={true}>
+          <div className="demo-card">
+            <h3>Card 1</h3>
+            <p>Highlights for everyone including yourself</p>
+          </div>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="self-demo-2" highlightMyself={true}>
+          <div className="demo-card">
+            <h3>Card 2</h3>
+            <p>Perfect for showing interaction feedback</p>
+          </div>
+        </HoverHighlighter>
+        
+        <HoverHighlighter rtKey="self-demo-3" highlightMyself={false}>
+          <div className="demo-card">
+            <h3>Card 3</h3>
+            <p>Only highlights for other users (default behavior)</p>
+          </div>
+        </HoverHighlighter>
+      </div>
+    </div>
+  )
+}
+```
+
+### Nested Hover Highlighters
+
+Create nested hover areas for complex interfaces:
+
+```tsx
+import { HoverHighlighter } from 'react-together'
+
+function NestedHighlighters() {
+  return (
+    <div className="nested-demo">
+      <h2>Nested Hover Highlighters</h2>
+      
+      <HoverHighlighter rtKey="outer-container">
+        <div className="outer-container">
+          <h3>Outer Container</h3>
+          <p>This entire area can be highlighted</p>
+          
+          <div className="inner-elements">
+            <HoverHighlighter rtKey="inner-element-1">
+              <div className="inner-element">
+                <h4>Inner Element 1</h4>
+                <p>Independent hover area</p>
+              </div>
+            </HoverHighlighter>
+            
+            <HoverHighlighter rtKey="inner-element-2">
+              <div className="inner-element">
+                <h4>Inner Element 2</h4>
+                <p>Another independent area</p>
+              </div>
+            </HoverHighlighter>
+          </div>
+          
+          <HoverHighlighter rtKey="nested-actions">
+            <div className="nested-actions">
+              <button>Action 1</button>
+              <button>Action 2</button>
+            </div>
+          </HoverHighlighter>
+        </div>
+      </HoverHighlighter>
+    </div>
+  )
+}
+```
+
+## Built-in Highlighting
+
+The HoverHighlighter automatically applies these styles when users hover:
+
+```css
+/* Default highlight styling */
+.hover-highlighted {
+  outline: 2px solid #[user-color];
+  animation: clippath 3s linear infinite;
+  border-radius: 10px;
+}
+
+@keyframes clippath {
+  0% { clip-path: inset(0 0 98% 0); }
+  25% { clip-path: inset(0 98% 0 0); }
+  50% { clip-path: inset(98% 0 0 0); }
+  75% { clip-path: inset(0 0 0 98%); }
+  100% { clip-path: inset(0 0 98% 0); }
+}
+```
+
+## Customization
+
+You can customize the highlighting with CSS:
+
+```css
+/* Custom highlight colors */
+.custom-highlight {
+  outline: 3px solid #ff6b6b;
+  outline-offset: 2px;
+  background-color: rgba(255, 107, 107, 0.1);
+  border-radius: 8px;
+}
+
+/* Custom animation */
+@keyframes pulse-highlight {
+  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+.pulse-highlight {
+  animation: pulse-highlight 2s infinite;
+}
+```
+
+## Best Practices
+
+### Unique Keys
+
+```tsx
+// ✅ Good - Unique, descriptive keys
+<HoverHighlighter rtKey="user-profile-section">
+<HoverHighlighter rtKey="navigation-menu">
+<HoverHighlighter rtKey="product-card-123">
+
+// ❌ Bad - Generic or duplicate keys
+<HoverHighlighter rtKey="section">
+<HoverHighlighter rtKey="div">
+<HoverHighlighter rtKey="section"> // Duplicate!
+```
+
+### Meaningful Grouping
+
+```tsx
+// ✅ Good - Logical grouping
+<HoverHighlighter rtKey="form-personal-info">
+  <div>
+    <input name="firstName" />
+    <input name="lastName" />
+    <input name="email" />
+  </div>
+</HoverHighlighter>
+
+// ❌ Bad - Over-granular highlighting
+<HoverHighlighter rtKey="first-name">
+  <input name="firstName" />
+</HoverHighlighter>
+<HoverHighlighter rtKey="last-name">
+  <input name="lastName" />
+</HoverHighlighter>
+```
+
+### Performance Considerations
+
+```tsx
+// ✅ Good - Don't wrap large areas unnecessarily
+<HoverHighlighter rtKey="important-section">
+  <div className="important-content">
+    {/* Only important content */}
+  </div>
+</HoverHighlighter>
+
+// ❌ Bad - Wrapping entire page
+<HoverHighlighter rtKey="whole-page">
+  <div className="entire-application">
+    {/* Entire app content */}
+  </div>
+</HoverHighlighter>
+```
+
+### Accessibility
+
+```tsx
+// ✅ Good - Maintain semantic structure
+<HoverHighlighter rtKey="main-navigation">
+  <nav role="navigation" aria-label="Main navigation">
+    <ul>
+      <li><a href="/home">Home</a></li>
+      <li><a href="/about">About</a></li>
+    </ul>
+  </nav>
+</HoverHighlighter>
+```
+
+## Common Patterns
+
+- **Document Sections**: Highlight different parts of collaborative documents
+- **Form Fields**: Show which form sections others are working on
+- **Design Elements**: Highlight UI components in design tools
+- **Dashboard Widgets**: Show attention on different dashboard sections
+- **Tutorial Steps**: Guide users through interactive tutorials
+- **Card Interfaces**: Highlight cards in collaborative boards
+
+## Related Components
+
+- [`Cursors`](/docs/react-together/components/cursors) - Show mouse cursors for more detailed tracking
+- [`ConnectedUsers`](/docs/react-together/components/connected-users) - Display who's currently collaborating
+- [`Chat`](/docs/react-together/components/chat) - Enable communication about highlighted content
+
+## Related Hooks
+
+- [`useHoveringUsers`](/docs/react-together/hooks/use-hovering-users) - The underlying hook powering HoverHighlighter
+- [`useMyId`](/docs/react-together/hooks/use-my-id) - Identify your own interactions
+- [`useConnectedUsers`](/docs/react-together/hooks/use-connected-users) - Get information about users who are hovering
+
+## TypeScript Support
+
+The HoverHighlighter component is fully typed:
+
+```tsx
+import { HoverHighlighter } from 'react-together'
+
+interface HighlightedSectionProps {
+  children: React.ReactNode
+  sectionKey: string
+  includeMyself?: boolean
+}
+
+function HighlightedSection({ 
+  children, 
+  sectionKey, 
+  includeMyself = false 
+}: HighlightedSectionProps) {
+  return (
+    <HoverHighlighter
+      rtKey={sectionKey}
+      highlightMyself={includeMyself}
+      className="custom-highlight-section"
+    >
+      {children}
+    </HoverHighlighter>
+  )
+}

@@ -1,0 +1,687 @@
+---
+title: "getJoinUrl"
+description: "Create shareable URLs with embedded session parameters for inviting users to collaborative sessions."
+---
+
+## Overview
+
+The `getJoinUrl` utility function creates a new URL with session name and password embedded as query and hash parameters. This is essential for creating shareable links that allow other users to join your collaborative sessions automatically.
+
+<Info>
+**Perfect for**: Session sharing, invitation systems, deep linking, collaboration workflows, and any scenario where you need to distribute session access.
+</Info>
+
+## Import
+
+```tsx
+import { utils } from 'react-together'
+const { getJoinUrl } = utils
+```
+
+## Signature
+
+```tsx
+getJoinUrl(
+  url: URL,
+  name: string,
+  password: string,
+  options?: {
+    nameKey?: string
+    passwordKey?: string
+  }
+): URL
+```
+
+## Parameters
+
+<ParamField path="url" type="URL" required>
+  The base URL to modify with session parameters
+</ParamField>
+
+<ParamField path="name" type="string" required>
+  The session name to embed in the URL
+</ParamField>
+
+<ParamField path="password" type="string" required>
+  The session password to embed in the URL
+</ParamField>
+
+<ParamField path="options.nameKey" type="string" default="rtName">
+  The query parameter key for the session name
+</ParamField>
+
+<ParamField path="options.passwordKey" type="string" default="rtPwd">
+  The hash parameter key for the session password
+</ParamField>
+
+## Returns
+
+<ResponseField name="joinUrl" type="URL">
+  A new URL instance with the session name and password parameters embedded
+</ResponseField>
+
+## Examples
+
+### Basic Usage
+
+Create a simple join URL with default parameters:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getJoinUrl } = utils
+
+function createSessionLink() {
+  const baseUrl = new URL('https://myapp.com/collaborate')
+  const sessionName = 'team-meeting-2024'
+  const password = 'secure123'
+  
+  const joinUrl = getJoinUrl(baseUrl, sessionName, password)
+  
+  console.log(joinUrl.toString())
+  // Output: https://myapp.com/collaborate?rtName=team-meeting-2024#rtPwd=secure123
+  
+  return joinUrl
+}
+```
+
+### Custom Parameter Keys
+
+Use custom parameter keys for existing URL schemes:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getJoinUrl } = utils
+
+function createCustomJoinUrl() {
+  const baseUrl = new URL('https://myapp.com/rooms')
+  const sessionName = 'design-review'
+  const password = 'secretPassword'
+  
+  // Use custom parameter names
+  const joinUrl = getJoinUrl(baseUrl, sessionName, password, {
+    nameKey: 'roomId',
+    passwordKey: 'access'
+  })
+  
+  console.log(joinUrl.toString())
+  // Output: https://myapp.com/rooms?roomId=design-review#access=secretPassword
+  
+  return joinUrl
+}
+```
+
+### Share Button Implementation
+
+Build a complete share functionality:
+
+```tsx
+import { utils } from 'react-together'
+import { useJoinUrl, useIsTogether } from 'react-together'
+import { useState } from 'react'
+
+const { getJoinUrl } = utils
+
+function ShareButton() {
+  const currentJoinUrl = useJoinUrl()
+  const isTogether = useIsTogether()
+  const [copied, setCopied] = useState(false)
+  
+  const shareSession = async () => {
+    if (!currentJoinUrl) return
+    
+    try {
+      // Try native sharing first (mobile)
+      await navigator.share({
+        title: 'Join my collaboration session',
+        text: 'Join me in this collaborative workspace',
+        url: currentJoinUrl
+      })
+    } catch (err) {
+      // Fallback to clipboard
+      await navigator.clipboard.writeText(currentJoinUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+  
+  const createCustomShareUrl = () => {
+    const baseUrl = new URL(window.location.href)
+    const sessionName = 'custom-session'
+    const password = 'custom-password'
+    
+    return getJoinUrl(baseUrl, sessionName, password)
+  }
+  
+  if (!isTogether) {
+    return (
+      <div className="share-disabled">
+        <p>Not connected to any session</p>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="share-controls">
+      <button onClick={shareSession} className="share-btn">
+        {copied ? '✅ Copied!' : '🔗 Share Session'}
+      </button>
+      
+      <div className="share-url">
+        <label>Session URL:</label>
+        <input
+          type="text"
+          value={currentJoinUrl || ''}
+          readOnly
+          onClick={(e) => e.currentTarget.select()}
+        />
+      </div>
+    </div>
+  )
+}
+```
+
+### Invitation System
+
+Create a comprehensive invitation system:
+
+```tsx
+import { utils } from 'react-together'
+import { useState } from 'react'
+
+const { getJoinUrl } = utils
+
+interface Invitation {
+  id: string
+  sessionName: string
+  inviteeEmail: string
+  joinUrl: string
+  createdAt: Date
+  expiresAt: Date
+}
+
+function InvitationManager() {
+  const [invitations, setInvitations] = useState<Invitation[]>([])
+  const [newInvitation, setNewInvitation] = useState({
+    email: '',
+    sessionName: '',
+    password: ''
+  })
+  
+  const createInvitation = () => {
+    const { email, sessionName, password } = newInvitation
+    if (!email || !sessionName || !password) return
+    
+    const baseUrl = new URL(window.location.origin + window.location.pathname)
+    const joinUrl = getJoinUrl(baseUrl, sessionName, password)
+    
+    const invitation: Invitation = {
+      id: Math.random().toString(36).substr(2, 9),
+      sessionName,
+      inviteeEmail: email,
+      joinUrl: joinUrl.toString(),
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    }
+    
+    setInvitations(prev => [...prev, invitation])
+    
+    // Send invitation email (implement your email service)
+    sendInvitationEmail(invitation)
+    
+    // Reset form
+    setNewInvitation({ email: '', sessionName: '', password: '' })
+  }
+  
+  const sendInvitationEmail = async (invitation: Invitation) => {
+    // Implementation depends on your email service
+    console.log('Sending invitation email:', invitation)
+    
+    const emailBody = `
+      You've been invited to join a collaborative session!
+      
+      Session: ${invitation.sessionName}
+      Join here: ${invitation.joinUrl}
+      
+      This invitation expires on ${invitation.expiresAt.toLocaleDateString()}
+    `
+    
+    // Example with a simple mailto link
+    const mailtoUrl = `mailto:${invitation.inviteeEmail}?subject=Invitation to ${invitation.sessionName}&body=${encodeURIComponent(emailBody)}`
+    window.open(mailtoUrl)
+  }
+  
+  const revokeInvitation = (invitationId: string) => {
+    setInvitations(prev => prev.filter(inv => inv.id !== invitationId))
+  }
+  
+  return (
+    <div className="invitation-manager">
+      <div className="create-invitation">
+        <h3>Send Invitation</h3>
+        <div className="form-group">
+          <input
+            type="email"
+            placeholder="Invitee email"
+            value={newInvitation.email}
+            onChange={(e) => setNewInvitation(prev => ({ ...prev, email: e.target.value }))}
+          />
+          <input
+            type="text"
+            placeholder="Session name"
+            value={newInvitation.sessionName}
+            onChange={(e) => setNewInvitation(prev => ({ ...prev, sessionName: e.target.value }))}
+          />
+          <input
+            type="password"
+            placeholder="Session password"
+            value={newInvitation.password}
+            onChange={(e) => setNewInvitation(prev => ({ ...prev, password: e.target.value }))}
+          />
+          <button onClick={createInvitation}>
+            Create & Send Invitation
+          </button>
+        </div>
+      </div>
+      
+      <div className="invitation-list">
+        <h3>Sent Invitations ({invitations.length})</h3>
+        {invitations.map(invitation => (
+          <div key={invitation.id} className="invitation-item">
+            <div className="invitation-details">
+              <strong>{invitation.sessionName}</strong>
+              <span className="invitee">{invitation.inviteeEmail}</span>
+              <span className="created">
+                Created: {invitation.createdAt.toLocaleDateString()}
+              </span>
+              <span className="expires">
+                Expires: {invitation.expiresAt.toLocaleDateString()}
+              </span>
+            </div>
+            <div className="invitation-actions">
+              <button
+                onClick={() => navigator.clipboard.writeText(invitation.joinUrl)}
+                className="copy-btn"
+              >
+                Copy URL
+              </button>
+              <button
+                onClick={() => revokeInvitation(invitation.id)}
+                className="revoke-btn"
+              >
+                Revoke
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+### QR Code Generation
+
+Combine with QR code generation for mobile sharing:
+
+```tsx
+import { utils } from 'react-together'
+import QRCode from 'qrcode.react' // You'll need to install this package
+
+const { getJoinUrl } = utils
+
+function QRCodeShare() {
+  const [sessionName, setSessionName] = useState('mobile-session')
+  const [password, setPassword] = useState('mobilepass123')
+  const [qrUrl, setQrUrl] = useState<string | null>(null)
+  
+  const generateQRCode = () => {
+    const baseUrl = new URL(window.location.href)
+    const joinUrl = getJoinUrl(baseUrl, sessionName, password)
+    setQrUrl(joinUrl.toString())
+  }
+  
+  return (
+    <div className="qr-share">
+      <div className="qr-controls">
+        <h3>Mobile Session Sharing</h3>
+        <input
+          type="text"
+          placeholder="Session name"
+          value={sessionName}
+          onChange={(e) => setSessionName(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button onClick={generateQRCode}>
+          Generate QR Code
+        </button>
+      </div>
+      
+      {qrUrl && (
+        <div className="qr-display">
+          <h4>Scan to Join Session</h4>
+          <QRCode
+            value={qrUrl}
+            size={256}
+            level="M"
+            includeMargin={true}
+          />
+          <div className="qr-url">
+            <small>{qrUrl}</small>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Deep Linking for Mobile Apps
+
+Create deep links for mobile applications:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getJoinUrl } = utils
+
+function MobileDeepLinking() {
+  const createDeepLink = (sessionName: string, password: string) => {
+    // For web apps accessed via mobile browsers
+    const webUrl = new URL('https://myapp.com/collaborate')
+    const webJoinUrl = getJoinUrl(webUrl, sessionName, password)
+    
+    // For native mobile apps with custom URL schemes
+    const mobileUrl = new URL('myapp://collaborate')
+    const mobileJoinUrl = getJoinUrl(mobileUrl, sessionName, password, {
+      nameKey: 'session',
+      passwordKey: 'token'
+    })
+    
+    return {
+      web: webJoinUrl.toString(),
+      mobile: mobileJoinUrl.toString()
+    }
+  }
+  
+  const shareMultiPlatform = async (sessionName: string, password: string) => {
+    const links = createDeepLink(sessionName, password)
+    
+    // Try native sharing first
+    try {
+      await navigator.share({
+        title: 'Join Collaboration Session',
+        text: `Join "${sessionName}" session`,
+        url: links.web
+      })
+    } catch (err) {
+      // Fallback to clipboard with both links
+      const shareText = `
+        Join "${sessionName}" collaboration session:
+        
+        Web: ${links.web}
+        Mobile App: ${links.mobile}
+      `
+      
+      await navigator.clipboard.writeText(shareText)
+      alert('Links copied to clipboard!')
+    }
+  }
+  
+  return (
+    <div className="deep-link-share">
+      <h3>Multi-Platform Session Sharing</h3>
+      <button onClick={() => shareMultiPlatform('team-sync', 'password123')}>
+        Share Session
+      </button>
+    </div>
+  )
+}
+```
+
+### URL Builder with Validation
+
+Create URLs with comprehensive validation:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getJoinUrl } = utils
+
+interface SessionUrlBuilder {
+  baseUrl: string
+  sessionName: string
+  password: string
+  customOptions?: {
+    nameKey?: string
+    passwordKey?: string
+  }
+}
+
+function validateSessionParameters(params: SessionUrlBuilder): string[] {
+  const errors: string[] = []
+  
+  // Validate base URL
+  try {
+    new URL(params.baseUrl)
+  } catch {
+    errors.push('Invalid base URL')
+  }
+  
+  // Validate session name
+  if (!params.sessionName || params.sessionName.length === 0) {
+    errors.push('Session name is required')
+  } else if (params.sessionName.length > 100) {
+    errors.push('Session name too long (max 100 characters)')
+  } else if (!/^[a-zA-Z0-9-_\s]+$/.test(params.sessionName)) {
+    errors.push('Session name contains invalid characters')
+  }
+  
+  // Validate password
+  if (!params.password || params.password.length === 0) {
+    errors.push('Password is required')
+  } else if (params.password.length < 6) {
+    errors.push('Password too short (min 6 characters)')
+  } else if (params.password.length > 50) {
+    errors.push('Password too long (max 50 characters)')
+  }
+  
+  return errors
+}
+
+function buildSessionUrl(params: SessionUrlBuilder): { url: string | null, errors: string[] } {
+  const errors = validateSessionParameters(params)
+  
+  if (errors.length > 0) {
+    return { url: null, errors }
+  }
+  
+  try {
+    const baseUrl = new URL(params.baseUrl)
+    const joinUrl = getJoinUrl(
+      baseUrl,
+      params.sessionName,
+      params.password,
+      params.customOptions
+    )
+    
+    return { url: joinUrl.toString(), errors: [] }
+  } catch (error) {
+    return { url: null, errors: ['Failed to create URL'] }
+  }
+}
+
+function UrlBuilderForm() {
+  const [params, setParams] = useState<SessionUrlBuilder>({
+    baseUrl: window.location.origin + window.location.pathname,
+    sessionName: '',
+    password: ''
+  })
+  const [result, setResult] = useState<{ url: string | null, errors: string[] } | null>(null)
+  
+  const handleBuild = () => {
+    const buildResult = buildSessionUrl(params)
+    setResult(buildResult)
+  }
+  
+  return (
+    <div className="url-builder">
+      <h3>Session URL Builder</h3>
+      
+      <div className="form-group">
+        <label>Base URL:</label>
+        <input
+          type="url"
+          value={params.baseUrl}
+          onChange={(e) => setParams(prev => ({ ...prev, baseUrl: e.target.value }))}
+          placeholder="https://myapp.com/collaborate"
+        />
+      </div>
+      
+      <div className="form-group">
+        <label>Session Name:</label>
+        <input
+          type="text"
+          value={params.sessionName}
+          onChange={(e) => setParams(prev => ({ ...prev, sessionName: e.target.value }))}
+          placeholder="team-meeting-2024"
+        />
+      </div>
+      
+      <div className="form-group">
+        <label>Password:</label>
+        <input
+          type="password"
+          value={params.password}
+          onChange={(e) => setParams(prev => ({ ...prev, password: e.target.value }))}
+          placeholder="secure-password"
+        />
+      </div>
+      
+      <button onClick={handleBuild} className="build-btn">
+        Build Join URL
+      </button>
+      
+      {result && (
+        <div className="result">
+          {result.errors.length > 0 ? (
+            <div className="errors">
+              <h4>Validation Errors:</h4>
+              <ul>
+                {result.errors.map((error, index) => (
+                  <li key={index} className="error">{error}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <div className="success">
+              <h4>Generated URL:</h4>
+              <div className="url-display">
+                <input
+                  type="text"
+                  value={result.url || ''}
+                  readOnly
+                  onClick={(e) => e.currentTarget.select()}
+                />
+                <button onClick={() => navigator.clipboard.writeText(result.url!)}>
+                  Copy
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## URL Structure
+
+The generated URLs follow this structure:
+
+```
+https://example.com/path?rtName=session-name#rtPwd=password
+```
+
+- **Query Parameter**: Session name is added as a query parameter (default key: `rtName`)
+- **Hash Parameter**: Password is added as a hash parameter (default key: `rtPwd`)
+- **Hash vs Query**: Passwords use hash parameters for better security (not sent to servers)
+
+## Security Considerations
+
+### Password Handling
+
+```tsx
+// ✅ Good - Passwords in hash parameters
+const joinUrl = getJoinUrl(url, name, password)
+// Result: https://app.com?rtName=session#rtPwd=password
+
+// Hash parameters are not sent to servers in HTTP requests
+```
+
+### URL Validation
+
+```tsx
+// ✅ Good - Validate inputs
+const sessionName = input.replace(/[^a-zA-Z0-9-_\s]/g, '')
+const password = password.length >= 6 ? password : null
+
+if (sessionName && password) {
+  const joinUrl = getJoinUrl(url, sessionName, password)
+}
+```
+
+### Secure Sharing
+
+```tsx
+// ✅ Good - Use HTTPS for production
+const baseUrl = new URL('https://secure-app.com')
+
+// ✅ Good - Consider URL expiration
+const expirationTime = Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+const sessionName = `session-${expirationTime}`
+```
+
+## Common Patterns
+
+- **Session Invitations**: Create shareable links for team collaboration
+- **Deep Linking**: Enable direct access to specific sessions
+- **QR Code Sharing**: Generate QR codes for mobile session access
+- **Email Integration**: Embed join URLs in invitation emails
+- **Social Sharing**: Share sessions via social media platforms
+
+## Related Utilities
+
+- [`getSessionNameFromUrl`](/docs/react-together/utilities/get-session-name-from-url) - Extract session names from URLs
+- [`getSessionPasswordFromUrl`](/docs/react-together/utilities/get-session-password-from-url) - Extract passwords from URLs
+- [`getCleanUrl`](/docs/react-together/utilities/get-clean-url) - Remove session parameters
+
+## Related Hooks
+
+- [`useJoinUrl`](/docs/react-together/hooks/use-join-url) - Get current session join URL
+- [`useCreateRandomSession`](/docs/react-together/hooks/use-create-random-session) - Create new sessions
+- [`useLeaveSession`](/docs/react-together/hooks/use-leave-session) - Leave sessions with URL cleanup
+
+## TypeScript Support
+
+The function is fully typed for better development experience:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getJoinUrl } = utils
+
+// TypeScript will enforce correct parameter types
+const joinUrl: URL = getJoinUrl(
+  new URL('https://app.com'),
+  'session-name',
+  'password',
+  { nameKey: 'sessionId', passwordKey: 'token' }
+)

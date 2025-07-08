@@ -1,0 +1,815 @@
+---
+title: "deriveNickname"
+description: "Generate human-readable nicknames from user IDs using the unique-names-generator library for consistent user identification."
+---
+
+## Overview
+
+The `deriveNickname` utility function generates human-readable nicknames from user IDs using the `unique-names-generator` library. It creates memorable names like "Eclectic Mastodon" or "Brilliant Tiger" that are easier for users to identify and remember than raw user IDs, while maintaining consistency across sessions.
+
+<Info>
+**Perfect for**: User display names, avatar labels, chat interfaces, user identification, team member lists, and creating friendly user experiences in collaborative applications.
+</Info>
+
+## Import
+
+```tsx
+import { utils } from 'react-together'
+const { deriveNickname } = utils
+```
+
+## Signature
+
+```tsx
+deriveNickname(userId: string): string
+```
+
+## Parameters
+
+<ParamField path="userId" type="string" required>
+  The unique user identifier to generate a nickname from. The same userId will always produce the same nickname.
+</ParamField>
+
+## Returns
+
+<ResponseField name="nickname" type="string">
+  A human-readable nickname generated from the userId. The nickname consists of an adjective and animal name (e.g., "Brilliant Tiger", "Calm Eagle").
+</ResponseField>
+
+## Examples
+
+### Basic Usage
+
+Generate nicknames for user identification:
+
+```tsx
+import { utils } from 'react-together'
+
+const { deriveNickname } = utils
+
+function generateUserNicknames() {
+  const userIds = [
+    'user-123-abc',
+    'user-456-def',
+    'user-789-ghi'
+  ]
+  
+  const nicknames = userIds.map(userId => ({
+    userId,
+    nickname: deriveNickname(userId)
+  }))
+  
+  console.log(nicknames)
+  // Output: [
+  //   { userId: 'user-123-abc', nickname: 'Brilliant Tiger' },
+  //   { userId: 'user-456-def', nickname: 'Calm Eagle' },
+  //   { userId: 'user-789-ghi', nickname: 'Swift Dolphin' }
+  // ]
+  
+  return nicknames
+}
+```
+
+### User Avatar with Nickname
+
+Create user avatars with generated nicknames:
+
+```tsx
+import { utils } from 'react-together'
+import { useConnectedUsers } from 'react-together'
+
+const { deriveNickname, getUserColor } = utils
+
+function UserAvatarWithNickname({ userId }: { userId: string }) {
+  const nickname = deriveNickname(userId)
+  const backgroundColor = getUserColor(userId)
+  const initials = nickname.split(' ').map(word => word[0]).join('')
+  
+  return (
+    <div className="user-avatar-with-nickname">
+      <div 
+        className="avatar"
+        style={{ backgroundColor }}
+        title={nickname}
+      >
+        {initials}
+      </div>
+      <span className="nickname">{nickname}</span>
+    </div>
+  )
+}
+
+function ConnectedUsersWithNicknames() {
+  const connectedUsers = useConnectedUsers()
+  
+  return (
+    <div className="users-list">
+      <h3>Connected Users</h3>
+      {connectedUsers.map(user => (
+        <UserAvatarWithNickname 
+          key={user.userId} 
+          userId={user.userId} 
+        />
+      ))}
+    </div>
+  )
+}
+```
+
+### Chat Interface with Nicknames
+
+Implement a chat interface using generated nicknames:
+
+```tsx
+import { utils } from 'react-together'
+import { useChat } from 'react-together'
+
+const { deriveNickname } = utils
+
+interface ChatMessage {
+  id: string
+  userId: string
+  message: string
+  timestamp: Date
+}
+
+function ChatWithNicknames() {
+  const { messages, sendMessage } = useChat()
+  const [newMessage, setNewMessage] = useState('')
+  
+  const handleSendMessage = () => {
+    if (newMessage.trim()) {
+      sendMessage(newMessage.trim())
+      setNewMessage('')
+    }
+  }
+  
+  return (
+    <div className="chat-with-nicknames">
+      <div className="chat-header">
+        <h3>💬 Team Chat</h3>
+      </div>
+      
+      <div className="chat-messages">
+        {messages.map(message => {
+          const nickname = deriveNickname(message.userId)
+          
+          return (
+            <div key={message.id} className="chat-message">
+              <div className="message-header">
+                <span className="sender-nickname">{nickname}</span>
+                <span className="message-time">
+                  {message.timestamp.toLocaleTimeString()}
+                </span>
+              </div>
+              <div className="message-content">
+                {message.message}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      
+      <div className="chat-input">
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+          placeholder="Type a message..."
+        />
+        <button onClick={handleSendMessage}>
+          Send
+        </button>
+      </div>
+    </div>
+  )
+}
+```
+
+### Team Directory
+
+Create a team directory with consistent nicknames:
+
+```tsx
+import { utils } from 'react-together'
+import { useConnectedUsers } from 'react-together'
+import { useState, useMemo } from 'react'
+
+const { deriveNickname, getUserColor } = utils
+
+interface TeamMember {
+  userId: string
+  nickname: string
+  color: string
+  isOnline: boolean
+  joinedAt: Date
+}
+
+function TeamDirectory() {
+  const connectedUsers = useConnectedUsers()
+  const [searchTerm, setSearchTerm] = useState('')
+  
+  const teamMembers = useMemo(() => {
+    return connectedUsers.map(user => ({
+      userId: user.userId,
+      nickname: deriveNickname(user.userId),
+      color: getUserColor(user.userId),
+      isOnline: true,
+      joinedAt: new Date()
+    }))
+  }, [connectedUsers])
+  
+  const filteredMembers = useMemo(() => {
+    if (!searchTerm) return teamMembers
+    return teamMembers.filter(member =>
+      member.nickname.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }, [teamMembers, searchTerm])
+  
+  const alphabeticalMembers = useMemo(() => {
+    return [...filteredMembers].sort((a, b) => 
+      a.nickname.localeCompare(b.nickname)
+    )
+  }, [filteredMembers])
+  
+  return (
+    <div className="team-directory">
+      <div className="directory-header">
+        <h3>👥 Team Directory</h3>
+        <div className="team-stats">
+          <span>{teamMembers.length} member{teamMembers.length !== 1 ? 's' : ''} online</span>
+        </div>
+      </div>
+      
+      <div className="directory-search">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search team members..."
+          className="search-input"
+        />
+      </div>
+      
+      <div className="directory-list">
+        {alphabeticalMembers.map(member => (
+          <div key={member.userId} className="team-member-card">
+            <div className="member-avatar">
+              <div 
+                className="avatar-circle"
+                style={{ backgroundColor: member.color }}
+              >
+                {member.nickname.split(' ').map(word => word[0]).join('')}
+              </div>
+              <div className={`status-indicator ${member.isOnline ? 'online' : 'offline'}`}>
+                {member.isOnline ? '🟢' : '🔴'}
+              </div>
+            </div>
+            
+            <div className="member-info">
+              <h4 className="member-nickname">{member.nickname}</h4>
+              <p className="member-id">ID: {member.userId.slice(-8)}</p>
+              <p className="member-status">
+                {member.isOnline ? 'Online' : 'Offline'}
+              </p>
+            </div>
+            
+            <div className="member-actions">
+              <button className="action-btn">
+                💬 Message
+              </button>
+              <button className="action-btn">
+                📧 Email
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {filteredMembers.length === 0 && searchTerm && (
+        <div className="no-results">
+          <p>No team members found matching "{searchTerm}"</p>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Leaderboard with Nicknames
+
+Create a leaderboard using generated nicknames:
+
+```tsx
+import { utils } from 'react-together'
+import { useStateTogether } from 'react-together'
+import { useMemo } from 'react'
+
+const { deriveNickname, getUserColor } = utils
+
+interface PlayerScore {
+  userId: string
+  score: number
+  lastUpdated: number
+}
+
+function GameLeaderboard() {
+  const [scores, setScores] = useStateTogether<Record<string, PlayerScore>>('gameScores', {})
+  
+  const leaderboard = useMemo(() => {
+    return Object.values(scores)
+      .map(playerScore => ({
+        ...playerScore,
+        nickname: deriveNickname(playerScore.userId),
+        color: getUserColor(playerScore.userId)
+      }))
+      .sort((a, b) => b.score - a.score)
+  }, [scores])
+  
+  const addTestScore = (userId: string, score: number) => {
+    setScores(prev => ({
+      ...prev,
+      [userId]: {
+        userId,
+        score,
+        lastUpdated: Date.now()
+      }
+    }))
+  }
+  
+  return (
+    <div className="game-leaderboard">
+      <div className="leaderboard-header">
+        <h3>🏆 Leaderboard</h3>
+        <div className="leaderboard-stats">
+          {leaderboard.length} player{leaderboard.length !== 1 ? 's' : ''}
+        </div>
+      </div>
+      
+      <div className="test-controls">
+        <h4>Test Controls</h4>
+        <button onClick={() => addTestScore('user-001', Math.floor(Math.random() * 1000))}>
+          Add Random Score for User 001
+        </button>
+        <button onClick={() => addTestScore('user-002', Math.floor(Math.random() * 1000))}>
+          Add Random Score for User 002
+        </button>
+        <button onClick={() => addTestScore('user-003', Math.floor(Math.random() * 1000))}>
+          Add Random Score for User 003
+        </button>
+      </div>
+      
+      <div className="leaderboard-list">
+        {leaderboard.map((player, index) => (
+          <div key={player.userId} className="leaderboard-entry">
+            <div className="rank">
+              <span className="rank-number">#{index + 1}</span>
+              {index === 0 && <span className="trophy">🥇</span>}
+              {index === 1 && <span className="trophy">🥈</span>}
+              {index === 2 && <span className="trophy">🥉</span>}
+            </div>
+            
+            <div className="player-info">
+              <div 
+                className="player-avatar"
+                style={{ backgroundColor: player.color }}
+              >
+                {player.nickname.split(' ').map(word => word[0]).join('')}
+              </div>
+              <div className="player-details">
+                <h4 className="player-nickname">{player.nickname}</h4>
+                <p className="player-id">ID: {player.userId.slice(-6)}</p>
+              </div>
+            </div>
+            
+            <div className="score-info">
+              <span className="score-value">{player.score.toLocaleString()}</span>
+              <span className="score-label">points</span>
+            </div>
+            
+            <div className="entry-meta">
+              <span className="last-updated">
+                {new Date(player.lastUpdated).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {leaderboard.length === 0 && (
+        <div className="empty-leaderboard">
+          <p>🎮 No scores yet!</p>
+          <p>Start playing to see the leaderboard.</p>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Collaborative Comments System
+
+Build a comments system with nickname-based identification:
+
+```tsx
+import { utils } from 'react-together'
+import { useStateTogether, useMyId } from 'react-together'
+import { useState } from 'react'
+
+const { deriveNickname, getUserColor } = utils
+
+interface Comment {
+  id: string
+  userId: string
+  content: string
+  timestamp: number
+  replies: Comment[]
+}
+
+function CollaborativeComments() {
+  const myId = useMyId()
+  const [comments, setComments] = useStateTogether<Comment[]>('comments', [])
+  const [newComment, setNewComment] = useState('')
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [replyContent, setReplyContent] = useState('')
+  
+  const addComment = () => {
+    if (!newComment.trim() || !myId) return
+    
+    const comment: Comment = {
+      id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      userId: myId,
+      content: newComment.trim(),
+      timestamp: Date.now(),
+      replies: []
+    }
+    
+    setComments(prev => [...prev, comment])
+    setNewComment('')
+  }
+  
+  const addReply = (parentCommentId: string) => {
+    if (!replyContent.trim() || !myId) return
+    
+    const reply: Comment = {
+      id: `reply-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      userId: myId,
+      content: replyContent.trim(),
+      timestamp: Date.now(),
+      replies: []
+    }
+    
+    setComments(prev => prev.map(comment => 
+      comment.id === parentCommentId
+        ? { ...comment, replies: [...comment.replies, reply] }
+        : comment
+    ))
+    
+    setReplyContent('')
+    setReplyingTo(null)
+  }
+  
+  const renderComment = (comment: Comment, isReply = false) => {
+    const nickname = deriveNickname(comment.userId)
+    const userColor = getUserColor(comment.userId)
+    const isMyComment = myId === comment.userId
+    
+    return (
+      <div key={comment.id} className={`comment ${isReply ? 'reply' : 'top-level'}`}>
+        <div className="comment-header">
+          <div className="comment-author">
+            <div 
+              className="author-avatar"
+              style={{ backgroundColor: userColor }}
+            >
+              {nickname.split(' ').map(word => word[0]).join('')}
+            </div>
+            <span className="author-nickname">
+              {nickname}
+              {isMyComment && <span className="you-label">(You)</span>}
+            </span>
+          </div>
+          <span className="comment-timestamp">
+            {new Date(comment.timestamp).toLocaleString()}
+          </span>
+        </div>
+        
+        <div className="comment-content">
+          {comment.content}
+        </div>
+        
+        <div className="comment-actions">
+          {!isReply && (
+            <button 
+              onClick={() => setReplyingTo(comment.id)}
+              className="reply-btn"
+            >
+              💬 Reply
+            </button>
+          )}
+        </div>
+        
+        {replyingTo === comment.id && (
+          <div className="reply-form">
+            <textarea
+              value={replyContent}
+              onChange={(e) => setReplyContent(e.target.value)}
+              placeholder="Write a reply..."
+              rows={3}
+            />
+            <div className="reply-actions">
+              <button onClick={() => addReply(comment.id)}>
+                Post Reply
+              </button>
+              <button onClick={() => setReplyingTo(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {comment.replies.length > 0 && (
+          <div className="comment-replies">
+            {comment.replies.map(reply => renderComment(reply, true))}
+          </div>
+        )}
+      </div>
+    )
+  }
+  
+  return (
+    <div className="collaborative-comments">
+      <div className="comments-header">
+        <h3>💬 Comments ({comments.length})</h3>
+      </div>
+      
+      <div className="add-comment">
+        <h4>Add Comment</h4>
+        <textarea
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder="Share your thoughts..."
+          rows={3}
+        />
+        <button onClick={addComment} disabled={!newComment.trim()}>
+          Post Comment
+        </button>
+      </div>
+      
+      <div className="comments-list">
+        {comments.map(comment => renderComment(comment))}
+      </div>
+      
+      {comments.length === 0 && (
+        <div className="empty-comments">
+          <p>💭 No comments yet</p>
+          <p>Be the first to share your thoughts!</p>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### User Mention System
+
+Implement user mentions with nickname autocomplete:
+
+```tsx
+import { utils } from 'react-together'
+import { useConnectedUsers } from 'react-together'
+import { useState, useMemo } from 'react'
+
+const { deriveNickname } = utils
+
+function UserMentionInput() {
+  const connectedUsers = useConnectedUsers()
+  const [inputValue, setInputValue] = useState('')
+  const [mentionQuery, setMentionQuery] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [cursorPosition, setCursorPosition] = useState(0)
+  
+  const userNicknames = useMemo(() => {
+    return connectedUsers.map(user => ({
+      userId: user.userId,
+      nickname: deriveNickname(user.userId)
+    }))
+  }, [connectedUsers])
+  
+  const mentionSuggestions = useMemo(() => {
+    if (!mentionQuery) return []
+    return userNicknames.filter(user =>
+      user.nickname.toLowerCase().includes(mentionQuery.toLowerCase())
+    ).slice(0, 5)
+  }, [userNicknames, mentionQuery])
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value
+    const cursor = e.target.selectionStart
+    
+    setInputValue(value)
+    setCursorPosition(cursor)
+    
+    // Check for mention trigger (@)
+    const beforeCursor = value.slice(0, cursor)
+    const mentionMatch = beforeCursor.match(/@(\w*)$/)
+    
+    if (mentionMatch) {
+      setMentionQuery(mentionMatch[1])
+      setShowSuggestions(true)
+    } else {
+      setMentionQuery('')
+      setShowSuggestions(false)
+    }
+  }
+  
+  const insertMention = (nickname: string) => {
+    const beforeCursor = inputValue.slice(0, cursorPosition)
+    const afterCursor = inputValue.slice(cursorPosition)
+    const beforeMention = beforeCursor.replace(/@\w*$/, '')
+    
+    const newValue = `${beforeMention}@${nickname} ${afterCursor}`
+    setInputValue(newValue)
+    setShowSuggestions(false)
+    setMentionQuery('')
+  }
+  
+  return (
+    <div className="user-mention-input">
+      <div className="input-container">
+        <textarea
+          value={inputValue}
+          onChange={handleInputChange}
+          placeholder="Type @ to mention users..."
+          rows={4}
+        />
+        
+        {showSuggestions && mentionSuggestions.length > 0 && (
+          <div className="mention-suggestions">
+            <div className="suggestions-header">
+              <span>💭 Mention someone</span>
+            </div>
+            {mentionSuggestions.map(user => (
+              <div
+                key={user.userId}
+                className="mention-suggestion"
+                onClick={() => insertMention(user.nickname)}
+              >
+                <div className="suggestion-avatar">
+                  {user.nickname.split(' ').map(word => word[0]).join('')}
+                </div>
+                <div className="suggestion-info">
+                  <span className="suggestion-nickname">{user.nickname}</span>
+                  <span className="suggestion-id">{user.userId.slice(-6)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      <div className="input-actions">
+        <button disabled={!inputValue.trim()}>
+          Send Message
+        </button>
+      </div>
+      
+      <div className="available-users">
+        <h4>Available Users ({userNicknames.length})</h4>
+        <div className="users-list">
+          {userNicknames.map(user => (
+            <span 
+              key={user.userId}
+              className="user-tag"
+              onClick={() => insertMention(user.nickname)}
+            >
+              @{user.nickname}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+## Nickname Generation
+
+The function uses the `unique-names-generator` library to create consistent, memorable nicknames:
+
+**Pattern**: `[Adjective] [Animal]`
+
+**Examples**:
+- `"user-123"` → `"Brilliant Tiger"`
+- `"user-456"` → `"Calm Eagle"`  
+- `"user-789"` → `"Swift Dolphin"`
+
+**Characteristics**:
+- **Deterministic**: Same userId always produces the same nickname
+- **Human-friendly**: Easy to read and remember
+- **Diverse**: Large combination space for uniqueness
+- **Safe**: Family-friendly adjectives and animals
+
+## Consistency Guarantee
+
+The same user ID will always generate the same nickname:
+
+```tsx
+const userId = "user-123-abc"
+
+// These will always be identical
+const nickname1 = deriveNickname(userId) // "Brilliant Tiger"
+const nickname2 = deriveNickname(userId) // "Brilliant Tiger"
+const nickname3 = deriveNickname(userId) // "Brilliant Tiger"
+
+console.log(nickname1 === nickname2 === nickname3) // true
+```
+
+## Best Practices
+
+### User Interface
+
+```tsx
+// ✅ Good - Show both nickname and ID when needed
+const nickname = deriveNickname(userId)
+return (
+  <div className="user-display">
+    <span className="nickname">{nickname}</span>
+    <span className="user-id">({userId.slice(-6)})</span>
+  </div>
+)
+```
+
+### Performance
+
+```tsx
+// ✅ Good - Memoize nickname generation
+const nickname = useMemo(() => deriveNickname(userId), [userId])
+
+// ✅ Good - Cache nicknames for frequent use
+const userNicknames = useMemo(() => 
+  users.map(user => ({
+    ...user,
+    nickname: deriveNickname(user.userId)
+  })), [users]
+)
+```
+
+### Accessibility
+
+```tsx
+// ✅ Good - Use nicknames as accessible labels
+<div 
+  className="user-avatar"
+  aria-label={`Avatar for ${deriveNickname(userId)}`}
+  title={deriveNickname(userId)}
+>
+  {initials}
+</div>
+```
+
+## Common Use Cases
+
+- **User Identification**: Replace cryptic user IDs with friendly names
+- **Chat Interfaces**: Show readable names in conversation
+- **Team Directories**: Create browsable user lists
+- **Avatar Labels**: Provide memorable user identification
+- **Leaderboards**: Display player names in games and competitions
+- **Comment Systems**: Identify comment authors clearly
+
+## Related Utilities
+
+- [`getUserColor`](/docs/react-together/utilities/get-user-color) - Generate consistent colors for users
+- [`getSessionNameFromUrl`](/docs/react-together/utilities/get-session-name-from-url) - Extract session information
+- [`getJoinUrl`](/docs/react-together/utilities/get-join-url) - Create shareable session URLs
+
+## Related Hooks
+
+- [`useConnectedUsers`](/docs/react-together/hooks/use-connected-users) - Get list of users to generate nicknames for
+- [`useMyId`](/docs/react-together/hooks/use-my-id) - Get current user ID for nickname generation
+- [`useNicknames`](/docs/react-together/hooks/use-nicknames) - Manage user-set nicknames with fallback to generated ones
+
+## TypeScript Support
+
+The function is fully typed for better development experience:
+
+```tsx
+import { utils } from 'react-together'
+
+const { deriveNickname } = utils
+
+// TypeScript will enforce correct parameter types
+const nickname: string = deriveNickname('user-123-abc')
+
+// Type-safe user interface
+interface UserWithNickname {
+  userId: string
+  nickname: string
+}
+
+const createUserWithNickname = (userId: string): UserWithNickname => ({
+  userId,
+  nickname: deriveNickname(userId)
+})
+``` 

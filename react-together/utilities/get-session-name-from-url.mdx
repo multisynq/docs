@@ -1,0 +1,800 @@
+---
+title: "getSessionNameFromUrl"
+description: "Extract session names from URL query parameters for automatic session joining and URL parsing."
+---
+
+## Overview
+
+The `getSessionNameFromUrl` utility function extracts the session name from a URL's query parameters. This is essential for implementing automatic session joining when users click on shared collaboration links or for parsing existing URLs to detect session information.
+
+<Info>
+**Perfect for**: Automatic session joining, URL parsing, session detection, deep linking, and integration with existing URL schemes.
+</Info>
+
+## Import
+
+```tsx
+import { utils } from 'react-together'
+const { getSessionNameFromUrl } = utils
+```
+
+## Signature
+
+```tsx
+getSessionNameFromUrl(
+  url: URL,
+  options?: {
+    nameKey?: string
+  }
+): string | null
+```
+
+## Parameters
+
+<ParamField path="url" type="URL" required>
+  The URL object to extract the session name from
+</ParamField>
+
+<ParamField path="options.nameKey" type="string" default="rtName">
+  The query parameter key to look for when extracting the session name
+</ParamField>
+
+## Returns
+
+<ResponseField name="sessionName" type="string | null">
+  The session name value, or `null` if it does not exist in the URL
+</ResponseField>
+
+## Examples
+
+### Basic Usage
+
+Extract session name using default parameter key:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getSessionNameFromUrl } = utils
+
+function parseSessionFromUrl() {
+  // URL with default session parameter
+  const url = new URL('https://myapp.com/collaborate?rtName=team-meeting-2024&other=value')
+  
+  const sessionName = getSessionNameFromUrl(url)
+  
+  console.log(sessionName)
+  // Output: "team-meeting-2024"
+  
+  return sessionName
+}
+
+// Example with no session parameter
+function parseEmptyUrl() {
+  const url = new URL('https://myapp.com/collaborate?other=value')
+  const sessionName = getSessionNameFromUrl(url)
+  
+  console.log(sessionName)
+  // Output: null
+  
+  return sessionName
+}
+```
+
+### Custom Parameter Key
+
+Extract session name using custom parameter keys:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getSessionNameFromUrl } = utils
+
+function parseCustomSessionParameter() {
+  // URL with custom session parameter
+  const url = new URL('https://myapp.com/rooms?roomId=design-session&mode=edit')
+  
+  const sessionName = getSessionNameFromUrl(url, { nameKey: 'roomId' })
+  
+  console.log(sessionName)
+  // Output: "design-session"
+  
+  return sessionName
+}
+```
+
+### Automatic Session Joining
+
+Implement automatic session joining from URLs:
+
+```tsx
+import { utils } from 'react-together'
+import { useEffect, useState } from 'react'
+import { useCreateRandomSession } from 'react-together'
+
+const { getSessionNameFromUrl, getSessionPasswordFromUrl } = utils
+
+function AutoSessionJoiner() {
+  const [joinAttempted, setJoinAttempted] = useState(false)
+  const [sessionInfo, setSessionInfo] = useState<{name: string, password: string} | null>(null)
+  const createSession = useCreateRandomSession()
+  
+  useEffect(() => {
+    if (joinAttempted) return
+    
+    const currentUrl = new URL(window.location.href)
+    const sessionName = getSessionNameFromUrl(currentUrl)
+    const sessionPassword = getSessionPasswordFromUrl(currentUrl)
+    
+    if (sessionName && sessionPassword) {
+      setSessionInfo({ name: sessionName, password: sessionPassword })
+      
+      // Automatically join the session
+      console.log(`Auto-joining session: ${sessionName}`)
+      
+      // You would trigger session joining here
+      // This example shows the detection logic
+      setJoinAttempted(true)
+    }
+  }, [joinAttempted])
+  
+  if (sessionInfo) {
+    return (
+      <div className="auto-join-session">
+        <h3>🔗 Joining Session</h3>
+        <p>Automatically joining session: <strong>{sessionInfo.name}</strong></p>
+        <div className="session-details">
+          <p>Session ID: {sessionInfo.name}</p>
+          <p>Status: Connecting...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="no-session-detected">
+      <h3>👋 Welcome</h3>
+      <p>No session link detected. Create a new session to get started.</p>
+      <button onClick={createSession}>
+        Create New Session
+      </button>
+    </div>
+  )
+}
+```
+
+### URL Session Validator
+
+Validate and process session URLs:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getSessionNameFromUrl, getSessionPasswordFromUrl } = utils
+
+interface SessionUrlInfo {
+  isValid: boolean
+  sessionName: string | null
+  password: string | null
+  errors: string[]
+}
+
+function validateSessionUrl(urlString: string): SessionUrlInfo {
+  const errors: string[] = []
+  let url: URL
+  
+  try {
+    url = new URL(urlString)
+  } catch {
+    return {
+      isValid: false,
+      sessionName: null,
+      password: null,
+      errors: ['Invalid URL format']
+    }
+  }
+  
+  const sessionName = getSessionNameFromUrl(url)
+  const password = getSessionPasswordFromUrl(url)
+  
+  // Validate session name
+  if (!sessionName) {
+    errors.push('No session name found in URL')
+  } else if (sessionName.length === 0) {
+    errors.push('Session name is empty')
+  } else if (sessionName.length > 100) {
+    errors.push('Session name too long (max 100 characters)')
+  } else if (!/^[a-zA-Z0-9-_\s]+$/.test(sessionName)) {
+    errors.push('Session name contains invalid characters')
+  }
+  
+  // Validate password
+  if (!password) {
+    errors.push('No password found in URL')
+  } else if (password.length < 6) {
+    errors.push('Password too short (min 6 characters)')
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    sessionName,
+    password,
+    errors
+  }
+}
+
+function SessionUrlValidator() {
+  const [urlInput, setUrlInput] = useState('')
+  const [validationResult, setValidationResult] = useState<SessionUrlInfo | null>(null)
+  
+  const validateUrl = () => {
+    const result = validateSessionUrl(urlInput)
+    setValidationResult(result)
+  }
+  
+  return (
+    <div className="session-url-validator">
+      <h3>Session URL Validator</h3>
+      
+      <div className="validator-input">
+        <textarea
+          value={urlInput}
+          onChange={(e) => setUrlInput(e.target.value)}
+          placeholder="Paste session URL here..."
+          rows={3}
+        />
+        <button onClick={validateUrl}>
+          Validate URL
+        </button>
+      </div>
+      
+      {validationResult && (
+        <div className="validation-result">
+          <div className={`status ${validationResult.isValid ? 'valid' : 'invalid'}`}>
+            {validationResult.isValid ? '✅ Valid Session URL' : '❌ Invalid Session URL'}
+          </div>
+          
+          {validationResult.sessionName && (
+            <div className="session-info">
+              <h4>Session Information</h4>
+              <p><strong>Name:</strong> {validationResult.sessionName}</p>
+              <p><strong>Password:</strong> {validationResult.password ? '***hidden***' : 'Not found'}</p>
+            </div>
+          )}
+          
+          {validationResult.errors.length > 0 && (
+            <div className="errors">
+              <h4>Errors</h4>
+              <ul>
+                {validationResult.errors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Multi-Platform URL Parser
+
+Parse different URL formats for various platforms:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getSessionNameFromUrl } = utils
+
+interface PlatformUrlConfig {
+  platform: string
+  nameKey: string
+  example: string
+  description: string
+}
+
+const platforms: PlatformUrlConfig[] = [
+  {
+    platform: 'React Together',
+    nameKey: 'rtName',
+    example: 'https://app.com?rtName=session',
+    description: 'Default React Together format'
+  },
+  {
+    platform: 'Custom App',
+    nameKey: 'sessionId',
+    example: 'https://app.com?sessionId=meeting',
+    description: 'Custom session parameter'
+  },
+  {
+    platform: 'Room System',
+    nameKey: 'room',
+    example: 'https://app.com?room=conference',
+    description: 'Room-based collaboration'
+  },
+  {
+    platform: 'Workspace',
+    nameKey: 'workspace',
+    example: 'https://app.com?workspace=team',
+    description: 'Workspace-based sessions'
+  }
+]
+
+function MultiPlatformUrlParser() {
+  const [urlToParse, setUrlToParse] = useState('')
+  const [parseResults, setParseResults] = useState<Array<{
+    platform: string
+    sessionName: string | null
+    success: boolean
+  }>>([])
+  
+  const parseForAllPlatforms = () => {
+    if (!urlToParse) return
+    
+    try {
+      const url = new URL(urlToParse)
+      const results = platforms.map(platform => {
+        const sessionName = getSessionNameFromUrl(url, { nameKey: platform.nameKey })
+        return {
+          platform: platform.platform,
+          sessionName,
+          success: sessionName !== null
+        }
+      })
+      
+      setParseResults(results)
+    } catch (error) {
+      console.error('Invalid URL:', error)
+      setParseResults([])
+    }
+  }
+  
+  return (
+    <div className="multi-platform-parser">
+      <h3>Multi-Platform URL Parser</h3>
+      <p>Parse session names using different platform conventions</p>
+      
+      <div className="parser-input">
+        <input
+          type="url"
+          value={urlToParse}
+          onChange={(e) => setUrlToParse(e.target.value)}
+          placeholder="Enter URL to parse..."
+        />
+        <button onClick={parseForAllPlatforms}>
+          Parse URL
+        </button>
+      </div>
+      
+      <div className="platform-examples">
+        <h4>Supported Formats</h4>
+        {platforms.map(platform => (
+          <div key={platform.platform} className="platform-example">
+            <strong>{platform.platform}</strong>
+            <code>{platform.example}</code>
+            <small>{platform.description}</small>
+          </div>
+        ))}
+      </div>
+      
+      {parseResults.length > 0 && (
+        <div className="parse-results">
+          <h4>Parse Results</h4>
+          {parseResults.map(result => (
+            <div
+              key={result.platform}
+              className={`result-item ${result.success ? 'success' : 'failure'}`}
+            >
+              <span className="platform">{result.platform}</span>
+              <span className="session-name">
+                {result.sessionName || 'Not found'}
+              </span>
+              <span className="status">
+                {result.success ? '✅' : '❌'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Router Integration with Session Detection
+
+Integrate with React Router for session-aware routing:
+
+```tsx
+import { utils } from 'react-together'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+
+const { getSessionNameFromUrl, getSessionPasswordFromUrl } = utils
+
+function useSessionAwareRouting() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [sessionDetected, setSessionDetected] = useState(false)
+  const [sessionInfo, setSessionInfo] = useState<{name: string, password: string} | null>(null)
+  
+  useEffect(() => {
+    const currentUrl = new URL(window.location.href)
+    const sessionName = getSessionNameFromUrl(currentUrl)
+    const sessionPassword = getSessionPasswordFromUrl(currentUrl)
+    
+    if (sessionName && sessionPassword) {
+      setSessionInfo({ name: sessionName, password: sessionPassword })
+      setSessionDetected(true)
+      
+      // Redirect to session page if needed
+      if (location.pathname !== '/session') {
+        navigate('/session', { 
+          state: { sessionName, sessionPassword },
+          replace: true 
+        })
+      }
+    } else {
+      setSessionDetected(false)
+      setSessionInfo(null)
+    }
+  }, [location, navigate])
+  
+  return { sessionDetected, sessionInfo }
+}
+
+function SessionAwareApp() {
+  const { sessionDetected, sessionInfo } = useSessionAwareRouting()
+  
+  if (sessionDetected && sessionInfo) {
+    return (
+      <div className="session-detected">
+        <h2>🔗 Session Link Detected</h2>
+        <p>Redirecting to session: <strong>{sessionInfo.name}</strong></p>
+        <div className="session-loader">
+          <div className="spinner"></div>
+          <p>Preparing collaboration session...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="normal-app">
+      <h2>👋 Welcome</h2>
+      <p>Browse the app or join a session using a shared link.</p>
+    </div>
+  )
+}
+```
+
+### URL Analytics and Tracking
+
+Track session URL usage for analytics:
+
+```tsx
+import { utils } from 'react-together'
+import { useEffect, useState } from 'react'
+
+const { getSessionNameFromUrl } = utils
+
+interface SessionAnalytics {
+  sessionName: string
+  referrer: string
+  timestamp: number
+  userAgent: string
+  sessionJoined: boolean
+}
+
+function trackSessionUrlUsage() {
+  const currentUrl = new URL(window.location.href)
+  const sessionName = getSessionNameFromUrl(currentUrl)
+  
+  if (sessionName) {
+    const analytics: SessionAnalytics = {
+      sessionName,
+      referrer: document.referrer,
+      timestamp: Date.now(),
+      userAgent: navigator.userAgent,
+      sessionJoined: false // Will be updated when session actually joins
+    }
+    
+    // Send to analytics service
+    console.log('Session URL analytics:', analytics)
+    
+    // Store locally for session tracking
+    localStorage.setItem('sessionAnalytics', JSON.stringify(analytics))
+    
+    return analytics
+  }
+  
+  return null
+}
+
+function SessionAnalyticsTracker() {
+  const [analytics, setAnalytics] = useState<SessionAnalytics | null>(null)
+  
+  useEffect(() => {
+    const analyticsData = trackSessionUrlUsage()
+    setAnalytics(analyticsData)
+    
+    // Track page view with session context
+    if (analyticsData) {
+      // Example with Google Analytics
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'session_url_accessed', {
+          session_name: analyticsData.sessionName,
+          custom_parameter_1: 'session_link'
+        })
+      }
+    }
+  }, [])
+  
+  return analytics ? (
+    <div className="session-analytics" style={{ display: 'none' }}>
+      {/* Hidden component for analytics tracking */}
+    </div>
+  ) : null
+}
+```
+
+### Session URL History Manager
+
+Manage and track session URL history:
+
+```tsx
+import { utils } from 'react-together'
+import { useState, useEffect } from 'react'
+
+const { getSessionNameFromUrl, getSessionPasswordFromUrl } = utils
+
+interface SessionHistoryEntry {
+  id: string
+  sessionName: string
+  url: string
+  accessedAt: Date
+  lastUsed: Date
+  accessCount: number
+}
+
+function useSessionHistory() {
+  const [sessionHistory, setSessionHistory] = useState<SessionHistoryEntry[]>([])
+  
+  useEffect(() => {
+    // Load session history from localStorage
+    const saved = localStorage.getItem('sessionHistory')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      const entries = parsed.map((entry: any) => ({
+        ...entry,
+        accessedAt: new Date(entry.accessedAt),
+        lastUsed: new Date(entry.lastUsed)
+      }))
+      setSessionHistory(entries)
+    }
+  }, [])
+  
+  const saveHistory = (history: SessionHistoryEntry[]) => {
+    setSessionHistory(history)
+    localStorage.setItem('sessionHistory', JSON.stringify(history))
+  }
+  
+  const addToHistory = (sessionName: string, url: string) => {
+    const existingIndex = sessionHistory.findIndex(entry => entry.sessionName === sessionName)
+    
+    if (existingIndex >= 0) {
+      // Update existing entry
+      const updated = [...sessionHistory]
+      updated[existingIndex] = {
+        ...updated[existingIndex],
+        lastUsed: new Date(),
+        accessCount: updated[existingIndex].accessCount + 1
+      }
+      saveHistory(updated)
+    } else {
+      // Add new entry
+      const newEntry: SessionHistoryEntry = {
+        id: Math.random().toString(36).substr(2, 9),
+        sessionName,
+        url,
+        accessedAt: new Date(),
+        lastUsed: new Date(),
+        accessCount: 1
+      }
+      saveHistory([newEntry, ...sessionHistory])
+    }
+  }
+  
+  const removeFromHistory = (entryId: string) => {
+    saveHistory(sessionHistory.filter(entry => entry.id !== entryId))
+  }
+  
+  const clearHistory = () => {
+    saveHistory([])
+  }
+  
+  return { sessionHistory, addToHistory, removeFromHistory, clearHistory }
+}
+
+function SessionHistoryPanel() {
+  const { sessionHistory, addToHistory, removeFromHistory, clearHistory } = useSessionHistory()
+  
+  useEffect(() => {
+    // Track current URL if it has session parameters
+    const currentUrl = new URL(window.location.href)
+    const sessionName = getSessionNameFromUrl(currentUrl)
+    
+    if (sessionName) {
+      addToHistory(sessionName, currentUrl.toString())
+    }
+  }, [addToHistory])
+  
+  const navigateToSession = (entry: SessionHistoryEntry) => {
+    window.location.href = entry.url
+  }
+  
+  return (
+    <div className="session-history-panel">
+      <div className="history-header">
+        <h3>Session History</h3>
+        <div className="history-controls">
+          <span className="history-count">{sessionHistory.length} sessions</span>
+          <button onClick={clearHistory} className="clear-btn">
+            Clear All
+          </button>
+        </div>
+      </div>
+      
+      <div className="history-list">
+        {sessionHistory.length === 0 ? (
+          <div className="empty-history">
+            <p>No session history yet</p>
+            <small>Session links you visit will appear here</small>
+          </div>
+        ) : (
+          sessionHistory.map(entry => (
+            <div key={entry.id} className="history-entry">
+              <div className="entry-info">
+                <h4>{entry.sessionName}</h4>
+                <p className="entry-url">{entry.url}</p>
+                <div className="entry-meta">
+                  <span>Last used: {entry.lastUsed.toLocaleDateString()}</span>
+                  <span>Used {entry.accessCount} time{entry.accessCount !== 1 ? 's' : ''}</span>
+                </div>
+              </div>
+              <div className="entry-actions">
+                <button
+                  onClick={() => navigateToSession(entry)}
+                  className="join-btn"
+                >
+                  Join
+                </button>
+                <button
+                  onClick={() => removeFromHistory(entry.id)}
+                  className="remove-btn"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+## URL Parameter Formats
+
+The function looks for session names in query parameters:
+
+```
+https://example.com/path?rtName=session-name&other=value
+                           ↑
+                    Default parameter key
+```
+
+**Custom parameter keys:**
+```
+https://example.com/path?sessionId=my-session&mode=edit
+                          ↑
+                   Custom parameter key
+```
+
+## Error Handling
+
+The function safely handles various edge cases:
+
+```tsx
+// Invalid URL - handled by URL constructor
+const sessionName = getSessionNameFromUrl(invalidUrl) // null
+
+// Missing parameter
+const url = new URL('https://app.com?other=value')
+const sessionName = getSessionNameFromUrl(url) // null
+
+// Empty parameter value
+const url = new URL('https://app.com?rtName=')
+const sessionName = getSessionNameFromUrl(url) // ""
+
+// Custom parameter not found
+const url = new URL('https://app.com?rtName=session')
+const sessionName = getSessionNameFromUrl(url, { nameKey: 'missing' }) // null
+```
+
+## Best Practices
+
+### Input Validation
+
+```tsx
+// ✅ Good - Validate extracted session names
+const sessionName = getSessionNameFromUrl(url)
+if (sessionName && sessionName.length > 0 && sessionName.length < 100) {
+  // Use the session name
+}
+
+// ✅ Good - Sanitize session names
+const cleanSessionName = sessionName?.replace(/[^a-zA-Z0-9-_\s]/g, '')
+```
+
+### Error Handling
+
+```tsx
+// ✅ Good - Handle null return values
+const sessionName = getSessionNameFromUrl(url)
+if (sessionName) {
+  joinSession(sessionName)
+} else {
+  showCreateSessionOption()
+}
+```
+
+### URL Parsing
+
+```tsx
+// ✅ Good - Always use URL objects
+try {
+  const url = new URL(urlString)
+  const sessionName = getSessionNameFromUrl(url)
+} catch (error) {
+  console.error('Invalid URL:', error)
+}
+```
+
+## Common Use Cases
+
+- **Automatic Session Joining**: Detect and join sessions from shared URLs
+- **URL Parsing**: Extract session information from various URL formats
+- **Session Detection**: Check if URLs contain session parameters
+- **Multi-Platform Support**: Parse different session URL conventions
+- **Analytics Tracking**: Track session URL usage and access patterns
+
+## Related Utilities
+
+- [`getSessionPasswordFromUrl`](/docs/react-together/utilities/get-session-password-from-url) - Extract session passwords
+- [`getJoinUrl`](/docs/react-together/utilities/get-join-url) - Create URLs with session parameters
+- [`getCleanUrl`](/docs/react-together/utilities/get-clean-url) - Remove session parameters
+
+## Related Hooks
+
+- [`useJoinUrl`](/docs/react-together/hooks/use-join-url) - Get current session join URL
+- [`useCreateRandomSession`](/docs/react-together/hooks/use-create-random-session) - Create new sessions
+- [`useIsTogether`](/docs/react-together/hooks/use-is-together) - Check session connection status
+
+## TypeScript Support
+
+The function is fully typed for better development experience:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getSessionNameFromUrl } = utils
+
+// TypeScript will enforce correct parameter types
+const sessionName: string | null = getSessionNameFromUrl(
+  new URL('https://app.com?rtName=session'),
+  { nameKey: 'sessionId' }
+)
+``` 

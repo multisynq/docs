@@ -1,0 +1,347 @@
+---
+title: "Utilities Overview"
+description: "Helper functions for URL manipulation, user management, and session handling in React Together applications."
+---
+
+## Overview
+
+React Together provides a collection of utility functions through the `utils` module to help you integrate collaboration features into your applications. These utilities handle common tasks like URL manipulation for session sharing, user identification, and styling.
+
+## Import Pattern
+
+All utilities are available through the `utils` export:
+
+```tsx
+import { utils } from 'react-together'
+
+// Destructure the functions you need
+const { 
+  getJoinUrl, 
+  getSessionNameFromUrl, 
+  getSessionPasswordFromUrl,
+  getCleanUrl,
+  deriveNickname,
+  getUserColor 
+} = utils
+```
+
+## Available Utilities
+
+### URL Management
+
+<CardGroup cols={2}>
+  <Card title="getJoinUrl" icon="link" href="/docs/react-together/utilities/get-join-url">
+    Create shareable URLs with embedded session parameters
+  </Card>
+  <Card title="getCleanUrl" icon="eraser" href="/docs/react-together/utilities/get-clean-url">
+    Remove session parameters from URLs for clean navigation
+  </Card>
+  <Card title="getSessionNameFromUrl" icon="magnifying-glass" href="/docs/react-together/utilities/get-session-name-from-url">
+    Extract session names from URL query parameters
+  </Card>
+  <Card title="getSessionPasswordFromUrl" icon="key" href="/docs/react-together/utilities/get-session-password-from-url">
+    Extract session passwords from URL hash parameters
+  </Card>
+</CardGroup>
+
+### User Management
+
+<CardGroup cols={2}>
+  <Card title="deriveNickname" icon="user" href="/docs/react-together/utilities/derive-nickname">
+    Generate human-readable nicknames from user IDs
+  </Card>
+  <Card title="getUserColor" icon="palette" href="/docs/react-together/utilities/get-user-color">
+    Generate consistent colors for users based on their IDs
+  </Card>
+</CardGroup>
+
+## Common Use Cases
+
+### Session Sharing Workflow
+
+```tsx
+import { utils } from 'react-together'
+
+const { getJoinUrl, getSessionNameFromUrl, getSessionPasswordFromUrl } = utils
+
+// 1. Create a shareable URL
+const shareSession = (sessionName: string, password: string) => {
+  const currentUrl = new URL(window.location.href)
+  const joinUrl = getJoinUrl(currentUrl, sessionName, password)
+  
+  // Share this URL with team members
+  navigator.clipboard.writeText(joinUrl.toString())
+}
+
+// 2. Join from a shared URL
+const joinFromUrl = () => {
+  const currentUrl = new URL(window.location.href)
+  const sessionName = getSessionNameFromUrl(currentUrl)
+  const password = getSessionPasswordFromUrl(currentUrl)
+  
+  if (sessionName && password) {
+    // Join the session automatically
+    console.log(`Joining session: ${sessionName}`)
+  }
+}
+```
+
+### User Display Management
+
+```tsx
+import { utils } from 'react-together'
+
+const { deriveNickname, getUserColor } = utils
+
+// Generate consistent user display elements
+const createUserDisplay = (userId: string) => {
+  const nickname = deriveNickname(userId)
+  const color = getUserColor(userId)
+  
+  return {
+    displayName: nickname,
+    backgroundColor: color,
+    textColor: getContrastColor(color) // Your contrast function
+  }
+}
+```
+
+### URL Cleanup
+
+```tsx
+import { utils } from 'react-together'
+
+const { getCleanUrl } = utils
+
+// Clean URL when leaving a session
+const leaveSession = () => {
+  const currentUrl = new URL(window.location.href)
+  const cleanUrl = getCleanUrl(currentUrl)
+  
+  // Update browser URL without session parameters
+  window.history.replaceState({}, '', cleanUrl.toString())
+}
+```
+
+## Integration Examples
+
+### Custom Session Manager
+
+Build your own session management UI using the utilities:
+
+```tsx
+import { utils } from 'react-together'
+import { useState } from 'react'
+
+const { getJoinUrl, getCleanUrl, getSessionNameFromUrl, getSessionPasswordFromUrl } = utils
+
+function CustomSessionManager() {
+  const [sessionName, setSessionName] = useState('')
+  const [password, setPassword] = useState('')
+  const [joinUrl, setJoinUrl] = useState<string | null>(null)
+  
+  const createSession = () => {
+    if (!sessionName || !password) return
+    
+    const currentUrl = new URL(window.location.href)
+    const newJoinUrl = getJoinUrl(currentUrl, sessionName, password)
+    
+    setJoinUrl(newJoinUrl.toString())
+    
+    // Update current URL to include session parameters
+    window.history.pushState({}, '', newJoinUrl.toString())
+  }
+  
+  const leaveSession = () => {
+    const currentUrl = new URL(window.location.href)
+    const cleanUrl = getCleanUrl(currentUrl)
+    
+    window.history.replaceState({}, '', cleanUrl.toString())
+    setJoinUrl(null)
+  }
+  
+  // Check for existing session in URL
+  const existingSession = () => {
+    const currentUrl = new URL(window.location.href)
+    const name = getSessionNameFromUrl(currentUrl)
+    const pwd = getSessionPasswordFromUrl(currentUrl)
+    
+    return name && pwd ? { name, password: pwd } : null
+  }
+  
+  return (
+    <div className="session-manager">
+      {joinUrl ? (
+        <div className="active-session">
+          <h3>Active Session</h3>
+          <p>Share this URL: {joinUrl}</p>
+          <button onClick={leaveSession}>Leave Session</button>
+        </div>
+      ) : (
+        <div className="create-session">
+          <h3>Create Session</h3>
+          <input
+            placeholder="Session name"
+            value={sessionName}
+            onChange={(e) => setSessionName(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button onClick={createSession}>Create</button>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### User Avatar System
+
+Create a consistent user avatar system:
+
+```tsx
+import { utils } from 'react-together'
+import { useConnectedUsers } from 'react-together'
+
+const { deriveNickname, getUserColor } = utils
+
+function UserAvatarGrid() {
+  const connectedUsers = useConnectedUsers()
+  
+  const getUserDisplay = (userId: string) => {
+    const nickname = deriveNickname(userId)
+    const color = getUserColor(userId)
+    
+    return {
+      initials: nickname.split(' ').map(n => n[0]).join('').toUpperCase(),
+      backgroundColor: color,
+      fullName: nickname
+    }
+  }
+  
+  return (
+    <div className="user-avatar-grid">
+      {connectedUsers.map(user => {
+        const display = getUserDisplay(user.userId)
+        
+        return (
+          <div
+            key={user.userId}
+            className="user-avatar"
+            style={{ backgroundColor: display.backgroundColor }}
+            title={display.fullName}
+          >
+            {display.initials}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+```
+
+### Smart URL Router Integration
+
+Integrate with React Router for automatic session joining:
+
+```tsx
+import { utils } from 'react-together'
+import { useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+
+const { getSessionNameFromUrl, getSessionPasswordFromUrl, getCleanUrl } = utils
+
+function SessionAwareRouter() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  
+  useEffect(() => {
+    const currentUrl = new URL(window.location.href)
+    const sessionName = getSessionNameFromUrl(currentUrl)
+    const password = getSessionPasswordFromUrl(currentUrl)
+    
+    if (sessionName && password) {
+      // Auto-join session from URL
+      console.log(`Auto-joining session: ${sessionName}`)
+      
+      // Optionally clean the URL after joining
+      setTimeout(() => {
+        const cleanUrl = getCleanUrl(currentUrl)
+        window.history.replaceState({}, '', cleanUrl.toString())
+      }, 1000)
+    }
+  }, [location])
+  
+  return null // This is a utility component
+}
+```
+
+## Best Practices
+
+### URL Parameter Security
+
+```tsx
+// ✅ Good - Validate parameters
+const sessionName = getSessionNameFromUrl(url)
+if (sessionName && sessionName.length > 0 && sessionName.length < 100) {
+  // Use the session name
+}
+
+// ✅ Good - Sanitize inputs
+const cleanSessionName = sessionName?.replace(/[^a-zA-Z0-9-_]/g, '')
+```
+
+### Consistent User Colors
+
+```tsx
+// ✅ Good - Use getUserColor for consistency
+const userColor = getUserColor(userId)
+
+// ❌ Bad - Random colors on each render
+const userColor = `#${Math.floor(Math.random()*16777215).toString(16)}`
+```
+
+### URL Management
+
+```tsx
+// ✅ Good - Always use URL objects
+const url = new URL(window.location.href)
+const joinUrl = getJoinUrl(url, name, password)
+
+// ❌ Bad - String manipulation
+const joinUrl = `${window.location.href}?rtName=${name}#rtPwd=${password}`
+```
+
+## Error Handling
+
+The utility functions are designed to be safe and handle edge cases:
+
+```tsx
+// All functions return null for invalid inputs
+const sessionName = getSessionNameFromUrl(invalidUrl) // null
+const color = getUserColor('') // Returns a default color
+const nickname = deriveNickname('') // Returns a default nickname
+```
+
+## TypeScript Support
+
+All utilities are fully typed for better development experience:
+
+```tsx
+import { utils } from 'react-together'
+
+// Types are automatically inferred
+const joinUrl: URL = utils.getJoinUrl(url, name, password)
+const sessionName: string | null = utils.getSessionNameFromUrl(url)
+const userColor: string = utils.getUserColor(userId)
+```
+
+## Related Documentation
+
+- [Session Management Hooks](/docs/react-together/hooks) - Hooks that use these utilities internally
+- [SessionManager Component](/docs/react-together/components/session-manager) - Pre-built UI using these utilities
+- [ReactTogether Component](/docs/react-together/components/react-together) - Main provider that handles URL parameters 

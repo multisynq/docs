@@ -1,0 +1,778 @@
+---
+title: "SessionManager"
+description: "A complete session management UI component for creating, joining, and leaving collaboration sessions with QR code sharing."
+---
+
+## Overview
+
+The `SessionManager` component provides a pre-built UI for managing collaboration sessions. It offers a floating button that opens a dialog with options to create new sessions, share join URLs with QR codes, and leave current sessions. This component is perfect for applications that need easy session management without custom UI development.
+
+<Info>
+**Perfect for**: Demo applications, prototypes, collaborative tools, and any app that needs quick session management without building custom UI.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { SessionManager } from 'react-together'
+
+function MyApp() {
+  return (
+    <div className="app">
+      {/* Your main app content */}
+      <main>
+        <h1>My Collaborative App</h1>
+        <div className="content">
+          {/* App content goes here */}
+        </div>
+      </main>
+      
+      {/* Session manager button - typically in a corner */}
+      <div className="fixed bottom-4 right-4">
+        <SessionManager />
+      </div>
+    </div>
+  )
+}
+```
+
+## Features
+
+The SessionManager provides these built-in features:
+
+### 🔄 Session Creation
+- Create new random sessions instantly
+- Automatic session switching
+- No manual configuration required
+
+### 🔗 URL Sharing
+- Copy session join URLs to clipboard
+- Visual feedback when URLs are copied
+- Shareable links for easy team joining
+
+### 📱 QR Code Generation
+- Generate QR codes for mobile sharing
+- Toggle QR code display
+- Perfect for cross-device collaboration
+
+### 🚪 Session Management
+- Leave current sessions
+- Clean disconnect handling
+- Automatic UI state updates
+
+## Props
+
+The `SessionManager` component takes no props - it's completely self-contained and manages its own state.
+
+## Examples
+
+### Basic Implementation
+
+Simple session manager for a collaborative workspace:
+
+```tsx
+import { SessionManager, useIsTogether, useConnectedUsers } from 'react-together'
+
+function CollaborativeWorkspace() {
+  const isTogether = useIsTogether()
+  const connectedUsers = useConnectedUsers()
+  
+  return (
+    <div className="workspace">
+      <header className="workspace-header">
+        <h1>Team Workspace</h1>
+        <div className="connection-status">
+          {isTogether ? (
+            <span className="connected">
+              ✅ Connected ({connectedUsers.length} users)
+            </span>
+          ) : (
+            <span className="disconnected">
+              ❌ Not connected
+            </span>
+          )}
+        </div>
+      </header>
+      
+      <main className="workspace-content">
+        <div className="document-area">
+          <h2>Shared Document</h2>
+          <p>Start collaborating with your team...</p>
+        </div>
+        
+        <div className="sidebar">
+          <h3>Team Members</h3>
+          <ul>
+            {connectedUsers.map(user => (
+              <li key={user.userId}>
+                {user.nickname || `User ${user.userId.slice(0, 8)}`}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </main>
+      
+      {/* Session manager in bottom-right corner */}
+      <SessionManager />
+    </div>
+  )
+}
+```
+
+### Dashboard Integration
+
+Integrate session manager into a dashboard layout:
+
+```tsx
+import { SessionManager, useIsTogether, useJoinUrl } from 'react-together'
+
+function Dashboard() {
+  const isTogether = useIsTogether()
+  const joinUrl = useJoinUrl()
+  
+  return (
+    <div className="dashboard">
+      <nav className="dashboard-nav">
+        <h1>Project Dashboard</h1>
+        <div className="nav-actions">
+          {isTogether && (
+            <div className="session-info">
+              <span className="session-indicator">
+                🔗 Session Active
+              </span>
+              <span className="session-url">
+                {joinUrl ? `${joinUrl.slice(0, 30)}...` : 'Loading...'}
+              </span>
+            </div>
+          )}
+        </div>
+      </nav>
+      
+      <div className="dashboard-content">
+        <div className="dashboard-cards">
+          <div className="card">
+            <h3>Tasks</h3>
+            <p>Collaborative task management</p>
+          </div>
+          <div className="card">
+            <h3>Files</h3>
+            <p>Shared file workspace</p>
+          </div>
+          <div className="card">
+            <h3>Chat</h3>
+            <p>Team communication</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Session manager integrated into corner */}
+      <div className="session-manager-container">
+        <SessionManager />
+      </div>
+    </div>
+  )
+}
+```
+
+### Demo Application
+
+Perfect for demo applications and prototypes:
+
+```tsx
+import { SessionManager, useIsTogether, useStateTogether, useConnectedUsers } from 'react-together'
+
+function DemoApp() {
+  const isTogether = useIsTogether()
+  const connectedUsers = useConnectedUsers()
+  const [demoState, setDemoState] = useStateTogether('demo-state', {
+    clicks: 0,
+    message: 'Hello World!'
+  })
+  
+  return (
+    <div className="demo-app">
+      <div className="demo-header">
+        <h1>🚀 React Together Demo</h1>
+        <div className="demo-stats">
+          <div className="stat">
+            <label>Status:</label>
+            <span className={isTogether ? 'connected' : 'disconnected'}>
+              {isTogether ? '🟢 Connected' : '🔴 Disconnected'}
+            </span>
+          </div>
+          <div className="stat">
+            <label>Users:</label>
+            <span>{connectedUsers.length}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="demo-content">
+        <div className="demo-section">
+          <h2>Shared Counter</h2>
+          <div className="counter-display">
+            <span className="counter-value">{demoState.clicks}</span>
+            <button
+              onClick={() => setDemoState(prev => ({ ...prev, clicks: prev.clicks + 1 }))}
+              className="counter-button"
+            >
+              Click Me! (+1)
+            </button>
+          </div>
+        </div>
+        
+        <div className="demo-section">
+          <h2>Shared Message</h2>
+          <input
+            type="text"
+            value={demoState.message}
+            onChange={(e) => setDemoState(prev => ({ ...prev, message: e.target.value }))}
+            placeholder="Type a shared message..."
+            className="demo-input"
+          />
+        </div>
+        
+        <div className="demo-section">
+          <h2>Connected Users</h2>
+          <div className="user-list">
+            {connectedUsers.map(user => (
+              <div key={user.userId} className="user-card">
+                <div className="user-avatar">
+                  {user.nickname ? user.nickname[0].toUpperCase() : '?'}
+                </div>
+                <span className="user-name">
+                  {user.nickname || `User ${user.userId.slice(0, 8)}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      {/* Session manager for easy demo sharing */}
+      <SessionManager />
+    </div>
+  )
+}
+```
+
+### Mobile-Friendly Implementation
+
+Responsive session manager for mobile devices:
+
+```tsx
+import { SessionManager, useIsTogether } from 'react-together'
+import { useState, useEffect } from 'react'
+
+function MobileApp() {
+  const isTogether = useIsTogether()
+  const [isMobile, setIsMobile] = useState(false)
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+  
+  return (
+    <div className="mobile-app">
+      <div className="mobile-header">
+        <h1>Mobile Collab</h1>
+        <div className="status-indicator">
+          {isTogether ? '🟢' : '🔴'}
+        </div>
+      </div>
+      
+      <div className="mobile-content">
+        <div className="content-card">
+          <h2>Collaboration Space</h2>
+          <p>Share this session with your team using the session button below.</p>
+          
+          {isMobile && (
+            <div className="mobile-tip">
+              💡 Tap the React Together button to share via QR code
+            </div>
+          )}
+        </div>
+        
+        <div className="mobile-workspace">
+          <textarea
+            placeholder="Collaborative notes..."
+            className="mobile-textarea"
+            rows={8}
+          />
+        </div>
+      </div>
+      
+      {/* Position session manager for mobile */}
+      <div 
+        className={`session-manager-mobile ${isMobile ? 'mobile' : 'desktop'}`}
+        style={{
+          position: 'fixed',
+          bottom: isMobile ? '20px' : '16px',
+          right: isMobile ? '20px' : '16px',
+          zIndex: 1000
+        }}
+      >
+        <SessionManager />
+      </div>
+    </div>
+  )
+}
+```
+
+### Workshop/Training Application
+
+Use session manager for educational or training applications:
+
+```tsx
+import { SessionManager, useIsTogether, useStateTogether, useConnectedUsers } from 'react-together'
+
+function WorkshopApp() {
+  const isTogether = useIsTogether()
+  const connectedUsers = useConnectedUsers()
+  const [workshopState, setWorkshopState] = useStateTogether('workshop', {
+    currentSlide: 0,
+    questions: [] as string[],
+    polls: {} as Record<string, number>
+  })
+  
+  const slides = [
+    { title: "Welcome", content: "Welcome to our collaborative workshop!" },
+    { title: "Introduction", content: "Let's learn together" },
+    { title: "Interactive Exercise", content: "Everyone participate!" },
+    { title: "Q&A", content: "Questions and answers" }
+  ]
+  
+  return (
+    <div className="workshop-app">
+      <div className="workshop-header">
+        <h1>📚 Collaborative Workshop</h1>
+        <div className="workshop-controls">
+          <div className="participant-count">
+            👥 {connectedUsers.length} participants
+          </div>
+          <div className="connection-status">
+            {isTogether ? '🟢 Live' : '🔴 Offline'}
+          </div>
+        </div>
+      </div>
+      
+      <div className="workshop-content">
+        <div className="slide-area">
+          <div className="slide-header">
+            <h2>{slides[workshopState.currentSlide].title}</h2>
+            <div className="slide-navigation">
+              <button
+                onClick={() => setWorkshopState(prev => ({
+                  ...prev,
+                  currentSlide: Math.max(0, prev.currentSlide - 1)
+                }))}
+                disabled={workshopState.currentSlide === 0}
+              >
+                ← Previous
+              </button>
+              <span className="slide-counter">
+                {workshopState.currentSlide + 1} / {slides.length}
+              </span>
+              <button
+                onClick={() => setWorkshopState(prev => ({
+                  ...prev,
+                  currentSlide: Math.min(slides.length - 1, prev.currentSlide + 1)
+                }))}
+                disabled={workshopState.currentSlide === slides.length - 1}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+          
+          <div className="slide-content">
+            <p>{slides[workshopState.currentSlide].content}</p>
+            
+            {workshopState.currentSlide === 2 && (
+              <div className="interactive-poll">
+                <h3>Quick Poll: How are you feeling?</h3>
+                <div className="poll-options">
+                  {['😊 Great', '😐 Okay', '😴 Tired'].map(option => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        const currentVotes = workshopState.polls[option] || 0
+                        setWorkshopState(prev => ({
+                          ...prev,
+                          polls: {
+                            ...prev.polls,
+                            [option]: currentVotes + 1
+                          }
+                        }))
+                      }}
+                      className="poll-button"
+                    >
+                      {option} ({workshopState.polls[option] || 0})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="participant-panel">
+          <h3>Participants</h3>
+          <div className="participant-list">
+            {connectedUsers.map(user => (
+              <div key={user.userId} className="participant">
+                <div className="participant-avatar">
+                  {user.nickname ? user.nickname[0].toUpperCase() : '?'}
+                </div>
+                <span className="participant-name">
+                  {user.nickname || `Participant ${user.userId.slice(0, 6)}`}
+                </span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="session-instructions">
+            <h4>Share Session</h4>
+            <p>Use the React Together button to share this workshop session with others.</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Session manager for workshop sharing */}
+      <SessionManager />
+    </div>
+  )
+}
+```
+
+### Game Lobby
+
+Use session manager for multiplayer game lobbies:
+
+```tsx
+import { SessionManager, useIsTogether, useStateTogether, useConnectedUsers } from 'react-together'
+
+function GameLobby() {
+  const isTogether = useIsTogether()
+  const connectedUsers = useConnectedUsers()
+  const [gameState, setGameState] = useStateTogether('game-lobby', {
+    gameStarted: false,
+    players: [] as Array<{id: string, ready: boolean, score: number}>,
+    gameMode: 'classic'
+  })
+  
+  const myUser = connectedUsers.find(u => u.userId === 'current-user-id') // This would be from useMyId()
+  
+  const toggleReady = () => {
+    setGameState(prev => ({
+      ...prev,
+      players: prev.players.map(p =>
+        p.id === myUser?.userId ? { ...p, ready: !p.ready } : p
+      )
+    }))
+  }
+  
+  return (
+    <div className="game-lobby">
+      <div className="lobby-header">
+        <h1>🎮 Game Lobby</h1>
+        <div className="lobby-info">
+          <span className="player-count">
+            {connectedUsers.length} / 4 players
+          </span>
+          <span className="connection-status">
+            {isTogether ? '🟢 Connected' : '🔴 Disconnected'}
+          </span>
+        </div>
+      </div>
+      
+      <div className="lobby-content">
+        <div className="player-section">
+          <h2>Players</h2>
+          <div className="player-grid">
+            {connectedUsers.map(user => {
+              const playerState = gameState.players.find(p => p.id === user.userId)
+              return (
+                <div key={user.userId} className="player-card">
+                  <div className="player-avatar">
+                    {user.nickname ? user.nickname[0].toUpperCase() : '?'}
+                  </div>
+                  <div className="player-info">
+                    <span className="player-name">
+                      {user.nickname || `Player ${user.userId.slice(0, 6)}`}
+                    </span>
+                    <span className={`player-status ${playerState?.ready ? 'ready' : 'not-ready'}`}>
+                      {playerState?.ready ? '✅ Ready' : '⏳ Not Ready'}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        
+        <div className="game-controls">
+          <h2>Game Settings</h2>
+          <div className="game-options">
+            <div className="option-group">
+              <label>Game Mode:</label>
+              <select
+                value={gameState.gameMode}
+                onChange={(e) => setGameState(prev => ({
+                  ...prev,
+                  gameMode: e.target.value
+                }))}
+              >
+                <option value="classic">Classic</option>
+                <option value="speed">Speed Mode</option>
+                <option value="team">Team Battle</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="lobby-actions">
+            <button
+              onClick={toggleReady}
+              className={`ready-button ${gameState.players.find(p => p.id === myUser?.userId)?.ready ? 'ready' : ''}`}
+            >
+              {gameState.players.find(p => p.id === myUser?.userId)?.ready ? 'Not Ready' : 'Ready Up!'}
+            </button>
+            
+            <button
+              onClick={() => setGameState(prev => ({ ...prev, gameStarted: true }))}
+              disabled={gameState.players.length < 2 || !gameState.players.every(p => p.ready)}
+              className="start-game-button"
+            >
+              Start Game
+            </button>
+          </div>
+        </div>
+        
+        <div className="lobby-chat">
+          <h3>Lobby Chat</h3>
+          <div className="chat-placeholder">
+            <p>Chat integration would go here...</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Session manager for inviting players */}
+      <SessionManager />
+    </div>
+  )
+}
+```
+
+### Event/Meeting Application
+
+Session manager for virtual events and meetings:
+
+```tsx
+import { SessionManager, useIsTogether, useConnectedUsers } from 'react-together'
+
+function VirtualEvent() {
+  const isTogether = useIsTogether()
+  const connectedUsers = useConnectedUsers()
+  
+  return (
+    <div className="virtual-event">
+      <div className="event-header">
+        <h1>🎪 Virtual Event</h1>
+        <div className="event-info">
+          <span className="event-time">
+            📅 Today at 2:00 PM
+          </span>
+          <span className="attendee-count">
+            👥 {connectedUsers.length} attendees
+          </span>
+        </div>
+      </div>
+      
+      <div className="event-content">
+        <div className="main-stage">
+          <div className="presentation-area">
+            <h2>Welcome to Our Virtual Event!</h2>
+            <p>Join the conversation and connect with other attendees.</p>
+            
+            <div className="stage-controls">
+              <button className="stage-button">
+                🎤 Join Stage
+              </button>
+              <button className="stage-button">
+                💬 Open Chat
+              </button>
+              <button className="stage-button">
+                🙋 Raise Hand
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="attendee-panel">
+          <h3>Attendees</h3>
+          <div className="attendee-list">
+            {connectedUsers.map(user => (
+              <div key={user.userId} className="attendee">
+                <div className="attendee-avatar">
+                  {user.nickname ? user.nickname[0].toUpperCase() : '?'}
+                </div>
+                <span className="attendee-name">
+                  {user.nickname || `Attendee ${user.userId.slice(0, 6)}`}
+                </span>
+                <span className="attendee-status">
+                  {isTogether ? '🟢' : '🔴'}
+                </span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="event-sharing">
+            <h4>Invite Others</h4>
+            <p>Share this event with colleagues and friends using the session manager.</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Session manager for event sharing */}
+      <SessionManager />
+    </div>
+  )
+}
+```
+
+## Built-in Styling
+
+The SessionManager includes built-in CSS styling with these classes:
+
+```css
+/* Session button */
+.session-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 1rem;
+  color: white;
+  background-color: #3b82f6;
+  border: 1px solid #2d3748;
+  box-shadow: 0 2px 0 #2d3748;
+}
+
+/* Dialog components */
+.sessionMenuContent-container { /* Dialog content */ }
+.input-container { /* URL input area */ }
+.qrCode-container { /* QR code display */ }
+```
+
+## Customization
+
+While the SessionManager is designed to be used as-is, you can customize its appearance with CSS:
+
+```css
+/* Custom button styling */
+.session-button {
+  background-color: #your-brand-color !important;
+  border-color: #your-border-color !important;
+}
+
+/* Custom dialog styling */
+.p-dialog .p-dialog-content {
+  background-color: #your-background-color;
+}
+
+/* Custom input styling */
+.input-container {
+  background-color: #your-input-background;
+  border-color: #your-input-border;
+}
+```
+
+## Best Practices
+
+### Positioning
+
+```tsx
+// ✅ Good - Fixed positioning in corner
+<div className="fixed bottom-4 right-4 z-50">
+  <SessionManager />
+</div>
+
+// ✅ Good - Integrated into layout
+<div className="app-controls">
+  <SessionManager />
+</div>
+```
+
+### Mobile Considerations
+
+```tsx
+// ✅ Good - Responsive positioning
+<div className={`session-manager ${isMobile ? 'mobile' : 'desktop'}`}>
+  <SessionManager />
+</div>
+```
+
+### User Experience
+
+```tsx
+// ✅ Good - Provide context
+<div className="session-area">
+  <p>Use the React Together button to share this session</p>
+  <SessionManager />
+</div>
+```
+
+## Common Use Cases
+
+- **Demo Applications**: Quick session sharing for demonstrations
+- **Prototypes**: Easy collaboration without custom UI
+- **Educational Tools**: Workshop and training session management
+- **Gaming**: Multiplayer game lobby management
+- **Events**: Virtual event and meeting coordination
+- **Team Tools**: Quick team collaboration setup
+
+## Related Components
+
+- [`ReactTogether`](/docs/react-together/components/react-together) - Main context provider
+- [`Chat`](/docs/react-together/components/chat) - Real-time chat component
+- [`ConnectedUsers`](/docs/react-together/components/connected-users) - User display component
+
+## Related Hooks
+
+- [`useCreateRandomSession`](/docs/react-together/hooks/use-create-random-session) - Create new sessions
+- [`useJoinUrl`](/docs/react-together/hooks/use-join-url) - Get session join URLs
+- [`useLeaveSession`](/docs/react-together/hooks/use-leave-session) - Leave current session
+- [`useIsTogether`](/docs/react-together/hooks/use-is-together) - Check connection status
+
+## Dependencies
+
+The SessionManager component uses these external libraries:
+
+- **PrimeReact**: For dialog components
+- **QRCode.react**: For QR code generation
+- **PrimeIcons**: For UI icons
+
+These dependencies are included with React Together and don't need separate installation.
+
+## TypeScript Support
+
+The SessionManager component is fully typed and requires no additional type definitions:
+
+```tsx
+import { SessionManager } from 'react-together'
+
+// No props needed - fully self-contained
+function MyApp() {
+  return (
+    <div>
+      <SessionManager />
+    </div>
+  )
+}
+``` 

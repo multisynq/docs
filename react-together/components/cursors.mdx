@@ -1,0 +1,697 @@
+---
+title: "Cursors"
+description: "Display live mouse cursors from all connected users with smooth animations and customizable appearance."
+---
+
+## Overview
+
+The `Cursors` component displays the real-time mouse cursors of all connected users on the page. It provides smooth cursor tracking with customizable colors, animations, and user information display. This component is perfect for collaborative applications where visual awareness of other users' activity is important.
+
+<Info>
+**Perfect for**: Collaborative design tools, document editors, drawing applications, presentations, and any interface where cursor awareness enhances collaboration.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { Cursors } from 'react-together'
+
+function CollaborativeCanvas() {
+  return (
+    <div className="app">
+      {/* Your app content */}
+      <div className="canvas-area">
+        <p>Move your mouse around to see cursors!</p>
+      </div>
+      
+      {/* Cursors overlay */}
+      <Cursors />
+    </div>
+  )
+}
+```
+
+## Props
+
+The `Cursors` component accepts all props from both `useCursors` options and cursor appearance options:
+
+### Cursor Tracking Options
+
+<ParamField path="omitMyValue" type="boolean" default="false">
+  Whether to hide your own cursor from the display
+</ParamField>
+
+<ParamField path="deleteOnLeave" type="boolean" default="true">
+  Whether to remove cursors when users leave the session
+</ParamField>
+
+<ParamField path="throttleDelay" type="number" default="16">
+  Milliseconds to throttle cursor position updates (16ms = ~60fps)
+</ParamField>
+
+### Cursor Appearance Options
+
+<ParamField path="transitionDuration" type="number" default="100">
+  Duration in milliseconds for cursor movement animations
+</ParamField>
+
+<ParamField path="getUserColor" type="(userId: string) => string">
+  Function to determine cursor color for each user
+</ParamField>
+
+<ParamField path="components" type="CursorsComponents">
+  Custom components to override cursor display
+</ParamField>
+
+### CursorsComponents Interface
+
+```tsx
+interface CursorsComponents {
+  UserCursor?: React.ComponentType<UserCursorProps>
+}
+
+interface UserCursorProps {
+  userId: string
+  pageX: number
+  pageY: number
+  transitionDuration?: number
+  getUserColor?: (userId: string) => string
+}
+```
+
+## Examples
+
+### Basic Cursor Display
+
+Simple cursor tracking with default settings:
+
+```tsx
+import { Cursors } from 'react-together'
+
+function BasicCursorDemo() {
+  return (
+    <div className="demo-container">
+      <h1>Collaborative Workspace</h1>
+      <div className="workspace">
+        <p>Move your mouse around this area!</p>
+        <div className="drawing-area">
+          <p>✏️ Drawing canvas simulation</p>
+        </div>
+      </div>
+      
+      {/* Display all user cursors */}
+      <Cursors />
+    </div>
+  )
+}
+```
+
+### Custom Cursor Colors
+
+Implement custom color assignment for different users:
+
+```tsx
+import { Cursors } from 'react-together'
+
+function ColorfulCursors() {
+  // Define a set of distinct colors for users
+  const getUserColor = (userId: string): string => {
+    const colors = [
+      '#FF6B6B', // Red
+      '#4ECDC4', // Teal
+      '#45B7D1', // Blue
+      '#96CEB4', // Green
+      '#FFEAA7', // Yellow
+      '#DDA0DD', // Plum
+      '#98D8C8', // Mint
+      '#F7DC6F'  // Light Yellow
+    ]
+    
+    // Use user ID to consistently assign colors
+    const colorIndex = userId.split('').reduce((acc, char) => 
+      acc + char.charCodeAt(0), 0
+    ) % colors.length
+    
+    return colors[colorIndex]
+  }
+  
+  return (
+    <div className="colorful-demo">
+      <h2>🎨 Colorful Cursors Demo</h2>
+      <div className="demo-area">
+        <p>Each user gets a unique color!</p>
+        <div className="color-palette">
+          {['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'].map(color => (
+            <div
+              key={color}
+              className="color-swatch"
+              style={{ backgroundColor: color }}
+            />
+          ))}
+        </div>
+      </div>
+      
+      <Cursors
+        getUserColor={getUserColor}
+        transitionDuration={150}
+      />
+    </div>
+  )
+}
+```
+
+### High-Performance Cursors
+
+Optimized settings for applications with many users:
+
+```tsx
+import { Cursors } from 'react-together'
+
+function HighPerformanceCursors() {
+  return (
+    <div className="performance-demo">
+      <h2>⚡ High Performance Cursors</h2>
+      <div className="demo-content">
+        <p>Optimized for many simultaneous users</p>
+        <div className="performance-metrics">
+          <div className="metric">
+            <label>Update Rate:</label>
+            <span>30 FPS</span>
+          </div>
+          <div className="metric">
+            <label>Animation:</label>
+            <span>Smooth</span>
+          </div>
+        </div>
+      </div>
+      
+      <Cursors
+        throttleDelay={33}        // 30 FPS instead of 60
+        transitionDuration={50}   // Faster animations
+        deleteOnLeave={true}      // Clean up immediately
+      />
+    </div>
+  )
+}
+```
+
+### Custom Cursor Component
+
+Create a custom cursor with user information display:
+
+```tsx
+import { Cursors, useConnectedUsers } from 'react-together'
+
+interface CustomCursorProps {
+  userId: string
+  pageX: number
+  pageY: number
+  transitionDuration?: number
+  getUserColor?: (userId: string) => string
+}
+
+function CustomUserCursor({ 
+  userId, 
+  pageX, 
+  pageY, 
+  transitionDuration = 100,
+  getUserColor
+}: CustomCursorProps) {
+  const connectedUsers = useConnectedUsers()
+  const user = connectedUsers.find(u => u.userId === userId)
+  const color = getUserColor ? getUserColor(userId) : '#3B82F6'
+  
+  return (
+    <div
+      className="custom-cursor"
+      style={{
+        position: 'fixed',
+        left: pageX,
+        top: pageY,
+        pointerEvents: 'none',
+        zIndex: 9999,
+        transition: `all ${transitionDuration}ms ease-out`,
+        transform: 'translate(-2px, -2px)'
+      }}
+    >
+      {/* Cursor pointer */}
+      <div
+        className="cursor-pointer"
+        style={{
+          width: '20px',
+          height: '20px',
+          backgroundColor: color,
+          borderRadius: '50% 0 50% 50%',
+          transform: 'rotate(-45deg)',
+          position: 'relative'
+        }}
+      />
+      
+      {/* User info tooltip */}
+      <div
+        className="cursor-tooltip"
+        style={{
+          position: 'absolute',
+          top: '25px',
+          left: '10px',
+          backgroundColor: color,
+          color: 'white',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          whiteSpace: 'nowrap',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+        }}
+      >
+        {user?.nickname || `User ${userId.slice(0, 8)}`}
+      </div>
+    </div>
+  )
+}
+
+function CustomCursorDemo() {
+  const getUserColor = (userId: string) => {
+    // Generate consistent color based on user ID
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
+    const index = userId.split('').reduce((acc, char) => 
+      acc + char.charCodeAt(0), 0
+    ) % colors.length
+    return colors[index]
+  }
+  
+  return (
+    <div className="custom-cursor-demo">
+      <h2>🎯 Custom Cursors with User Info</h2>
+      <div className="demo-area">
+        <p>Hover around to see custom cursors with user names!</p>
+        <div className="interactive-elements">
+          <button className="demo-button">Button 1</button>
+          <button className="demo-button">Button 2</button>
+          <input placeholder="Type here..." />
+        </div>
+      </div>
+      
+      <Cursors
+        components={{
+          UserCursor: CustomUserCursor
+        }}
+        getUserColor={getUserColor}
+        transitionDuration={200}
+      />
+    </div>
+  )
+}
+```
+
+### Drawing Application with Cursors
+
+Integrate cursors into a collaborative drawing application:
+
+```tsx
+import { Cursors, useStateTogether } from 'react-together'
+import { useState, useRef } from 'react'
+
+function CollaborativeDrawing() {
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [currentPath, setCurrentPath] = useStateTogether<string[]>('drawing-paths', [])
+  const canvasRef = useRef<HTMLDivElement>(null)
+  
+  const startDrawing = (e: React.MouseEvent) => {
+    setIsDrawing(true)
+    const rect = canvasRef.current?.getBoundingClientRect()
+    if (rect) {
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      setCurrentPath(prev => [...prev, `M ${x} ${y}`])
+    }
+  }
+  
+  const draw = (e: React.MouseEvent) => {
+    if (!isDrawing) return
+    
+    const rect = canvasRef.current?.getBoundingClientRect()
+    if (rect) {
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      setCurrentPath(prev => [...prev, `L ${x} ${y}`])
+    }
+  }
+  
+  const stopDrawing = () => {
+    if (isDrawing && currentPath.length > 1) {
+      setCurrentPath(prev => [...prev, currentPath.join(' ')])
+    }
+    setIsDrawing(false)
+  }
+  
+  return (
+    <div className="drawing-app">
+      <h2>🎨 Collaborative Drawing</h2>
+      <div className="drawing-controls">
+        <p>Draw with your mouse and see others' cursors!</p>
+        <button onClick={() => setCurrentPath([])}>
+          Clear Canvas
+        </button>
+      </div>
+      
+      <div
+        ref={canvasRef}
+        className="drawing-canvas"
+        onMouseDown={startDrawing}
+        onMouseMove={draw}
+        onMouseUp={stopDrawing}
+        onMouseLeave={stopDrawing}
+        style={{
+          width: '800px',
+          height: '600px',
+          border: '2px solid #ccc',
+          borderRadius: '8px',
+          backgroundColor: 'white',
+          position: 'relative',
+          cursor: 'crosshair'
+        }}
+      >
+        {/* SVG for drawing paths */}
+        <svg
+          width="100%"
+          height="100%"
+          style={{ position: 'absolute', top: 0, left: 0 }}
+        >
+          {/* Render saved paths */}
+          {currentPath.map((path, index) => (
+            <path
+              key={index}
+              d={path}
+              stroke="#333"
+              strokeWidth="2"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ))}
+        </svg>
+      </div>
+      
+      {/* Display cursors over the drawing area */}
+      <Cursors
+        throttleDelay={8}  // Very responsive for drawing
+        transitionDuration={50}
+      />
+    </div>
+  )
+}
+```
+
+### Presentation Mode with Cursors
+
+Use cursors for interactive presentations:
+
+```tsx
+import { Cursors, useStateTogether } from 'react-together'
+
+function InteractivePresentation() {
+  const [currentSlide, setCurrentSlide] = useStateTogether('slide', 0)
+  
+  const slides = [
+    {
+      title: "Welcome to Interactive Presentations",
+      content: "See everyone's cursors in real-time!"
+    },
+    {
+      title: "Collaborative Features",
+      content: "Point and click to highlight content"
+    },
+    {
+      title: "Team Engagement",
+      content: "Everyone can participate visually"
+    }
+  ]
+  
+  return (
+    <div className="presentation-app">
+      <div className="presentation-controls">
+        <button
+          onClick={() => setCurrentSlide(Math.max(0, currentSlide - 1))}
+          disabled={currentSlide === 0}
+        >
+          ← Previous
+        </button>
+        <span className="slide-counter">
+          {currentSlide + 1} / {slides.length}
+        </span>
+        <button
+          onClick={() => setCurrentSlide(Math.min(slides.length - 1, currentSlide + 1))}
+          disabled={currentSlide === slides.length - 1}
+        >
+          Next →
+        </button>
+      </div>
+      
+      <div className="presentation-slide">
+        <h1>{slides[currentSlide].title}</h1>
+        <div className="slide-content">
+          <p>{slides[currentSlide].content}</p>
+          <div className="interactive-elements">
+            <div className="highlight-box">
+              <p>👆 Point at important content</p>
+            </div>
+            <div className="demo-chart">
+              <div className="chart-bar" style={{ height: '60px', backgroundColor: '#4ECDC4' }} />
+              <div className="chart-bar" style={{ height: '80px', backgroundColor: '#45B7D1' }} />
+              <div className="chart-bar" style={{ height: '40px', backgroundColor: '#96CEB4' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <Cursors
+        transitionDuration={200}
+        throttleDelay={16}
+      />
+    </div>
+  )
+}
+```
+
+### Gaming Interface with Cursors
+
+Implement cursors in a collaborative gaming interface:
+
+```tsx
+import { Cursors, useStateTogether, useConnectedUsers } from 'react-together'
+
+function CollaborativeGame() {
+  const [gameState, setGameState] = useStateTogether('game', {
+    players: [] as Array<{id: string, score: number}>,
+    gameActive: false
+  })
+  const connectedUsers = useConnectedUsers()
+  
+  const getUserColor = (userId: string) => {
+    const gamePlayer = gameState.players.find(p => p.id === userId)
+    if (gamePlayer) {
+      const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
+      const index = gameState.players.indexOf(gamePlayer)
+      return colors[index % colors.length]
+    }
+    return '#999'
+  }
+  
+  return (
+    <div className="gaming-interface">
+      <div className="game-header">
+        <h2>🎮 Collaborative Game</h2>
+        <div className="player-stats">
+          <h3>Players ({connectedUsers.length})</h3>
+          {connectedUsers.map(user => (
+            <div key={user.userId} className="player-info">
+              <span 
+                className="player-color"
+                style={{ backgroundColor: getUserColor(user.userId) }}
+              />
+              <span className="player-name">{user.nickname}</span>
+              <span className="player-score">
+                Score: {gameState.players.find(p => p.id === user.userId)?.score || 0}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      <div className="game-area">
+        <div className="game-board">
+          <p>🎯 Click anywhere to play!</p>
+          <div className="game-grid">
+            {Array.from({ length: 16 }).map((_, i) => (
+              <div
+                key={i}
+                className="game-tile"
+                onClick={() => {
+                  // Simulate game interaction
+                  console.log(`Tile ${i} clicked`)
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <Cursors
+        getUserColor={getUserColor}
+        transitionDuration={100}
+        throttleDelay={16}
+      />
+    </div>
+  )
+}
+```
+
+### Hide Own Cursor
+
+Display only other users' cursors:
+
+```tsx
+import { Cursors } from 'react-together'
+
+function OthersCursorsOnly() {
+  return (
+    <div className="others-cursors-demo">
+      <h2>👥 Others' Cursors Only</h2>
+      <p>You won't see your own cursor, only other users'</p>
+      <div className="demo-content">
+        <p>This is useful when you want to focus on other users' activity</p>
+        <div className="content-area">
+          <button>Interactive Element 1</button>
+          <button>Interactive Element 2</button>
+          <input placeholder="Type here..." />
+        </div>
+      </div>
+      
+      <Cursors
+        omitMyValue={true}
+        transitionDuration={150}
+      />
+    </div>
+  )
+}
+```
+
+## Performance Considerations
+
+### Throttling
+
+Adjust `throttleDelay` based on your needs:
+
+```tsx
+// High precision (60 FPS) - good for drawing apps
+<Cursors throttleDelay={16} />
+
+// Balanced (30 FPS) - good for most applications
+<Cursors throttleDelay={33} />
+
+// Low bandwidth (15 FPS) - good for slow connections
+<Cursors throttleDelay={66} />
+```
+
+### Animation Performance
+
+Control animation smoothness:
+
+```tsx
+// Smooth animations
+<Cursors transitionDuration={200} />
+
+// Responsive animations
+<Cursors transitionDuration={50} />
+
+// No animations (best performance)
+<Cursors transitionDuration={0} />
+```
+
+## Styling
+
+The Cursors component uses these default styles:
+
+```css
+/* Container for all cursors */
+.cursors-container {
+  position: relative;
+  pointer-events: none;
+}
+
+/* Individual cursor styles */
+.cursor-element {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+}
+```
+
+## Best Practices
+
+### Performance
+
+```tsx
+// ✅ Good - Reasonable throttling
+<Cursors throttleDelay={16} />
+
+// ❌ Bad - Too frequent updates
+<Cursors throttleDelay={1} />
+```
+
+### User Experience
+
+```tsx
+// ✅ Good - Smooth animations
+<Cursors transitionDuration={100} />
+
+// ✅ Good - Custom colors for identification
+<Cursors getUserColor={getUserColor} />
+
+// ✅ Good - Clean up on leave
+<Cursors deleteOnLeave={true} />
+```
+
+### Mobile Considerations
+
+```tsx
+// For mobile devices, consider disabling or adjusting
+const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
+function ResponsiveCursors() {
+  if (isMobile) {
+    return null // Mobile devices don't have traditional cursors
+  }
+  
+  return <Cursors />
+}
+```
+
+## Common Patterns
+
+- **Design Tools**: High-frequency updates for precise collaboration
+- **Document Editing**: Medium-frequency updates with user identification
+- **Gaming**: Color-coded cursors representing players
+- **Presentations**: Smooth cursor animations for pointing
+- **Drawing Apps**: Ultra-responsive cursor tracking
+
+## Related Hooks
+
+- [`useCursors`](/docs/react-together/hooks/use-cursors) - The underlying hook powering the Cursors component
+- [`useConnectedUsers`](/docs/react-together/hooks/use-connected-users) - Get user information for cursor display
+- [`useMyId`](/docs/react-together/hooks/use-my-id) - Identify your own cursor
+
+## TypeScript Support
+
+The Cursors component is fully typed:
+
+```tsx
+import { Cursors, CursorsProps, UserCursorProps } from 'react-together'
+
+const cursorsProps: CursorsProps = {
+  throttleDelay: 16,
+  transitionDuration: 100,
+  omitMyValue: false,
+  getUserColor: (userId: string) => '#3B82F6'
+}

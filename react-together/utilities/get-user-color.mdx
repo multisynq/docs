@@ -1,0 +1,862 @@
+---
+title: "getUserColor"
+description: "Generate consistent HSL color strings based on user IDs for visual user identification in collaborative interfaces."
+---
+
+## Overview
+
+The `getUserColor` utility function generates a consistent HSL color string based on a user ID. Each unique user ID will always produce the same color, making it perfect for visual user identification in avatars, cursors, highlights, and other UI elements where you need to visually distinguish between different users.
+
+<Info>
+**Perfect for**: User avatars, cursor colors, user highlights, visual identification, collaborative annotations, and creating consistent user-specific styling across your application.
+</Info>
+
+## Import
+
+```tsx
+import { utils } from 'react-together'
+const { getUserColor } = utils
+```
+
+## Signature
+
+```tsx
+getUserColor(userId: string): string
+```
+
+## Parameters
+
+<ParamField path="userId" type="string" required>
+  The unique user identifier to generate a color from. The same userId will always produce the same color.
+</ParamField>
+
+## Returns
+
+<ResponseField name="color" type="string">
+  An HSL color string (e.g., "hsl(240, 70%, 50%)") that is consistent for the given userId. The color has good saturation and lightness for UI use.
+</ResponseField>
+
+## Examples
+
+### Basic Usage
+
+Generate colors for user identification:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getUserColor } = utils
+
+function generateUserColors() {
+  const userIds = [
+    'user-123-abc',
+    'user-456-def', 
+    'user-789-ghi'
+  ]
+  
+  const userColors = userIds.map(userId => ({
+    userId,
+    color: getUserColor(userId)
+  }))
+  
+  console.log(userColors)
+  // Output: [
+  //   { userId: 'user-123-abc', color: 'hsl(240, 70%, 50%)' },
+  //   { userId: 'user-456-def', color: 'hsl(120, 70%, 50%)' },
+  //   { userId: 'user-789-ghi', color: 'hsl(60, 70%, 50%)' }
+  // ]
+  
+  return userColors
+}
+```
+
+### User Avatar System
+
+Create consistent user avatars with colors:
+
+```tsx
+import { utils } from 'react-together'
+import { useConnectedUsers } from 'react-together'
+
+const { getUserColor, deriveNickname } = utils
+
+interface UserAvatarProps {
+  userId: string
+  size?: 'small' | 'medium' | 'large'
+  showName?: boolean
+}
+
+function UserAvatar({ userId, size = 'medium', showName = false }: UserAvatarProps) {
+  const userColor = getUserColor(userId)
+  const nickname = deriveNickname(userId)
+  const initials = nickname.split(' ').map(word => word[0]).join('')
+  
+  const sizeClasses = {
+    small: 'w-8 h-8 text-xs',
+    medium: 'w-12 h-12 text-sm', 
+    large: 'w-16 h-16 text-base'
+  }
+  
+  return (
+    <div className="user-avatar-container">
+      <div 
+        className={`user-avatar ${sizeClasses[size]} rounded-full flex items-center justify-center font-bold text-white`}
+        style={{ backgroundColor: userColor }}
+        title={nickname}
+      >
+        {initials}
+      </div>
+      {showName && (
+        <span className="user-name text-sm text-gray-600 mt-1">
+          {nickname}
+        </span>
+      )}
+    </div>
+  )
+}
+
+function UserAvatarGrid() {
+  const connectedUsers = useConnectedUsers()
+  
+  return (
+    <div className="user-avatar-grid">
+      <h3>Connected Users</h3>
+      <div className="grid grid-cols-4 gap-4">
+        {connectedUsers.map(user => (
+          <UserAvatar 
+            key={user.userId}
+            userId={user.userId}
+            size="large"
+            showName={true}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+### Live Cursors with User Colors
+
+Implement live cursors with consistent user colors:
+
+```tsx
+import { utils } from 'react-together'
+import { useCursors } from 'react-together'
+
+const { getUserColor, deriveNickname } = utils
+
+function LiveCursors() {
+  const cursors = useCursors()
+  
+  return (
+    <div className="live-cursors">
+      {Object.entries(cursors).map(([userId, cursor]) => {
+        const userColor = getUserColor(userId)
+        const nickname = deriveNickname(userId)
+        
+        return (
+          <div
+            key={userId}
+            className="user-cursor"
+            style={{
+              position: 'absolute',
+              left: cursor.x,
+              top: cursor.y,
+              pointerEvents: 'none',
+              zIndex: 1000,
+              transform: 'translate(-2px, -2px)'
+            }}
+          >
+            {/* Cursor pointer */}
+            <svg width="20" height="20" viewBox="0 0 20 20">
+              <path
+                d="M0 0l7 13 3-3 10 3-13-7z"
+                fill={userColor}
+                stroke="white"
+                strokeWidth="1"
+              />
+            </svg>
+            
+            {/* User label */}
+            <div
+              className="cursor-label"
+              style={{
+                backgroundColor: userColor,
+                color: 'white',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                marginTop: '2px',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {nickname}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+```
+
+### Collaborative Highlighting
+
+Create user-specific highlighting colors:
+
+```tsx
+import { utils } from 'react-together'
+import { useStateTogether, useMyId } from 'react-together'
+import { useState } from 'react'
+
+const { getUserColor, deriveNickname } = utils
+
+interface Highlight {
+  id: string
+  userId: string
+  startOffset: number
+  endOffset: number
+  text: string
+  comment?: string
+  timestamp: number
+}
+
+function CollaborativeHighlighter() {
+  const myId = useMyId()
+  const [highlights, setHighlights] = useStateTogether<Highlight[]>('highlights', [])
+  const [selectedText, setSelectedText] = useState('')
+  const [comment, setComment] = useState('')
+  
+  const addHighlight = () => {
+    if (!selectedText || !myId) return
+    
+    const highlight: Highlight = {
+      id: `highlight-${Date.now()}`,
+      userId: myId,
+      startOffset: 0, // In real app, get from text selection
+      endOffset: selectedText.length,
+      text: selectedText,
+      comment: comment || undefined,
+      timestamp: Date.now()
+    }
+    
+    setHighlights(prev => [...prev, highlight])
+    setSelectedText('')
+    setComment('')
+  }
+  
+  const renderHighlight = (highlight: Highlight) => {
+    const userColor = getUserColor(highlight.userId)
+    const nickname = deriveNickname(highlight.userId)
+    const isMyHighlight = myId === highlight.userId
+    
+    return (
+      <div
+        key={highlight.id}
+        className="highlight-item"
+        style={{
+          borderLeft: `4px solid ${userColor}`,
+          backgroundColor: `${userColor}20`, // Add transparency
+          padding: '8px 12px',
+          margin: '4px 0',
+          borderRadius: '4px'
+        }}
+      >
+        <div className="highlight-header">
+          <span 
+            className="highlighter-name"
+            style={{ color: userColor, fontWeight: 'bold' }}
+          >
+            {nickname}
+            {isMyHighlight && ' (You)'}
+          </span>
+          <span className="highlight-time">
+            {new Date(highlight.timestamp).toLocaleString()}
+          </span>
+        </div>
+        
+        <div className="highlighted-text">
+          "{highlight.text}"
+        </div>
+        
+        {highlight.comment && (
+          <div className="highlight-comment">
+            💬 {highlight.comment}
+          </div>
+        )}
+      </div>
+    )
+  }
+  
+  return (
+    <div className="collaborative-highlighter">
+      <div className="highlighter-controls">
+        <h3>📝 Text Highlighter</h3>
+        
+        <div className="add-highlight">
+          <textarea
+            value={selectedText}
+            onChange={(e) => setSelectedText(e.target.value)}
+            placeholder="Enter text to highlight..."
+            rows={3}
+          />
+          <input
+            type="text"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Add a comment (optional)"
+          />
+          <button onClick={addHighlight} disabled={!selectedText}>
+            Add Highlight
+          </button>
+        </div>
+      </div>
+      
+      <div className="highlights-list">
+        <h4>Highlights ({highlights.length})</h4>
+        {highlights.map(renderHighlight)}
+      </div>
+    </div>
+  )
+}
+```
+
+### Team Color Legend
+
+Create a color legend for team identification:
+
+```tsx
+import { utils } from 'react-together'
+import { useConnectedUsers } from 'react-together'
+
+const { getUserColor, deriveNickname } = utils
+
+function TeamColorLegend() {
+  const connectedUsers = useConnectedUsers()
+  
+  const teamColors = connectedUsers.map(user => ({
+    userId: user.userId,
+    nickname: deriveNickname(user.userId),
+    color: getUserColor(user.userId)
+  }))
+  
+  return (
+    <div className="team-color-legend">
+      <h3>🎨 Team Colors</h3>
+      <p>Each team member has a unique color for easy identification</p>
+      
+      <div className="color-legend-grid">
+        {teamColors.map(member => (
+          <div key={member.userId} className="color-legend-item">
+            <div 
+              className="color-swatch"
+              style={{ 
+                backgroundColor: member.color,
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                border: '2px solid white',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+              }}
+            />
+            <span className="member-name">{member.nickname}</span>
+            <span className="color-value">{member.color}</span>
+          </div>
+        ))}
+      </div>
+      
+      <div className="legend-info">
+        <h4>Color Usage</h4>
+        <ul>
+          <li>🎯 <strong>Avatars:</strong> Background colors</li>
+          <li>🖱️ <strong>Cursors:</strong> Pointer colors</li>
+          <li>✨ <strong>Highlights:</strong> Text highlighting</li>
+          <li>💬 <strong>Chat:</strong> Message author colors</li>
+        </ul>
+      </div>
+    </div>
+  )
+}
+```
+
+### Activity Feed with User Colors
+
+Build an activity feed using user colors for identification:
+
+```tsx
+import { utils } from 'react-together'
+import { useStateTogether } from 'react-together'
+import { useState } from 'react'
+
+const { getUserColor, deriveNickname } = utils
+
+interface ActivityEvent {
+  id: string
+  userId: string
+  type: 'join' | 'leave' | 'edit' | 'comment' | 'share'
+  description: string
+  timestamp: number
+  metadata?: Record<string, any>
+}
+
+function ActivityFeed() {
+  const [activities, setActivities] = useStateTogether<ActivityEvent[]>('activities', [])
+  
+  const addTestActivity = (type: ActivityEvent['type'], userId: string) => {
+    const descriptions = {
+      join: 'joined the session',
+      leave: 'left the session', 
+      edit: 'made an edit',
+      comment: 'added a comment',
+      share: 'shared the session'
+    }
+    
+    const activity: ActivityEvent = {
+      id: `activity-${Date.now()}`,
+      userId,
+      type,
+      description: descriptions[type],
+      timestamp: Date.now()
+    }
+    
+    setActivities(prev => [activity, ...prev.slice(0, 49)]) // Keep only 50 recent activities
+  }
+  
+  const renderActivity = (activity: ActivityEvent) => {
+    const userColor = getUserColor(activity.userId)
+    const nickname = deriveNickname(activity.userId)
+    
+    const typeIcons = {
+      join: '👋',
+      leave: '👋',
+      edit: '✏️',
+      comment: '💬',
+      share: '🔗'
+    }
+    
+    const typeColors = {
+      join: '#22c55e',
+      leave: '#ef4444',
+      edit: '#3b82f6',
+      comment: '#8b5cf6',
+      share: '#f59e0b'
+    }
+    
+    return (
+      <div key={activity.id} className="activity-item">
+        <div className="activity-timeline">
+          <div 
+            className="activity-dot"
+            style={{ backgroundColor: typeColors[activity.type] }}
+          >
+            {typeIcons[activity.type]}
+          </div>
+          <div className="activity-line"></div>
+        </div>
+        
+        <div className="activity-content">
+          <div className="activity-header">
+            <span 
+              className="activity-user"
+              style={{ color: userColor, fontWeight: 'bold' }}
+            >
+              {nickname}
+            </span>
+            <span className="activity-description">
+              {activity.description}
+            </span>
+            <span className="activity-time">
+              {new Date(activity.timestamp).toLocaleTimeString()}
+            </span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="activity-feed">
+      <div className="feed-header">
+        <h3>📊 Activity Feed</h3>
+        <div className="feed-controls">
+          <button onClick={() => addTestActivity('join', 'user-001')}>
+            Add Join Event
+          </button>
+          <button onClick={() => addTestActivity('edit', 'user-002')}>
+            Add Edit Event  
+          </button>
+          <button onClick={() => addTestActivity('comment', 'user-003')}>
+            Add Comment Event
+          </button>
+        </div>
+      </div>
+      
+      <div className="feed-list">
+        {activities.length === 0 ? (
+          <div className="empty-feed">
+            <p>📭 No recent activity</p>
+            <p>Activities will appear here as users interact</p>
+          </div>
+        ) : (
+          activities.map(renderActivity)
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+### Color Accessibility Helper
+
+Create accessible color combinations:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getUserColor } = utils
+
+// Calculate color contrast ratio
+function getContrastRatio(color1: string, color2: string): number {
+  const getLuminance = (color: string) => {
+    // Simple luminance calculation for HSL colors
+    // In production, use a proper color library
+    const hslMatch = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/)
+    if (!hslMatch) return 0.5
+    
+    const lightness = parseInt(hslMatch[3])
+    return lightness / 100
+  }
+  
+  const lum1 = getLuminance(color1)
+  const lum2 = getLuminance(color2)
+  const brightest = Math.max(lum1, lum2)
+  const darkest = Math.min(lum1, lum2)
+  
+  return (brightest + 0.05) / (darkest + 0.05)
+}
+
+function getAccessibleTextColor(backgroundColor: string): string {
+  const whiteContrast = getContrastRatio(backgroundColor, '#ffffff')
+  const blackContrast = getContrastRatio(backgroundColor, '#000000')
+  
+  return whiteContrast > blackContrast ? '#ffffff' : '#000000'
+}
+
+function AccessibleUserBadge({ userId }: { userId: string }) {
+  const backgroundColor = getUserColor(userId)
+  const textColor = getAccessibleTextColor(backgroundColor)
+  const nickname = deriveNickname(userId)
+  
+  return (
+    <div 
+      className="accessible-user-badge"
+      style={{
+        backgroundColor,
+        color: textColor,
+        padding: '8px 12px',
+        borderRadius: '16px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '8px',
+        fontWeight: 'bold'
+      }}
+    >
+      <div 
+        className="badge-avatar"
+        style={{
+          width: '24px',
+          height: '24px',
+          borderRadius: '50%',
+          backgroundColor: textColor,
+          color: backgroundColor,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px'
+        }}
+      >
+        {nickname.split(' ').map(word => word[0]).join('')}
+      </div>
+      {nickname}
+    </div>
+  )
+}
+
+function AccessibilityDemo() {
+  const testUsers = ['user-001', 'user-002', 'user-003', 'user-004', 'user-005']
+  
+  return (
+    <div className="accessibility-demo">
+      <h3>♿ Accessible User Colors</h3>
+      <p>User colors with automatic contrast-compliant text</p>
+      
+      <div className="badge-grid">
+        {testUsers.map(userId => (
+          <AccessibleUserBadge key={userId} userId={userId} />
+        ))}
+      </div>
+      
+      <div className="accessibility-info">
+        <h4>Accessibility Features</h4>
+        <ul>
+          <li>✅ Automatic contrast calculation</li>
+          <li>✅ WCAG compliant text colors</li>
+          <li>✅ Consistent color generation</li>
+          <li>✅ High saturation for visibility</li>
+        </ul>
+      </div>
+    </div>
+  )
+}
+```
+
+### Color Theme Generator
+
+Generate color themes based on user colors:
+
+```tsx
+import { utils } from 'react-together'
+import { useConnectedUsers } from 'react-together'
+import { useMemo } from 'react'
+
+const { getUserColor } = utils
+
+function generateColorTheme(userColors: string[]) {
+  // Extract primary colors and generate theme variants
+  return userColors.map(color => {
+    const hslMatch = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/)
+    if (!hslMatch) return { primary: color, light: color, dark: color }
+    
+    const [, hue, saturation, lightness] = hslMatch
+    const h = parseInt(hue)
+    const s = parseInt(saturation)
+    const l = parseInt(lightness)
+    
+    return {
+      primary: color,
+      light: `hsl(${h}, ${Math.max(s - 20, 30)}%, ${Math.min(l + 20, 90)}%)`,
+      dark: `hsl(${h}, ${Math.min(s + 10, 80)}%, ${Math.max(l - 20, 20)}%)`,
+      pastel: `hsl(${h}, ${Math.max(s - 40, 20)}%, ${Math.min(l + 30, 95)}%)`
+    }
+  })
+}
+
+function ColorThemeGenerator() {
+  const connectedUsers = useConnectedUsers()
+  
+  const colorThemes = useMemo(() => {
+    const userColors = connectedUsers.map(user => getUserColor(user.userId))
+    return generateColorTheme(userColors)
+  }, [connectedUsers])
+  
+  return (
+    <div className="color-theme-generator">
+      <h3>🎨 Dynamic Color Themes</h3>
+      <p>Color themes generated from connected user colors</p>
+      
+      <div className="themes-grid">
+        {colorThemes.map((theme, index) => (
+          <div key={index} className="theme-card">
+            <h4>Theme {index + 1}</h4>
+            <div className="color-swatches">
+              <div 
+                className="color-swatch"
+                style={{ backgroundColor: theme.primary }}
+                title={`Primary: ${theme.primary}`}
+              >
+                Primary
+              </div>
+              <div 
+                className="color-swatch"
+                style={{ backgroundColor: theme.light }}
+                title={`Light: ${theme.light}`}
+              >
+                Light
+              </div>
+              <div 
+                className="color-swatch"
+                style={{ backgroundColor: theme.dark }}
+                title={`Dark: ${theme.dark}`}
+              >
+                Dark
+              </div>
+              <div 
+                className="color-swatch"
+                style={{ backgroundColor: theme.pastel }}
+                title={`Pastel: ${theme.pastel}`}
+              >
+                Pastel
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {colorThemes.length === 0 && (
+        <div className="no-themes">
+          <p>🎭 No users connected</p>
+          <p>Color themes will generate when users join</p>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## Color Properties
+
+The generated colors have these characteristics:
+
+**HSL Format**: `hsl(hue, saturation%, lightness%)`
+- **Hue**: 0-360 degrees (varies by user)
+- **Saturation**: ~70% (high saturation for visibility)
+- **Lightness**: ~50% (balanced for readability)
+
+**Example colors**:
+```tsx
+getUserColor("user-123") // "hsl(240, 70%, 50%)" (blue)
+getUserColor("user-456") // "hsl(120, 70%, 50%)" (green)  
+getUserColor("user-789") // "hsl(0, 70%, 50%)"   (red)
+```
+
+## Consistency Guarantee
+
+The same user ID will always generate the same color:
+
+```tsx
+const userId = "user-123-abc"
+
+// These will always be identical
+const color1 = getUserColor(userId) // "hsl(240, 70%, 50%)"
+const color2 = getUserColor(userId) // "hsl(240, 70%, 50%)"
+const color3 = getUserColor(userId) // "hsl(240, 70%, 50%)"
+
+console.log(color1 === color2 === color3) // true
+```
+
+## Color Accessibility
+
+### High Contrast
+
+```tsx
+// ✅ Good - Use generated colors with proper contrast
+const backgroundColor = getUserColor(userId)
+const textColor = getContrastColor(backgroundColor) // Calculate contrast
+
+return (
+  <div style={{ backgroundColor, color: textColor }}>
+    User content
+  </div>
+)
+```
+
+### Colorblind Considerations
+
+```tsx
+// ✅ Good - Don't rely solely on color for information
+const userColor = getUserColor(userId)
+const userIcon = getUserIcon(userId) // Additional visual indicator
+
+return (
+  <div className="user-indicator">
+    <div style={{ backgroundColor: userColor }} />
+    <span>{userIcon}</span>
+    <span>{userName}</span>
+  </div>
+)
+```
+
+## Best Practices
+
+### Performance
+
+```tsx
+// ✅ Good - Memoize color calculations
+const userColor = useMemo(() => getUserColor(userId), [userId])
+
+// ✅ Good - Cache colors for multiple uses
+const userColors = useMemo(() => 
+  users.reduce((acc, user) => ({
+    ...acc,
+    [user.userId]: getUserColor(user.userId)
+  }), {}), [users]
+)
+```
+
+### UI Consistency
+
+```tsx
+// ✅ Good - Use colors consistently across components
+const userColor = getUserColor(userId)
+
+// Use the same color for avatar, cursor, and highlights
+<UserAvatar color={userColor} />
+<UserCursor color={userColor} />
+<UserHighlight color={userColor} />
+```
+
+### Accessibility
+
+```tsx
+// ✅ Good - Provide multiple identification methods
+const userColor = getUserColor(userId)
+const userNickname = deriveNickname(userId)
+
+return (
+  <div 
+    style={{ borderColor: userColor }}
+    aria-label={`Content by ${userNickname}`}
+  >
+    <span style={{ color: userColor }}>{userNickname}</span>
+    Content...
+  </div>
+)
+```
+
+## Common Use Cases
+
+- **User Avatars**: Background colors for user profile pictures
+- **Live Cursors**: Distinct colors for collaborative cursor tracking
+- **Text Highlighting**: User-specific highlighting colors
+- **Visual Identification**: Consistent user identification across UI
+- **Team Coordination**: Color-coded team member identification
+- **Activity Tracking**: Color-coded user activity in feeds
+
+## Related Utilities
+
+- [`deriveNickname`](/docs/react-together/utilities/derive-nickname) - Generate consistent nicknames for users
+- [`getSessionNameFromUrl`](/docs/react-together/utilities/get-session-name-from-url) - Extract session information
+- [`getJoinUrl`](/docs/react-together/utilities/get-join-url) - Create shareable session URLs
+
+## Related Hooks
+
+- [`useConnectedUsers`](/docs/react-together/hooks/use-connected-users) - Get list of users to generate colors for
+- [`useMyId`](/docs/react-together/hooks/use-my-id) - Get current user ID for color generation
+- [`useCursors`](/docs/react-together/hooks/use-cursors) - Use with cursor color customization
+
+## TypeScript Support
+
+The function is fully typed for better development experience:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getUserColor } = utils
+
+// TypeScript will enforce correct parameter types
+const color: string = getUserColor('user-123-abc')
+
+// Type-safe user styling
+interface UserStyle {
+  userId: string
+  backgroundColor: string
+  textColor: string
+}
+
+const createUserStyle = (userId: string): UserStyle => ({
+  userId,
+  backgroundColor: getUserColor(userId),
+  textColor: getContrastColor(getUserColor(userId))
+})

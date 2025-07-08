@@ -1,0 +1,721 @@
+---
+title: "getCleanUrl"
+description: "Remove session parameters from URLs for clean navigation and URL management."
+---
+
+## Overview
+
+The `getCleanUrl` utility function creates a new URL with session name and password parameters removed. This is essential for cleaning up URLs when users leave sessions, creating shareable non-session URLs, or maintaining clean navigation history.
+
+<Info>
+**Perfect for**: Session cleanup, URL normalization, leaving sessions, history management, and creating clean shareable URLs.
+</Info>
+
+## Import
+
+```tsx
+import { utils } from 'react-together'
+const { getCleanUrl } = utils
+```
+
+## Signature
+
+```tsx
+getCleanUrl(
+  url: URL,
+  options?: {
+    nameKey?: string
+    passwordKey?: string
+  }
+): URL
+```
+
+## Parameters
+
+<ParamField path="url" type="URL" required>
+  The URL to clean by removing session parameters
+</ParamField>
+
+<ParamField path="options.nameKey" type="string" default="rtName">
+  The query parameter key to remove (session name)
+</ParamField>
+
+<ParamField path="options.passwordKey" type="string" default="rtPwd">
+  The hash parameter key to remove (session password)
+</ParamField>
+
+## Returns
+
+<ResponseField name="cleanUrl" type="URL">
+  A new URL instance without the specified session name and password parameters
+</ResponseField>
+
+## Examples
+
+### Basic Usage
+
+Remove default session parameters from a URL:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getCleanUrl } = utils
+
+function cleanCurrentUrl() {
+  // URL with session parameters
+  const urlWithSession = new URL('https://myapp.com/collaborate?rtName=team-session&other=value#rtPwd=password123')
+  
+  const cleanUrl = getCleanUrl(urlWithSession)
+  
+  console.log(cleanUrl.toString())
+  // Output: https://myapp.com/collaborate?other=value
+  
+  return cleanUrl
+}
+```
+
+### Custom Parameter Keys
+
+Remove custom session parameter keys:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getCleanUrl } = utils
+
+function cleanCustomParameters() {
+  const urlWithCustomParams = new URL('https://myapp.com/rooms?roomId=design-session&mode=edit#access=secretToken')
+  
+  const cleanUrl = getCleanUrl(urlWithCustomParams, {
+    nameKey: 'roomId',
+    passwordKey: 'access'
+  })
+  
+  console.log(cleanUrl.toString())
+  // Output: https://myapp.com/rooms?mode=edit
+  
+  return cleanUrl
+}
+```
+
+### Leave Session Implementation
+
+Clean URL when users leave a session:
+
+```tsx
+import { utils } from 'react-together'
+import { useLeaveSession } from 'react-together'
+
+const { getCleanUrl } = utils
+
+function LeaveSessionButton() {
+  const leaveSession = useLeaveSession()
+  
+  const handleLeaveSession = () => {
+    // Clean the URL first
+    const currentUrl = new URL(window.location.href)
+    const cleanUrl = getCleanUrl(currentUrl)
+    
+    // Update browser URL without session parameters
+    window.history.replaceState({}, '', cleanUrl.toString())
+    
+    // Leave the session
+    leaveSession()
+  }
+  
+  return (
+    <button onClick={handleLeaveSession} className="leave-session-btn">
+      Leave Session
+    </button>
+  )
+}
+```
+
+### URL History Management
+
+Manage browser history with clean URLs:
+
+```tsx
+import { utils } from 'react-together'
+import { useEffect } from 'react'
+
+const { getCleanUrl } = utils
+
+function UrlHistoryManager() {
+  useEffect(() => {
+    const handleSessionEnd = () => {
+      const currentUrl = new URL(window.location.href)
+      
+      // Check if URL has session parameters
+      if (currentUrl.searchParams.has('rtName') || currentUrl.hash.includes('rtPwd=')) {
+        const cleanUrl = getCleanUrl(currentUrl)
+        
+        // Replace current history entry with clean URL
+        window.history.replaceState(
+          { sessionEnded: true },
+          'Session Ended',
+          cleanUrl.toString()
+        )
+        
+        // Optionally push a new clean state
+        window.history.pushState(
+          { clean: true },
+          document.title,
+          cleanUrl.toString()
+        )
+      }
+    }
+    
+    // Listen for session end events
+    window.addEventListener('beforeunload', handleSessionEnd)
+    document.addEventListener('sessionEnd', handleSessionEnd)
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleSessionEnd)
+      document.removeEventListener('sessionEnd', handleSessionEnd)
+    }
+  }, [])
+  
+  return null // This is a utility component
+}
+```
+
+### Shareable URL Generator
+
+Create clean URLs for sharing non-session content:
+
+```tsx
+import { utils } from 'react-together'
+import { useState } from 'react'
+
+const { getCleanUrl } = utils
+
+function ShareableUrlGenerator() {
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  
+  const generateShareableUrl = () => {
+    const currentUrl = new URL(window.location.href)
+    const cleanUrl = getCleanUrl(currentUrl)
+    
+    // Add sharing metadata while keeping URL clean
+    cleanUrl.searchParams.set('shared', 'true')
+    cleanUrl.searchParams.set('timestamp', Date.now().toString())
+    
+    setShareUrl(cleanUrl.toString())
+  }
+  
+  const copyToClipboard = async () => {
+    if (!shareUrl) return
+    
+    await navigator.clipboard.writeText(shareUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  
+  const shareViaApi = async () => {
+    if (!shareUrl) return
+    
+    try {
+      await navigator.share({
+        title: 'Check out this app',
+        text: 'I found this interesting application',
+        url: shareUrl
+      })
+    } catch (err) {
+      // Fallback to clipboard
+      copyToClipboard()
+    }
+  }
+  
+  return (
+    <div className="shareable-url-generator">
+      <h3>Share This Page</h3>
+      <p>Generate a clean, shareable URL without session data</p>
+      
+      <button onClick={generateShareableUrl} className="generate-btn">
+        Generate Shareable URL
+      </button>
+      
+      {shareUrl && (
+        <div className="share-options">
+          <div className="url-display">
+            <input
+              type="text"
+              value={shareUrl}
+              readOnly
+              onClick={(e) => e.currentTarget.select()}
+            />
+          </div>
+          
+          <div className="share-actions">
+            <button onClick={copyToClipboard} className="copy-btn">
+              {copied ? '✅ Copied!' : '📋 Copy'}
+            </button>
+            <button onClick={shareViaApi} className="share-btn">
+              📤 Share
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Router Integration
+
+Integrate with React Router for clean navigation:
+
+```tsx
+import { utils } from 'react-together'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { useEffect, useCallback } from 'react'
+
+const { getCleanUrl } = utils
+
+function useCleanNavigation() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  
+  const navigateClean = useCallback((path: string) => {
+    const targetUrl = new URL(path, window.location.origin)
+    const cleanUrl = getCleanUrl(targetUrl)
+    
+    // Navigate to clean URL
+    navigate(cleanUrl.pathname + cleanUrl.search)
+  }, [navigate])
+  
+  const cleanCurrentUrl = useCallback(() => {
+    const currentUrl = new URL(window.location.href)
+    const cleanUrl = getCleanUrl(currentUrl)
+    
+    // Replace current URL with clean version
+    navigate(cleanUrl.pathname + cleanUrl.search, { replace: true })
+  }, [navigate])
+  
+  return { navigateClean, cleanCurrentUrl }
+}
+
+function NavigationComponent() {
+  const { navigateClean, cleanCurrentUrl } = useCleanNavigation()
+  
+  return (
+    <nav className="clean-navigation">
+      <button onClick={() => navigateClean('/home')}>
+        Home
+      </button>
+      <button onClick={() => navigateClean('/about')}>
+        About
+      </button>
+      <button onClick={() => navigateClean('/contact')}>
+        Contact
+      </button>
+      <button onClick={cleanCurrentUrl}>
+        Clean Current URL
+      </button>
+    </nav>
+  )
+}
+```
+
+### URL Sanitizer for Analytics
+
+Clean URLs before sending to analytics:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getCleanUrl } = utils
+
+interface AnalyticsEvent {
+  event: string
+  url: string
+  timestamp: number
+  sessionData?: boolean
+}
+
+function trackPageView(eventData: Partial<AnalyticsEvent> = {}) {
+  const currentUrl = new URL(window.location.href)
+  
+  // Check if URL contains session data
+  const hasSessionData = currentUrl.searchParams.has('rtName') || 
+                        currentUrl.hash.includes('rtPwd=')
+  
+  // Clean URL for analytics (remove session params)
+  const cleanUrl = getCleanUrl(currentUrl)
+  
+  const analyticsEvent: AnalyticsEvent = {
+    event: 'page_view',
+    url: cleanUrl.toString(),
+    timestamp: Date.now(),
+    sessionData: hasSessionData,
+    ...eventData
+  }
+  
+  // Send to analytics service
+  console.log('Analytics event:', analyticsEvent)
+  
+  // Example with Google Analytics
+  if (typeof gtag !== 'undefined') {
+    gtag('config', 'GA_MEASUREMENT_ID', {
+      page_title: document.title,
+      page_location: analyticsEvent.url
+    })
+  }
+  
+  return analyticsEvent
+}
+
+function AnalyticsTracker() {
+  useEffect(() => {
+    // Track page view with clean URL
+    trackPageView()
+    
+    // Track URL changes
+    const handleUrlChange = () => {
+      trackPageView({ event: 'url_change' })
+    }
+    
+    window.addEventListener('popstate', handleUrlChange)
+    
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange)
+    }
+  }, [])
+  
+  return null // This is a utility component
+}
+```
+
+### Bookmark Manager
+
+Create clean URLs for bookmarking:
+
+```tsx
+import { utils } from 'react-together'
+import { useState, useEffect } from 'react'
+
+const { getCleanUrl } = utils
+
+interface Bookmark {
+  id: string
+  title: string
+  url: string
+  createdAt: Date
+  tags: string[]
+}
+
+function BookmarkManager() {
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
+  const [bookmarkTitle, setBookmarkTitle] = useState('')
+  const [bookmarkTags, setBookmarkTags] = useState('')
+  
+  useEffect(() => {
+    // Load bookmarks from localStorage
+    const savedBookmarks = localStorage.getItem('app-bookmarks')
+    if (savedBookmarks) {
+      setBookmarks(JSON.parse(savedBookmarks))
+    }
+  }, [])
+  
+  const saveBookmarks = (newBookmarks: Bookmark[]) => {
+    setBookmarks(newBookmarks)
+    localStorage.setItem('app-bookmarks', JSON.stringify(newBookmarks))
+  }
+  
+  const addBookmark = () => {
+    if (!bookmarkTitle) return
+    
+    const currentUrl = new URL(window.location.href)
+    const cleanUrl = getCleanUrl(currentUrl)
+    
+    const newBookmark: Bookmark = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: bookmarkTitle,
+      url: cleanUrl.toString(),
+      createdAt: new Date(),
+      tags: bookmarkTags.split(',').map(tag => tag.trim()).filter(Boolean)
+    }
+    
+    saveBookmarks([...bookmarks, newBookmark])
+    setBookmarkTitle('')
+    setBookmarkTags('')
+  }
+  
+  const removeBookmark = (bookmarkId: string) => {
+    saveBookmarks(bookmarks.filter(b => b.id !== bookmarkId))
+  }
+  
+  const navigateToBookmark = (bookmark: Bookmark) => {
+    window.location.href = bookmark.url
+  }
+  
+  return (
+    <div className="bookmark-manager">
+      <div className="add-bookmark">
+        <h3>Add Bookmark</h3>
+        <input
+          type="text"
+          placeholder="Bookmark title"
+          value={bookmarkTitle}
+          onChange={(e) => setBookmarkTitle(e.target.value)}
+        />
+        <input
+          type="text"
+          placeholder="Tags (comma separated)"
+          value={bookmarkTags}
+          onChange={(e) => setBookmarkTags(e.target.value)}
+        />
+        <button onClick={addBookmark}>
+          Bookmark This Page
+        </button>
+      </div>
+      
+      <div className="bookmark-list">
+        <h3>Saved Bookmarks ({bookmarks.length})</h3>
+        {bookmarks.map(bookmark => (
+          <div key={bookmark.id} className="bookmark-item">
+            <div className="bookmark-info">
+              <h4>{bookmark.title}</h4>
+              <p className="bookmark-url">{bookmark.url}</p>
+              <div className="bookmark-meta">
+                <span className="created">
+                  {bookmark.createdAt.toLocaleDateString()}
+                </span>
+                {bookmark.tags.length > 0 && (
+                  <div className="tags">
+                    {bookmark.tags.map(tag => (
+                      <span key={tag} className="tag">{tag}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="bookmark-actions">
+              <button
+                onClick={() => navigateToBookmark(bookmark)}
+                className="visit-btn"
+              >
+                Visit
+              </button>
+              <button
+                onClick={() => removeBookmark(bookmark.id)}
+                className="remove-btn"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+### Privacy Protection
+
+Remove sensitive parameters for privacy:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getCleanUrl } = utils
+
+function privacyProtectedShare() {
+  const currentUrl = new URL(window.location.href)
+  
+  // Remove all potentially sensitive parameters
+  const cleanUrl = getCleanUrl(currentUrl)
+  
+  // Also remove other sensitive parameters
+  const sensitiveParams = ['userId', 'token', 'auth', 'secret', 'key']
+  sensitiveParams.forEach(param => {
+    cleanUrl.searchParams.delete(param)
+  })
+  
+  // Remove hash entirely if it might contain sensitive data
+  cleanUrl.hash = ''
+  
+  return cleanUrl.toString()
+}
+
+function PrivacyAwareSharing() {
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  
+  const generatePrivacySafeUrl = () => {
+    const safeUrl = privacyProtectedShare()
+    setShareUrl(safeUrl)
+  }
+  
+  return (
+    <div className="privacy-aware-sharing">
+      <h3>🔒 Privacy-Safe Sharing</h3>
+      <p>Generate a URL with all sensitive parameters removed</p>
+      
+      <button onClick={generatePrivacySafeUrl}>
+        Generate Safe URL
+      </button>
+      
+      {shareUrl && (
+        <div className="safe-url-display">
+          <h4>Privacy-Protected URL:</h4>
+          <input
+            type="text"
+            value={shareUrl}
+            readOnly
+            onClick={(e) => e.currentTarget.select()}
+          />
+          <button onClick={() => navigator.clipboard.writeText(shareUrl)}>
+            Copy Safe URL
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Automatic URL Cleanup
+
+Automatically clean URLs based on application state:
+
+```tsx
+import { utils } from 'react-together'
+import { useIsTogether } from 'react-together'
+import { useEffect, useRef } from 'react'
+
+const { getCleanUrl } = utils
+
+function AutoUrlCleaner() {
+  const isTogether = useIsTogether()
+  const wasTogetherRef = useRef(isTogether)
+  
+  useEffect(() => {
+    // Clean URL when leaving a session
+    if (wasTogetherRef.current && !isTogether) {
+      const currentUrl = new URL(window.location.href)
+      const cleanUrl = getCleanUrl(currentUrl)
+      
+      // Replace URL if it was cleaned
+      if (cleanUrl.toString() !== currentUrl.toString()) {
+        window.history.replaceState(
+          { autoCleanedUrl: true },
+          document.title,
+          cleanUrl.toString()
+        )
+      }
+    }
+    
+    wasTogetherRef.current = isTogether
+  }, [isTogether])
+  
+  useEffect(() => {
+    // Clean URL on page unload (session cleanup)
+    const handleBeforeUnload = () => {
+      const currentUrl = new URL(window.location.href)
+      const cleanUrl = getCleanUrl(currentUrl)
+      
+      // Store clean URL for next visit
+      localStorage.setItem('lastCleanUrl', cleanUrl.toString())
+    }
+    
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [])
+  
+  return null // This is a utility component
+}
+```
+
+## URL Structure
+
+The function removes parameters following this pattern:
+
+**Before cleaning:**
+```
+https://example.com/path?rtName=session&other=value#rtPwd=password&fragment=data
+```
+
+**After cleaning:**
+```
+https://example.com/path?other=value#fragment=data
+```
+
+- **Query Parameters**: Specified session name parameter is removed
+- **Hash Parameters**: Specified session password parameter is removed  
+- **Other Parameters**: All other query and hash parameters are preserved
+
+## Best Practices
+
+### Session Cleanup
+
+```tsx
+// ✅ Good - Clean URL when leaving sessions
+const cleanUrl = getCleanUrl(currentUrl)
+window.history.replaceState({}, '', cleanUrl.toString())
+
+// ❌ Bad - Leaving session parameters in URL
+// URLs with session data can be accidentally shared
+```
+
+### Privacy Protection
+
+```tsx
+// ✅ Good - Remove sensitive data before sharing
+const cleanUrl = getCleanUrl(url)
+const shareUrl = cleanUrl.toString()
+
+// ✅ Good - Additional privacy cleaning
+cleanUrl.searchParams.delete('userId')
+cleanUrl.searchParams.delete('token')
+```
+
+### Browser History
+
+```tsx
+// ✅ Good - Use replaceState for cleanup
+window.history.replaceState({}, '', cleanUrl.toString())
+
+// ✅ Good - Use pushState for navigation
+window.history.pushState({}, '', cleanUrl.toString())
+```
+
+## Common Use Cases
+
+- **Session Cleanup**: Remove session parameters when users leave
+- **URL Sharing**: Create clean URLs for public sharing
+- **Analytics**: Send clean URLs to analytics services
+- **Bookmarking**: Save clean URLs for future access
+- **Navigation**: Maintain clean URL structure in application
+
+## Related Utilities
+
+- [`getJoinUrl`](/docs/react-together/utilities/get-join-url) - Create URLs with session parameters
+- [`getSessionNameFromUrl`](/docs/react-together/utilities/get-session-name-from-url) - Extract session names
+- [`getSessionPasswordFromUrl`](/docs/react-together/utilities/get-session-password-from-url) - Extract passwords
+
+## Related Hooks
+
+- [`useLeaveSession`](/docs/react-together/hooks/use-leave-session) - Uses `getCleanUrl` internally
+- [`useIsTogether`](/docs/react-together/hooks/use-is-together) - Check session status for conditional cleaning
+
+## TypeScript Support
+
+The function is fully typed for better development experience:
+
+```tsx
+import { utils } from 'react-together'
+
+const { getCleanUrl } = utils
+
+// TypeScript will enforce correct parameter types
+const cleanUrl: URL = getCleanUrl(
+  new URL('https://app.com?rtName=session#rtPwd=password'),
+  { nameKey: 'sessionId', passwordKey: 'token' }
+)
+``` 

@@ -1,0 +1,749 @@
+---
+title: "ConnectedUsers"
+description: "Display connected users with customizable avatars and user information. Shows who's currently active in your collaborative session."
+---
+
+## Overview
+
+The `ConnectedUsers` component displays a visual representation of all users currently connected to your collaboration session. It shows user avatars in an attractive group layout with automatic overflow handling, making it perfect for headers, sidebars, or any area where you want to show team presence.
+
+<Info>
+**Perfect for**: Application headers, team dashboards, collaboration toolbars, user presence indicators, and any interface where showing connected users improves the collaborative experience.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { ConnectedUsers } from 'react-together'
+
+function AppHeader() {
+  return (
+    <header className="app-header">
+      <h1>My Collaborative App</h1>
+      <div className="user-presence">
+        <ConnectedUsers maxAvatars={5} />
+      </div>
+    </header>
+  )
+}
+```
+
+## Props
+
+<ParamField path="maxAvatars" type="number" default="3">
+  Maximum number of user avatars to display before showing a "+N" indicator
+</ParamField>
+
+<ParamField path="debug" type="boolean" default="false">
+  Enable debug mode to show additional user information (development only)
+</ParamField>
+
+## Examples
+
+### Header Integration
+
+Display connected users in your application header:
+
+```tsx
+import { ConnectedUsers, useIsTogether } from 'react-together'
+
+function ApplicationHeader() {
+  const isTogether = useIsTogether()
+  
+  return (
+    <header className="app-header">
+      <div className="header-left">
+        <h1>Team Workspace</h1>
+        <div className="breadcrumb">
+          <span>Project</span>
+          <span>•</span>
+          <span>Document</span>
+        </div>
+      </div>
+      
+      <div className="header-right">
+        <div className="collaboration-status">
+          {isTogether ? (
+            <div className="connected-section">
+              <span className="status-text">👥 Collaborating</span>
+              <ConnectedUsers maxAvatars={4} />
+            </div>
+          ) : (
+            <div className="disconnected-section">
+              <span className="status-text">🔴 Offline</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="header-actions">
+          <button className="header-btn">Save</button>
+          <button className="header-btn">Share</button>
+        </div>
+      </div>
+    </header>
+  )
+}
+```
+
+### Sidebar User Panel
+
+Create a detailed user panel with ConnectedUsers:
+
+```tsx
+import { ConnectedUsers, useConnectedUsers } from 'react-together'
+
+function UserSidebar() {
+  const allUsers = useConnectedUsers()
+  
+  return (
+    <div className="user-sidebar">
+      <div className="sidebar-header">
+        <h3>Team Members</h3>
+        <div className="user-count">
+          {allUsers.length} online
+        </div>
+      </div>
+      
+      <div className="user-avatars">
+        <ConnectedUsers maxAvatars={6} />
+      </div>
+      
+      <div className="user-list">
+        <h4>All Members</h4>
+        <div className="user-details">
+          {allUsers.map(user => (
+            <div key={user.userId} className="user-item">
+              <div className="user-avatar-small">
+                {user.nickname ? user.nickname[0].toUpperCase() : '?'}
+              </div>
+              <div className="user-info">
+                <span className="user-name">
+                  {user.nickname || `User ${user.userId.slice(0, 8)}`}
+                </span>
+                <span className="user-status">
+                  🟢 Active
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Dashboard Overview
+
+Use ConnectedUsers in a dashboard overview:
+
+```tsx
+import { ConnectedUsers, useConnectedUsers, useIsTogether } from 'react-together'
+
+function Dashboard() {
+  const connectedUsers = useConnectedUsers()
+  const isTogether = useIsTogether()
+  
+  return (
+    <div className="dashboard">
+      <div className="dashboard-header">
+        <h1>Project Dashboard</h1>
+        <div className="dashboard-stats">
+          <div className="stat-card">
+            <div className="stat-value">{connectedUsers.length}</div>
+            <div className="stat-label">Active Users</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">{isTogether ? '✅' : '❌'}</div>
+            <div className="stat-label">Connected</div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="dashboard-content">
+        <div className="content-section">
+          <div className="section-header">
+            <h2>Current Session</h2>
+            <div className="session-users">
+              <ConnectedUsers maxAvatars={8} />
+            </div>
+          </div>
+          
+          <div className="session-activity">
+            <h3>Recent Activity</h3>
+            <div className="activity-list">
+              <div className="activity-item">
+                <span className="activity-time">2 min ago</span>
+                <span className="activity-text">User joined the session</span>
+              </div>
+              <div className="activity-item">
+                <span className="activity-time">5 min ago</span>
+                <span className="activity-text">Document was updated</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="content-section">
+          <h2>Workspace</h2>
+          <div className="workspace-content">
+            <p>Collaborative workspace content...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Floating User Indicator
+
+Create a floating user presence indicator:
+
+```tsx
+import { ConnectedUsers, useConnectedUsers } from 'react-together'
+import { useState } from 'react'
+
+function FloatingUserIndicator() {
+  const connectedUsers = useConnectedUsers()
+  const [isExpanded, setIsExpanded] = useState(false)
+  
+  return (
+    <div className="floating-user-indicator">
+      <div 
+        className="indicator-trigger"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <ConnectedUsers maxAvatars={3} />
+        <span className="user-count-badge">
+          {connectedUsers.length}
+        </span>
+      </div>
+      
+      {isExpanded && (
+        <div className="indicator-popup">
+          <div className="popup-header">
+            <h4>Connected Users</h4>
+            <button onClick={() => setIsExpanded(false)}>
+              ×
+            </button>
+          </div>
+          
+          <div className="popup-content">
+            <div className="user-grid">
+              {connectedUsers.map(user => (
+                <div key={user.userId} className="user-card">
+                  <div className="user-avatar">
+                    {user.nickname ? user.nickname[0].toUpperCase() : '?'}
+                  </div>
+                  <div className="user-details">
+                    <div className="user-name">
+                      {user.nickname || `User ${user.userId.slice(0, 8)}`}
+                    </div>
+                    <div className="user-status">
+                      🟢 Online
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Team Collaboration Toolbar
+
+Integrate ConnectedUsers into a collaboration toolbar:
+
+```tsx
+import { ConnectedUsers, useConnectedUsers, useIsTogether } from 'react-together'
+
+function CollaborationToolbar() {
+  const connectedUsers = useConnectedUsers()
+  const isTogether = useIsTogether()
+  
+  return (
+    <div className="collaboration-toolbar">
+      <div className="toolbar-section">
+        <h3>Real-time Collaboration</h3>
+        <div className="collaboration-status">
+          {isTogether ? (
+            <div className="status-active">
+              <span className="status-indicator">🟢</span>
+              <span className="status-text">Live Session</span>
+            </div>
+          ) : (
+            <div className="status-inactive">
+              <span className="status-indicator">🔴</span>
+              <span className="status-text">Offline</span>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <div className="toolbar-section">
+        <div className="users-section">
+          <div className="users-header">
+            <span className="users-label">Team ({connectedUsers.length})</span>
+          </div>
+          <div className="users-display">
+            <ConnectedUsers maxAvatars={5} />
+          </div>
+        </div>
+      </div>
+      
+      <div className="toolbar-section">
+        <div className="toolbar-actions">
+          <button className="toolbar-btn">
+            📝 Comments
+          </button>
+          <button className="toolbar-btn">
+            🔗 Share
+          </button>
+          <button className="toolbar-btn">
+            💬 Chat
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Game Lobby Players
+
+Show players in a game lobby:
+
+```tsx
+import { ConnectedUsers, useConnectedUsers, useStateTogether } from 'react-together'
+
+function GameLobby() {
+  const connectedUsers = useConnectedUsers()
+  const [gameState, setGameState] = useStateTogether('game', {
+    maxPlayers: 4,
+    gameStarted: false
+  })
+  
+  const canStartGame = connectedUsers.length >= 2 && connectedUsers.length <= gameState.maxPlayers
+  
+  return (
+    <div className="game-lobby">
+      <div className="lobby-header">
+        <h1>🎮 Game Lobby</h1>
+        <div className="lobby-status">
+          <div className="player-count">
+            {connectedUsers.length} / {gameState.maxPlayers} players
+          </div>
+          <div className="lobby-state">
+            {gameState.gameStarted ? '🎯 In Game' : '⏳ Waiting'}
+          </div>
+        </div>
+      </div>
+      
+      <div className="lobby-content">
+        <div className="players-section">
+          <h2>Players</h2>
+          <div className="players-display">
+            <ConnectedUsers maxAvatars={gameState.maxPlayers} />
+          </div>
+          
+          <div className="player-slots">
+            {Array.from({ length: gameState.maxPlayers }).map((_, index) => {
+              const user = connectedUsers[index]
+              return (
+                <div 
+                  key={index}
+                  className={`player-slot ${user ? 'occupied' : 'empty'}`}
+                >
+                  {user ? (
+                    <div className="player-info">
+                      <div className="player-avatar">
+                        {user.nickname ? user.nickname[0].toUpperCase() : '?'}
+                      </div>
+                      <span className="player-name">
+                        {user.nickname || `Player ${user.userId.slice(0, 6)}`}
+                      </span>
+                      <span className="player-status">🟢 Ready</span>
+                    </div>
+                  ) : (
+                    <div className="empty-slot">
+                      <div className="empty-avatar">?</div>
+                      <span className="empty-text">Waiting for player...</span>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        
+        <div className="lobby-controls">
+          <button
+            onClick={() => setGameState(prev => ({ ...prev, gameStarted: true }))}
+            disabled={!canStartGame}
+            className="start-game-btn"
+          >
+            {canStartGame ? 'Start Game' : 'Need 2-4 players'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Meeting Room Interface
+
+Display meeting participants:
+
+```tsx
+import { ConnectedUsers, useConnectedUsers } from 'react-together'
+import { useState } from 'react'
+
+function MeetingRoom() {
+  const connectedUsers = useConnectedUsers()
+  const [isMuted, setIsMuted] = useState(false)
+  const [isVideoOn, setIsVideoOn] = useState(true)
+  
+  return (
+    <div className="meeting-room">
+      <div className="meeting-header">
+        <h1>📹 Team Meeting</h1>
+        <div className="meeting-info">
+          <span className="meeting-time">
+            Started 15 minutes ago
+          </span>
+          <span className="participant-count">
+            {connectedUsers.length} participants
+          </span>
+        </div>
+      </div>
+      
+      <div className="meeting-content">
+        <div className="video-grid">
+          <div className="main-video">
+            <div className="video-placeholder">
+              <h3>Main Screen</h3>
+              <p>Screen sharing or presentation view</p>
+            </div>
+          </div>
+          
+          <div className="participant-videos">
+            {connectedUsers.slice(0, 6).map(user => (
+              <div key={user.userId} className="participant-video">
+                <div className="video-placeholder">
+                  <div className="participant-avatar">
+                    {user.nickname ? user.nickname[0].toUpperCase() : '?'}
+                  </div>
+                  <span className="participant-name">
+                    {user.nickname || `User ${user.userId.slice(0, 6)}`}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <div className="meeting-controls">
+        <div className="controls-left">
+          <button
+            onClick={() => setIsMuted(!isMuted)}
+            className={`control-btn ${isMuted ? 'muted' : ''}`}
+          >
+            {isMuted ? '🔇' : '🎤'}
+          </button>
+          <button
+            onClick={() => setIsVideoOn(!isVideoOn)}
+            className={`control-btn ${!isVideoOn ? 'video-off' : ''}`}
+          >
+            {isVideoOn ? '📹' : '📵'}
+          </button>
+        </div>
+        
+        <div className="controls-center">
+          <div className="participants-indicator">
+            <ConnectedUsers maxAvatars={6} />
+          </div>
+        </div>
+        
+        <div className="controls-right">
+          <button className="control-btn">
+            💬 Chat
+          </button>
+          <button className="control-btn">
+            🔗 Share
+          </button>
+          <button className="control-btn end-call">
+            📞 End Call
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+### Responsive User Display
+
+Adaptive user display for different screen sizes:
+
+```tsx
+import { ConnectedUsers, useConnectedUsers } from 'react-together'
+import { useState, useEffect } from 'react'
+
+function ResponsiveUserDisplay() {
+  const connectedUsers = useConnectedUsers()
+  const [screenSize, setScreenSize] = useState<'small' | 'medium' | 'large'>('large')
+  
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth
+      if (width < 768) {
+        setScreenSize('small')
+      } else if (width < 1024) {
+        setScreenSize('medium')
+      } else {
+        setScreenSize('large')
+      }
+    }
+    
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+  
+  const getMaxAvatars = () => {
+    switch (screenSize) {
+      case 'small': return 2
+      case 'medium': return 4
+      case 'large': return 6
+      default: return 3
+    }
+  }
+  
+  return (
+    <div className="responsive-user-display">
+      <div className="user-section">
+        <h3>
+          {screenSize === 'small' ? 'Team' : 'Team Members'}
+        </h3>
+        
+        <div className="user-display">
+          <ConnectedUsers maxAvatars={getMaxAvatars()} />
+        </div>
+        
+        {screenSize !== 'small' && (
+          <div className="user-details">
+            <span className="user-count">
+              {connectedUsers.length} member{connectedUsers.length !== 1 ? 's' : ''} online
+            </span>
+          </div>
+        )}
+      </div>
+      
+      {screenSize === 'large' && (
+        <div className="detailed-user-list">
+          <h4>All Members</h4>
+          <div className="user-list">
+            {connectedUsers.map(user => (
+              <div key={user.userId} className="user-item">
+                <div className="user-avatar-small">
+                  {user.nickname ? user.nickname[0].toUpperCase() : '?'}
+                </div>
+                <span className="user-name">
+                  {user.nickname || `User ${user.userId.slice(0, 8)}`}
+                </span>
+                <span className="user-status">🟢</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Debug Mode
+
+Use debug mode during development:
+
+```tsx
+import { ConnectedUsers } from 'react-together'
+
+function DebugUserDisplay() {
+  return (
+    <div className="debug-container">
+      <h2>Debug Mode - User Display</h2>
+      <div className="debug-section">
+        <h3>Normal Display</h3>
+        <ConnectedUsers maxAvatars={4} />
+      </div>
+      
+      <div className="debug-section">
+        <h3>Debug Mode (Development Only)</h3>
+        <ConnectedUsers maxAvatars={4} debug={true} />
+      </div>
+    </div>
+  )
+}
+```
+
+## Built-in Styling
+
+The ConnectedUsers component uses PrimeReact's AvatarGroup with these default styles:
+
+```css
+/* Avatar group container */
+.p-avatar-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Individual avatars */
+.p-avatar {
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* Overflow indicator */
+.p-avatar.overflow {
+  background-color: #6b7280;
+}
+```
+
+## Customization
+
+You can customize the appearance with CSS:
+
+```css
+/* Custom avatar colors */
+.p-avatar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Custom avatar sizes */
+.p-avatar.custom-size {
+  width: 48px;
+  height: 48px;
+  font-size: 16px;
+}
+
+/* Custom group spacing */
+.p-avatar-group.custom-spacing {
+  gap: 5px;
+}
+
+/* Custom overflow indicator */
+.p-avatar.overflow {
+  background-color: #f59e0b;
+  color: white;
+}
+```
+
+## Best Practices
+
+### Performance
+
+```tsx
+// ✅ Good - Reasonable max avatars
+<ConnectedUsers maxAvatars={6} />
+
+// ❌ Bad - Too many avatars can clutter UI
+<ConnectedUsers maxAvatars={20} />
+```
+
+### User Experience
+
+```tsx
+// ✅ Good - Clear context
+<div className="team-section">
+  <h3>Team Members</h3>
+  <ConnectedUsers maxAvatars={5} />
+</div>
+
+// ✅ Good - Show user count
+<div className="user-info">
+  <ConnectedUsers maxAvatars={4} />
+  <span>{connectedUsers.length} online</span>
+</div>
+```
+
+### Accessibility
+
+```tsx
+// ✅ Good - Descriptive labels
+<div className="user-presence" aria-label="Connected team members">
+  <ConnectedUsers maxAvatars={5} />
+</div>
+```
+
+### Mobile Optimization
+
+```tsx
+// ✅ Good - Responsive avatar count
+const maxAvatars = isMobile ? 3 : 6
+<ConnectedUsers maxAvatars={maxAvatars} />
+```
+
+## Common Patterns
+
+- **Header Integration**: Show team presence in application headers
+- **Sidebar Display**: Detailed user panels with additional information
+- **Floating Indicators**: Expandable user presence indicators
+- **Gaming Lobbies**: Player display in multiplayer games
+- **Meeting Interfaces**: Participant display in virtual meetings
+- **Dashboard Cards**: Team overview in admin dashboards
+
+## Related Components
+
+- [`SessionManager`](/docs/react-together/components/session-manager) - Manage collaboration sessions
+- [`Chat`](/docs/react-together/components/chat) - Real-time team communication
+- [`HoverHighlighter`](/docs/react-together/components/hover-highlighter) - Show user interactions
+
+## Related Hooks
+
+- [`useConnectedUsers`](/docs/react-together/hooks/use-connected-users) - The underlying hook powering ConnectedUsers
+- [`useMyId`](/docs/react-together/hooks/use-my-id) - Identify current user
+- [`useNicknames`](/docs/react-together/hooks/use-nicknames) - Manage user display names
+
+## Dependencies
+
+The ConnectedUsers component depends on:
+
+- **PrimeReact**: Avatar and AvatarGroup components
+- **React Together**: User data and state management
+
+## TypeScript Support
+
+The ConnectedUsers component is fully typed:
+
+```tsx
+import { ConnectedUsers } from 'react-together'
+
+interface UserDisplayProps {
+  maxUsers?: number
+  showDebug?: boolean
+}
+
+function UserDisplay({ maxUsers = 4, showDebug = false }: UserDisplayProps) {
+  return (
+    <ConnectedUsers
+      maxAvatars={maxUsers}
+      debug={showDebug}
+    />
+  )
+}

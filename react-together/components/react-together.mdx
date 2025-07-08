@@ -1,0 +1,610 @@
+---
+title: "ReactTogether"
+description: "The main context provider component that enables real-time collaboration features in your React application."
+---
+
+## Overview
+
+`ReactTogether` is the core context provider component that wraps your entire application (or specific parts) to enable real-time collaboration features. It establishes the connection to the Multisynq infrastructure and provides the context needed for all React Together hooks and components to function.
+
+<Info>
+**This component is required** - All React Together functionality depends on being wrapped by the `ReactTogether` component.
+</Info>
+
+## Basic Usage
+
+```tsx
+import { ReactTogether } from 'react-together'
+import App from './App'
+
+function Root() {
+  return (
+    <ReactTogether
+      sessionParams={{
+        apiKey: "your_api_key_here",
+        appId: "com.example.myapp",
+        name: "my-session",
+        password: "optional-password"
+      }}
+    >
+      <App />
+    </ReactTogether>
+  )
+}
+```
+
+## Props
+
+<ParamField path="sessionParams" type="ReactTogetherSessionParams" required>
+  Configuration object for the collaboration session
+</ParamField>
+
+<ParamField path="children" type="React.ReactNode" required>
+  Your application components that will have access to React Together features
+</ParamField>
+
+<ParamField path="sessionIgnoresUrl" type="boolean" default="false">
+  Whether sessions should ignore the URL when determining session uniqueness
+</ParamField>
+
+<ParamField path="userId" type="string">
+  Custom user ID for the current user. If not provided, a random ID will be generated
+</ParamField>
+
+<ParamField path="deriveNickname" type="(userId: string) => string">
+  Function to generate user nicknames from user IDs. Defaults to extracting from ID
+</ParamField>
+
+<ParamField path="rememberUsers" type="boolean" default="false">
+  Whether to remember user IDs in localStorage for consistent identity across sessions
+</ParamField>
+
+### SessionParams
+
+<ParamField path="sessionParams.apiKey" type="string" required>
+  Your Multisynq API key for authentication
+</ParamField>
+
+<ParamField path="sessionParams.appId" type="string" required>
+  Unique identifier for your application
+</ParamField>
+
+<ParamField path="sessionParams.name" type="string">
+  Name of the collaboration session. Can be overridden by URL parameters
+</ParamField>
+
+<ParamField path="sessionParams.password" type="string">
+  Password for the session. Can be overridden by URL parameters
+</ParamField>
+
+<ParamField path="sessionParams.model" type="typeof ReactTogetherModel">
+  Custom Croquet model class. Advanced use case for extending functionality
+</ParamField>
+
+<ParamField path="sessionParams.viewData" type="any">
+  Additional data to pass to the view initialization
+</ParamField>
+
+## Examples
+
+### Basic App Setup
+
+The most common way to use ReactTogether is to wrap your entire app:
+
+```tsx
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { ReactTogether } from 'react-together'
+import App from './App'
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <ReactTogether
+    sessionParams={{
+      apiKey: process.env.REACT_APP_MULTISYNQ_API_KEY!,
+      appId: "com.example.collaborative-editor",
+      name: "main-session",
+      password: "secure-password"
+    }}
+  >
+    <App />
+  </ReactTogether>
+)
+```
+
+### URL-Based Session Parameters
+
+Allow users to join sessions via URL parameters:
+
+```tsx
+import { ReactTogether } from 'react-together'
+import { useEffect, useState } from 'react'
+import App from './App'
+
+function CollaborativeApp() {
+  const [sessionConfig, setSessionConfig] = useState({
+    name: 'default-session',
+    password: 'default-password'
+  })
+  
+  useEffect(() => {
+    // ReactTogether automatically reads rtName and rtPwd from URL
+    // This is just for demonstration of manual parameter handling
+    const urlParams = new URLSearchParams(window.location.search)
+    const urlName = urlParams.get('rtName')
+    const urlPassword = urlParams.get('rtPwd')
+    
+    if (urlName && urlPassword) {
+      setSessionConfig({
+        name: urlName,
+        password: urlPassword
+      })
+    }
+  }, [])
+  
+  return (
+    <ReactTogether
+      sessionParams={{
+        apiKey: "your_api_key_here",
+        appId: "com.example.myapp",
+        name: sessionConfig.name,
+        password: sessionConfig.password
+      }}
+    >
+      <App />
+    </ReactTogether>
+  )
+}
+```
+
+### Custom User Management
+
+Implement custom user identification and nickname generation:
+
+```tsx
+import { ReactTogether } from 'react-together'
+import App from './App'
+
+// Custom nickname generation based on user ID
+const generateNickname = (userId: string): string => {
+  const adjectives = ['Creative', 'Brilliant', 'Focused', 'Innovative', 'Dynamic']
+  const animals = ['Tiger', 'Eagle', 'Dolphin', 'Lion', 'Phoenix']
+  
+  // Use user ID to seed consistent nickname generation
+  const adjIndex = parseInt(userId.slice(0, 2), 16) % adjectives.length
+  const animalIndex = parseInt(userId.slice(2, 4), 16) % animals.length
+  
+  return `${adjectives[adjIndex]} ${animals[animalIndex]}`
+}
+
+function PersonalizedApp() {
+  // Generate or retrieve persistent user ID
+  const getUserId = () => {
+    let userId = localStorage.getItem('myapp-user-id')
+    if (!userId) {
+      userId = `user_${Date.now()}_${Math.random().toString(36).substring(2)}`
+      localStorage.setItem('myapp-user-id', userId)
+    }
+    return userId
+  }
+  
+  return (
+    <ReactTogether
+      sessionParams={{
+        apiKey: "your_api_key_here",
+        appId: "com.example.myapp",
+        name: "personalized-session",
+        password: "team-password"
+      }}
+      userId={getUserId()}
+      deriveNickname={generateNickname}
+      rememberUsers={true}
+    >
+      <App />
+    </ReactTogether>
+  )
+}
+```
+
+### Multi-Room Application
+
+Create different collaboration rooms within the same app:
+
+```tsx
+import { ReactTogether } from 'react-together'
+import { useState } from 'react'
+import RoomSelector from './RoomSelector'
+import CollaborativeWorkspace from './CollaborativeWorkspace'
+
+function MultiRoomApp() {
+  const [currentRoom, setCurrentRoom] = useState<{
+    name: string
+    password: string
+  } | null>(null)
+  
+  if (!currentRoom) {
+    return <RoomSelector onRoomSelect={setCurrentRoom} />
+  }
+  
+  return (
+    <ReactTogether
+      sessionParams={{
+        apiKey: "your_api_key_here",
+        appId: "com.example.multi-room",
+        name: currentRoom.name,
+        password: currentRoom.password
+      }}
+      // Ignore URL to allow multiple rooms in same domain
+      sessionIgnoresUrl={true}
+    >
+      <div className="room-header">
+        <h2>Room: {currentRoom.name}</h2>
+        <button onClick={() => setCurrentRoom(null)}>
+          Leave Room
+        </button>
+      </div>
+      <CollaborativeWorkspace />
+    </ReactTogether>
+  )
+}
+
+function RoomSelector({ onRoomSelect }: { 
+  onRoomSelect: (room: { name: string; password: string }) => void 
+}) {
+  const predefinedRooms = [
+    { name: 'design-team', password: 'design2024', label: 'Design Team' },
+    { name: 'dev-team', password: 'dev2024', label: 'Development Team' },
+    { name: 'public-demo', password: 'demo', label: 'Public Demo' }
+  ]
+  
+  return (
+    <div className="room-selector">
+      <h1>Select a Collaboration Room</h1>
+      <div className="room-grid">
+        {predefinedRooms.map(room => (
+          <button
+            key={room.name}
+            onClick={() => onRoomSelect(room)}
+            className="room-card"
+          >
+            <h3>{room.label}</h3>
+            <p>Room: {room.name}</p>
+          </button>
+        ))}
+      </div>
+      
+      <div className="custom-room">
+        <h3>Create Custom Room</h3>
+        <form onSubmit={(e) => {
+          e.preventDefault()
+          const formData = new FormData(e.currentTarget)
+          onRoomSelect({
+            name: formData.get('roomName') as string,
+            password: formData.get('roomPassword') as string
+          })
+        }}>
+          <input
+            name="roomName"
+            placeholder="Room name"
+            required
+          />
+          <input
+            name="roomPassword"
+            type="password"
+            placeholder="Room password"
+            required
+          />
+          <button type="submit">Create Room</button>
+        </form>
+      </div>
+    </div>
+  )
+}
+```
+
+### Environment-Based Configuration
+
+Configure ReactTogether differently for development, staging, and production:
+
+```tsx
+import { ReactTogether } from 'react-together'
+import App from './App'
+
+interface EnvironmentConfig {
+  apiKey: string
+  appId: string
+  defaultSession: {
+    name: string
+    password: string
+  }
+}
+
+const getEnvironmentConfig = (): EnvironmentConfig => {
+  const env = process.env.NODE_ENV
+  
+  switch (env) {
+    case 'development':
+      return {
+        apiKey: process.env.REACT_APP_DEV_API_KEY!,
+        appId: 'com.example.myapp.dev',
+        defaultSession: {
+          name: 'dev-session',
+          password: 'dev-password'
+        }
+      }
+    case 'staging':
+      return {
+        apiKey: process.env.REACT_APP_STAGING_API_KEY!,
+        appId: 'com.example.myapp.staging',
+        defaultSession: {
+          name: 'staging-session',
+          password: 'staging-password'
+        }
+      }
+    case 'production':
+      return {
+        apiKey: process.env.REACT_APP_PROD_API_KEY!,
+        appId: 'com.example.myapp',
+        defaultSession: {
+          name: 'production-session',
+          password: 'production-password'
+        }
+      }
+    default:
+      throw new Error(`Unknown environment: ${env}`)
+  }
+}
+
+function EnvironmentAwareApp() {
+  const config = getEnvironmentConfig()
+  
+  return (
+    <ReactTogether
+      sessionParams={{
+        apiKey: config.apiKey,
+        appId: config.appId,
+        name: config.defaultSession.name,
+        password: config.defaultSession.password
+      }}
+      // Remember users in production for better UX
+      rememberUsers={process.env.NODE_ENV === 'production'}
+    >
+      <div className="app-container">
+        {process.env.NODE_ENV === 'development' && (
+          <div className="dev-banner">
+            🚧 Development Mode - Session: {config.defaultSession.name}
+          </div>
+        )}
+        <App />
+      </div>
+    </ReactTogether>
+  )
+}
+```
+
+### Conditional Collaboration
+
+Enable collaboration features only when needed:
+
+```tsx
+import { ReactTogether } from 'react-together'
+import { useState } from 'react'
+import App from './App'
+
+function ConditionalCollaborativeApp() {
+  const [collaborationEnabled, setCollaborationEnabled] = useState(false)
+  const [sessionConfig, setSessionConfig] = useState({
+    name: '',
+    password: ''
+  })
+  
+  // Non-collaborative version
+  if (!collaborationEnabled) {
+    return (
+      <div className="solo-app">
+        <div className="collaboration-prompt">
+          <h2>Enable Real-time Collaboration</h2>
+          <p>Work together with others in real-time</p>
+          
+          <form onSubmit={(e) => {
+            e.preventDefault()
+            const formData = new FormData(e.currentTarget)
+            setSessionConfig({
+              name: formData.get('sessionName') as string,
+              password: formData.get('sessionPassword') as string
+            })
+            setCollaborationEnabled(true)
+          }}>
+            <input
+              name="sessionName"
+              placeholder="Session name"
+              required
+            />
+            <input
+              name="sessionPassword"
+              type="password"
+              placeholder="Session password"
+              required
+            />
+            <button type="submit">
+              Start Collaborating
+            </button>
+          </form>
+          
+          <button
+            onClick={() => {
+              setSessionConfig({
+                name: `quick-${Date.now()}`,
+                password: 'quick-session'
+              })
+              setCollaborationEnabled(true)
+            }}
+          >
+            Quick Start (Random Session)
+          </button>
+        </div>
+        
+        {/* Solo version of the app */}
+        <App />
+      </div>
+    )
+  }
+  
+  // Collaborative version
+  return (
+    <ReactTogether
+      sessionParams={{
+        apiKey: "your_api_key_here",
+        appId: "com.example.conditional-collab",
+        name: sessionConfig.name,
+        password: sessionConfig.password
+      }}
+    >
+      <div className="collaborative-app">
+        <div className="session-info">
+          <span>Collaborating in: {sessionConfig.name}</span>
+          <button onClick={() => setCollaborationEnabled(false)}>
+            Work Solo
+          </button>
+        </div>
+        <App />
+      </div>
+    </ReactTogether>
+  )
+}
+```
+
+## URL Parameters
+
+ReactTogether automatically reads session parameters from URL query parameters:
+
+- `rtName` - Session name
+- `rtPwd` - Session password
+
+Example URL: `https://myapp.com/?rtName=team-session&rtPwd=secure123`
+
+When these parameters are present in the URL, they override the `sessionParams.name` and `sessionParams.password` props.
+
+## Session Uniqueness
+
+By default, sessions are scoped to the URL origin and pathname to prevent accidental session sharing between different parts of your application. Set `sessionIgnoresUrl={true}` to allow sessions with the same name to be shared across different URLs.
+
+## User Management
+
+### User IDs
+
+- If no `userId` is provided, React Together generates a random ID
+- When `rememberUsers={true}`, user IDs are stored in localStorage for consistency
+- User IDs should be unique across your application
+
+### Nicknames
+
+The `deriveNickname` function converts user IDs into display names:
+
+```tsx
+// Default implementation
+const defaultDeriveNickname = (userId: string): string => {
+  return userId.slice(0, 8) // First 8 characters
+}
+
+// Custom implementation
+const customDeriveNickname = (userId: string): string => {
+  return `User ${userId.slice(-4)}`
+}
+```
+
+## Best Practices
+
+### API Key Security
+
+```tsx
+// ✅ Good - Use environment variables
+const apiKey = process.env.REACT_APP_MULTISYNQ_API_KEY
+
+// ❌ Bad - Never hardcode API keys
+const apiKey = "sk_live_abc123..."
+```
+
+### Session Management
+
+```tsx
+// ✅ Good - Descriptive session names
+sessionParams={{
+  name: "team-standup-2024-01-15",
+  password: "standup-secure-pwd"
+}}
+
+// ✅ Good - Environment-specific sessions
+sessionParams={{
+  name: `${projectName}-${environment}`,
+  password: process.env.REACT_APP_SESSION_PASSWORD
+}}
+```
+
+### Error Handling
+
+```tsx
+import { ReactTogether } from 'react-together'
+import { ErrorBoundary } from 'react-error-boundary'
+
+function SafeCollaborativeApp() {
+  return (
+    <ErrorBoundary
+      fallback={<div>Collaboration features unavailable</div>}
+      onError={(error) => console.error('ReactTogether error:', error)}
+    >
+      <ReactTogether
+        sessionParams={{
+          apiKey: process.env.REACT_APP_MULTISYNQ_API_KEY!,
+          appId: "com.example.myapp",
+          name: "main-session",
+          password: "secure-password"
+        }}
+      >
+        <App />
+      </ReactTogether>
+    </ErrorBoundary>
+  )
+}
+```
+
+## Related Components
+
+- [`SessionManager`](/docs/react-together/components/session-manager) - UI for managing sessions
+- [`Chat`](/docs/react-together/components/chat) - Ready-to-use chat component
+- [`ConnectedUsers`](/docs/react-together/components/connected-users) - Display connected users
+
+## Related Hooks
+
+- [`useIsTogether`](/docs/react-together/hooks/use-is-together) - Check connection status
+- [`useConnectedUsers`](/docs/react-together/hooks/use-connected-users) - Get connected users
+- [`useStateTogether`](/docs/react-together/hooks/use-state-together) - Shared state management
+
+## TypeScript Support
+
+ReactTogether is fully typed with TypeScript:
+
+```tsx
+import { ReactTogether, ReactTogetherProps } from 'react-together'
+
+// Type the session params for better IntelliSense
+interface MySessionParams {
+  apiKey: string
+  appId: string
+  name: string
+  password: string
+}
+
+const sessionParams: MySessionParams = {
+  apiKey: process.env.REACT_APP_API_KEY!,
+  appId: "com.example.myapp",
+  name: "typed-session",
+  password: "secure-password"
+}
+
+function TypedApp() {
+  return (
+    <ReactTogether sessionParams={sessionParams}>
+      <App />
+    </ReactTogether>
+  )
+}
