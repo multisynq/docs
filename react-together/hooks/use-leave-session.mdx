@@ -3,8 +3,6 @@ title: "useLeaveSession"
 description: "Leave the current React Together session while preserving local state"
 ---
 
-# useLeaveSession
-
 The `useLeaveSession` hook returns a function that, when called, disconnects the user from the current React Together session. If the user is not connected to any session, calling this function has no effect.
 
 When leaving a session, state from [`useStateTogether`](/react-together/hooks/use-state-together) and [`useStateTogetherWithPerUserValues`](/react-together/hooks/use-state-together-with-per-user-values) will be preserved locally. Additionally, any session parameters in the window URL will be automatically removed.

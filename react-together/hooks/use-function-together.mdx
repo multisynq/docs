@@ -3,8 +3,6 @@ title: "useFunctionTogether"
 description: "Synchronize function execution across all users in real-time collaborative applications"
 ---
 
-# useFunctionTogether
-
 The `useFunctionTogether` hook allows all users to execute the same function simultaneously with the same arguments. When any user calls the synchronized function, all users that are rendering this hook with the same `rtKey` will execute their local version of the function at the same time.
 
 <Note>
@@ -580,3 +578,4 @@ const typedAction = useFunctionTogether('typed', (message: string, count: number
 const calculator = useFunctionTogether('calc', (a: number, b: number): number => {
   return a + b // Each user gets their own return value
 })
+```

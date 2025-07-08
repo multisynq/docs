@@ -3,8 +3,6 @@ title: "useStateTogetherWithPerUserValues"
 description: "Share state between users while tracking individual user values in real-time collaborative applications"
 ---
 
-# useStateTogetherWithPerUserValues
-
 The `useStateTogetherWithPerUserValues` hook allows users to share state while also being able to read the individual state values of all their peers. Each user maintains their own state value, but can see everyone else's values in real-time.
 
 If the user is not connected to any session, the hook behaves like a normal [`useState`](https://react.dev/reference/react/useState), and the peer state object will be empty.
