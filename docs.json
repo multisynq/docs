@@ -39,7 +39,12 @@
                 "tutorials/events-pub-sub",
                 "tutorials/snapshots",
                 "tutorials/persistence",
-                "tutorials/sim-time-future"
+                "tutorials/sim-time-future",
+                "tutorials/writing-multisynq-model",
+                "tutorials/writing-multisynq-view",
+                "tutorials/writing-multisynq-app",
+                "tutorials/random",
+                "tutorials/data-api"
               ]
             },
             {
