@@ -52,12 +52,16 @@
               "pages": [
                 "essentials/sync",
                 "essentials/collaboration",
-                "essentials/markdown",
-                "essentials/code",
-                "essentials/images",
-                "essentials/settings",
-                "essentials/navigation",
-                "essentials/reusable-snippets"
+                "essentials/chat",
+                "essentials/whiteboard",
+                "essentials/conflicts",
+                "essentials/scaling"
+              ]
+            },
+            {
+              "group": "AI Development",
+              "pages": [
+                "essentials/vibe-coding"
               ]
             }
           ]
