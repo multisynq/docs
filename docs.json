@@ -28,7 +28,18 @@
                 "tutorials/simple-animation",
                 "tutorials/multiuser-chat",
                 "tutorials/view-smoothing",
-                "tutorials/3d-animation"
+                "tutorials/3d-animation",
+                "tutorials/multiblaster-game"
+              ]
+            },
+            {
+              "group": "Conceptual",
+              "pages": [
+                "tutorials/model-view-synchronizer",
+                "tutorials/events-pub-sub",
+                "tutorials/snapshots",
+                "tutorials/persistence",
+                "tutorials/sim-time-future"
               ]
             },
             {

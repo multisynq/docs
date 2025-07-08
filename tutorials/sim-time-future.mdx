@@ -1,0 +1,767 @@
+---
+title: "Sim Time & Future"
+description: "Master Multisynq's simulation time and future scheduling system for synchronized time-based behaviors"
+---
+
+# Sim Time & Future
+
+Understanding Multisynq's time system is crucial for building applications with animations, timers, and time-dependent behaviors. Unlike real-world time, Multisynq uses **simulation time** to ensure perfect synchronization across all users.
+
+## Simulation Time vs Real Time
+
+<Tabs>
+<Tab title="🕒 Simulation Time">
+**Synchronized, deterministic time used by models**
+
+- **Source**: Multisynq reflector heartbeat ticks
+- **Synchronization**: Identical across all users
+- **Deterministic**: Same time, same results
+- **Access**: `this.now()` in models
+
+```js
+class GameModel extends Multisynq.Model {
+    init() {
+        console.log("Session started at:", this.now()); // Simulation time
+        this.tick();
+    }
+    
+    tick() {
+        const currentTime = this.now();
+        console.log("Simulation time:", currentTime);
+        
+        // All users see identical time values
+        this.future(1000).tick(); // Schedule next tick
+    }
+}
+```
+
+<Info>
+Simulation time only advances when heartbeat ticks are received from the reflector.
+</Info>
+</Tab>
+
+<Tab title="⏰ Real Time">
+**Local system time used by views**
+
+- **Source**: Local device system clock
+- **Synchronization**: Different on each device
+- **Variable**: Can drift between devices
+- **Access**: `Date.now()` in views
+
+```js
+class GameView extends Multisynq.View {
+    init() {
+        console.log("View created at:", Date.now()); // Real time
+        this.updateDisplay();
+    }
+    
+    updateDisplay() {
+        const realTime = Date.now();
+        const simTime = this.model.now();
+        
+        console.log("Real time:", realTime);
+        console.log("Sim time:", simTime);
+        
+        // Views can use future() with real time
+        this.future(16).updateDisplay(); // ~60fps
+    }
+}
+```
+
+<Warning>
+Never use `Date.now()` in models - it breaks synchronization!
+</Warning>
+</Tab>
+</Tabs>
+
+## Core Time Concepts
+
+<CardGroup cols={2}>
+<Card title="📐 Simulation Time" icon="clock">
+**Time since session began**
+
+- Measured in milliseconds
+- Starts at 0 when session begins
+- Identical for all users
+- Only advances with reflector heartbeats
+
+```js
+// All users get the same value
+const time = this.now(); // e.g., 45723 ms
+```
+</Card>
+
+<Card title="💓 Heartbeat Ticks" icon="heart">
+**Synchronization mechanism**
+
+- Sent by reflector to all users
+- Advances simulation time
+- Ensures synchronized execution
+- Typically ~60-120Hz
+
+```js
+// Multiple calls return same value
+console.log(this.now()); // 1000
+console.log(this.now()); // 1000 (same!)
+console.log(this.now()); // 1000 (until next tick)
+```
+</Card>
+</CardGroup>
+
+## The `future()` Method
+
+<Note>
+`future()` is Multisynq's scheduling mechanism for time-based behaviors.
+</Note>
+
+<Tabs>
+<Tab title="Basic Syntax">
+**Schedule a method to run in the future**
+
+```js
+this.future(delay).methodName(args);
+```
+
+- **delay**: Milliseconds to wait (can be fractional)
+- **methodName**: Method to call when delay expires
+- **args**: Optional arguments to pass
+
+```js
+class AnimationModel extends Multisynq.Model {
+    init() {
+        this.x = 0;
+        this.startAnimation();
+    }
+    
+    startAnimation() {
+        this.x += 1;
+        
+        // Schedule next frame in 16.67ms (~60fps)
+        this.future(1000/60).startAnimation();
+    }
+    
+    explode() {
+        // Destroy after 2 seconds
+        this.future(2000).destroy();
+    }
+}
+```
+</Tab>
+
+<Tab title="Multiple Schedules">
+**Models can have multiple future calls active**
+
+```js
+class GameEntity extends Multisynq.Model {
+    init() {
+        this.health = 100;
+        this.position = { x: 0, y: 0 };
+        
+        // Multiple timing systems
+        this.updatePosition();    // 60fps movement
+        this.checkCollisions();   // 20fps collision detection
+        this.regenerateHealth();  // Every 5 seconds
+    }
+    
+    updatePosition() {
+        // High-frequency position updates
+        this.position.x += this.velocity.x;
+        this.position.y += this.velocity.y;
+        
+        this.future(1000/60).updatePosition();
+    }
+    
+    checkCollisions() {
+        // Lower-frequency collision detection
+        this.detectCollisionsWithOtherEntities();
+        
+        this.future(1000/20).checkCollisions();
+    }
+    
+    regenerateHealth() {
+        // Periodic health regeneration
+        if (this.health < 100) {
+            this.health = Math.min(100, this.health + 1);
+        }
+        
+        this.future(5000).regenerateHealth();
+    }
+}
+```
+</Tab>
+
+<Tab title="Fractional Delays">
+**Precise timing with decimal values**
+
+```js
+class PreciseTimer extends Multisynq.Model {
+    init() {
+        this.frame = 0;
+        
+        // Exact frame rates
+        this.render60fps();   // 16.666... ms
+        this.render30fps();   // 33.333... ms
+        this.physics120fps(); // 8.333... ms
+    }
+    
+    render60fps() {
+        this.frame++;
+        this.future(1000/60).render60fps(); // 16.67ms
+    }
+    
+    render30fps() {
+        this.updateSlowSystems();
+        this.future(1000/30).render30fps(); // 33.33ms
+    }
+    
+    physics120fps() {
+        this.updatePhysics();
+        this.future(1000/120).physics120fps(); // 8.33ms
+    }
+}
+```
+</Tab>
+</Tabs>
+
+## Common Patterns
+
+<AccordionGroup>
+<Accordion title="🎮 Game Loop" icon="gamepad">
+**Classic game update pattern**
+
+```js
+class GameModel extends Multisynq.Model {
+    init() {
+        this.gameState = "playing";
+        this.entities = new Map();
+        this.lastUpdate = this.now();
+        
+        // Start the main game loop
+        this.gameLoop();
+    }
+    
+    gameLoop() {
+        const currentTime = this.now();
+        const deltaTime = currentTime - this.lastUpdate;
+        
+        // Update all game systems
+        this.updatePhysics(deltaTime);
+        this.updateAI(deltaTime);
+        this.updateAnimations(deltaTime);
+        this.checkWinConditions();
+        
+        this.lastUpdate = currentTime;
+        
+        // Schedule next frame (60fps)
+        this.future(1000/60).gameLoop();
+    }
+    
+    updatePhysics(dt) {
+        for (const entity of this.entities.values()) {
+            entity.update(dt);
+        }
+    }
+    
+    updateAI(dt) {
+        // AI logic runs at game loop frequency
+    }
+    
+    updateAnimations(dt) {
+        // Smooth animation updates
+    }
+}
+```
+</Accordion>
+
+<Accordion title="⏰ Timer System" icon="stopwatch">
+**Countdown timers and delayed actions**
+
+```js
+class TimerModel extends Multisynq.Model {
+    init() {
+        this.timers = new Map();
+        this.nextTimerId = 1;
+    }
+    
+    createTimer(duration, callback, repeat = false) {
+        const timerId = this.nextTimerId++;
+        const timer = {
+            id: timerId,
+            duration,
+            callback,
+            repeat,
+            startTime: this.now()
+        };
+        
+        this.timers.set(timerId, timer);
+        this.scheduleTimer(timer);
+        
+        return timerId;
+    }
+    
+    scheduleTimer(timer) {
+        this.future(timer.duration)[timer.callback]();
+        
+        if (timer.repeat) {
+            // Reschedule for repeated timers
+            this.future(timer.duration).rescheduleTimer(timer.id);
+        }
+    }
+    
+    rescheduleTimer(timerId) {
+        const timer = this.timers.get(timerId);
+        if (timer && timer.repeat) {
+            this.scheduleTimer(timer);
+        }
+    }
+    
+    cancelTimer(timerId) {
+        this.timers.delete(timerId);
+        // Note: Cannot cancel already scheduled future calls
+    }
+    
+    // Example usage
+    startGame() {
+        // Game ends in 5 minutes
+        this.createTimer(5 * 60 * 1000, "endGame", false);
+        
+        // Spawn enemies every 10 seconds
+        this.createTimer(10000, "spawnEnemy", true);
+    }
+    
+    endGame() {
+        this.gameState = "finished";
+        this.publish("game", "ended", { time: this.now() });
+    }
+    
+    spawnEnemy() {
+        const enemy = Enemy.create();
+        this.entities.set(enemy.id, enemy);
+    }
+}
+```
+</Accordion>
+
+<Accordion title="🏃 Animation System" icon="play">
+**Smooth object animations**
+
+```js
+class AnimatedObject extends Multisynq.Model {
+    init() {
+        this.position = { x: 0, y: 0 };
+        this.target = { x: 100, y: 100 };
+        this.animationDuration = 2000; // 2 seconds
+        this.animationStart = null;
+        
+        this.startAnimation();
+    }
+    
+    startAnimation() {
+        this.animationStart = this.now();
+        this.animate();
+    }
+    
+    animate() {
+        const elapsed = this.now() - this.animationStart;
+        const progress = Math.min(elapsed / this.animationDuration, 1);
+        
+        // Smooth easing function
+        const easedProgress = this.easeInOutCubic(progress);
+        
+        // Interpolate position
+        this.position.x = this.lerp(0, this.target.x, easedProgress);
+        this.position.y = this.lerp(0, this.target.y, easedProgress);
+        
+        // Notify views of position change
+        this.publish("animation", "position", {
+            id: this.id,
+            position: this.position,
+            progress: progress
+        });
+        
+        if (progress < 1) {
+            // Continue animation next frame
+            this.future(1000/60).animate();
+        } else {
+            // Animation complete
+            this.onAnimationComplete();
+        }
+    }
+    
+    easeInOutCubic(t) {
+        return t < 0.5 
+            ? 4 * t * t * t 
+            : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+    
+    lerp(start, end, progress) {
+        return start + (end - start) * progress;
+    }
+    
+    onAnimationComplete() {
+        this.publish("animation", "complete", { id: this.id });
+    }
+}
+```
+</Accordion>
+</AccordionGroup>
+
+## Views and Time
+
+<Warning>
+Views use **real time**, not simulation time!
+</Warning>
+
+<Tabs>
+<Tab title="View Future">
+**Views can use future() with real time**
+
+```js
+class GameView extends Multisynq.View {
+    init() {
+        this.canvas = document.getElementById('canvas');
+        this.lastFrame = Date.now();
+        
+        // Start render loop using real time
+        this.renderLoop();
+    }
+    
+    renderLoop() {
+        const now = Date.now();
+        const deltaTime = now - this.lastFrame;
+        
+        // Render current frame
+        this.render(deltaTime);
+        
+        this.lastFrame = now;
+        
+        // Schedule next frame (~60fps)
+        this.future(16).renderLoop();
+    }
+    
+    render(deltaTime) {
+        // Use simulation time for game state
+        const gameTime = this.model.now();
+        
+        // Use real time for smooth interpolation
+        this.drawGameObjects(gameTime, deltaTime);
+    }
+}
+```
+</Tab>
+
+<Tab title="Synchronization">
+**Coordinate between sim time and real time**
+
+```js
+class SmoothView extends Multisynq.View {
+    init() {
+        this.interpolatedPositions = new Map();
+        this.renderLoop();
+        
+        // Listen to model updates
+        this.subscribe("object", "moved", this.onObjectMoved);
+    }
+    
+    onObjectMoved(data) {
+        // Store position with simulation time
+        const interpolation = {
+            startPos: this.interpolatedPositions.get(data.id) || data.position,
+            endPos: data.position,
+            startTime: Date.now(),
+            simTime: this.model.now()
+        };
+        
+        this.interpolatedPositions.set(data.id, interpolation);
+    }
+    
+    renderLoop() {
+        const realTime = Date.now();
+        
+        // Smooth interpolation between model updates
+        for (const [id, interp] of this.interpolatedPositions) {
+            const elapsed = realTime - interp.startTime;
+            const progress = Math.min(elapsed / 100, 1); // 100ms interpolation
+            
+            const smoothPos = {
+                x: this.lerp(interp.startPos.x, interp.endPos.x, progress),
+                y: this.lerp(interp.startPos.y, interp.endPos.y, progress)
+            };
+            
+            this.drawObject(id, smoothPos);
+        }
+        
+        this.future(16).renderLoop(); // ~60fps
+    }
+}
+```
+</Tab>
+</Tabs>
+
+## Timing Best Practices
+
+<CardGroup cols={2}>
+<Card title="⚡ Performance" icon="bolt">
+**Optimize timing frequency**
+
+```js
+// ✅ Good: Different rates for different systems
+this.updatePhysics();    // 60fps - needs precision
+this.updateAI();         // 10fps - less critical
+this.updateNetworking(); // 20fps - moderate
+
+// ❌ Avoid: Everything at maximum rate
+this.future(16).updateEverything(); // Wasteful
+```
+
+```js
+// ✅ Good: Batch related operations
+this.future(100).batchUpdate();
+
+batchUpdate() {
+    this.updateMultipleThings();
+    this.processAllChanges();
+    this.future(100).batchUpdate();
+}
+```
+</Card>
+
+<Card title="🎯 Precision" icon="crosshairs">
+**Use appropriate timing precision**
+
+```js
+// ✅ Good: Match timing to need
+this.future(1000/60).renderFrame();   // 60fps for smooth animation
+this.future(1000/20).checkCollisions();// 20fps for game logic
+this.future(5000).saveProgress();      // 5s for persistence
+
+// ❌ Avoid: Inappropriate frequencies
+this.future(1).highFrequencySpam();    // Too fast
+this.future(10000).criticalGameLogic(); // Too slow
+```
+</Card>
+</CardGroup>
+
+## Debugging Time Issues
+
+<Tabs>
+<Tab title="Time Logging">
+**Debug timing problems**
+
+```js
+class DebugModel extends Multisynq.Model {
+    init() {
+        this.tickCount = 0;
+        this.startTime = this.now();
+        
+        this.debugTick();
+    }
+    
+    debugTick() {
+        this.tickCount++;
+        const elapsed = this.now() - this.startTime;
+        const averageInterval = elapsed / this.tickCount;
+        
+        console.log(`Tick ${this.tickCount}:`);
+        console.log(`  Sim time: ${this.now()}`);
+        console.log(`  Elapsed: ${elapsed}ms`);
+        console.log(`  Average interval: ${averageInterval.toFixed(2)}ms`);
+        
+        this.future(1000).debugTick(); // Every second
+    }
+}
+```
+</Tab>
+
+<Tab title="Performance Monitoring">
+**Track timing performance**
+
+```js
+class PerformanceModel extends Multisynq.Model {
+    init() {
+        this.performanceStats = {
+            frameCount: 0,
+            totalTime: 0,
+            maxFrameTime: 0,
+            minFrameTime: Infinity
+        };
+        
+        this.monitorPerformance();
+    }
+    
+    monitorPerformance() {
+        const frameStart = this.now();
+        
+        // Do your frame work here
+        this.updateGame();
+        
+        const frameEnd = this.now();
+        const frameTime = frameEnd - frameStart;
+        
+        // Update statistics
+        this.performanceStats.frameCount++;
+        this.performanceStats.totalTime += frameTime;
+        this.performanceStats.maxFrameTime = Math.max(
+            this.performanceStats.maxFrameTime, 
+            frameTime
+        );
+        this.performanceStats.minFrameTime = Math.min(
+            this.performanceStats.minFrameTime, 
+            frameTime
+        );
+        
+        // Log stats every 60 frames
+        if (this.performanceStats.frameCount % 60 === 0) {
+            this.logPerformanceStats();
+        }
+        
+        this.future(1000/60).monitorPerformance();
+    }
+    
+    logPerformanceStats() {
+        const stats = this.performanceStats;
+        const avgFrameTime = stats.totalTime / stats.frameCount;
+        
+        console.log("Performance Stats:");
+        console.log(`  Average frame time: ${avgFrameTime.toFixed(2)}ms`);
+        console.log(`  Max frame time: ${stats.maxFrameTime.toFixed(2)}ms`);
+        console.log(`  Min frame time: ${stats.minFrameTime.toFixed(2)}ms`);
+    }
+}
+```
+</Tab>
+</Tabs>
+
+## Common Pitfalls
+
+<Warning>
+**Avoid these timing mistakes:**
+</Warning>
+
+<Tabs>
+<Tab title="❌ Real Time in Models">
+```js
+// ❌ NEVER do this in models
+class BadModel extends Multisynq.Model {
+    init() {
+        this.startTime = Date.now(); // BREAKS SYNCHRONIZATION!
+        this.badTick();
+    }
+    
+    badTick() {
+        const now = Date.now(); // DIFFERENT ON EACH DEVICE!
+        if (now - this.startTime > 5000) {
+            this.doSomething(); // Will happen at different times!
+        }
+        this.future(100).badTick();
+    }
+}
+
+// ✅ Correct approach
+class GoodModel extends Multisynq.Model {
+    init() {
+        this.startTime = this.now(); // Use simulation time
+        this.goodTick();
+    }
+    
+    goodTick() {
+        const now = this.now(); // SYNCHRONIZED!
+        if (now - this.startTime > 5000) {
+            this.doSomething(); // Happens simultaneously!
+        }
+        this.future(100).goodTick();
+    }
+}
+```
+</Tab>
+
+<Tab title="❌ Future Cancellation">
+```js
+// ❌ Cannot cancel future calls
+class ProblematicModel extends Multisynq.Model {
+    startTimer() {
+        const futureCall = this.future(5000).doSomething();
+        
+        // This doesn't work - cannot cancel!
+        // clearTimeout(futureCall); // No such method
+        // futureCall.cancel();      // No such method
+    }
+    
+    // ✅ Use flags for cancellation
+    startTimer() {
+        this.timerActive = true;
+        this.future(5000).conditionalAction();
+    }
+    
+    conditionalAction() {
+        if (this.timerActive) {
+            this.doSomething();
+        }
+    }
+    
+    cancelTimer() {
+        this.timerActive = false; // Prevents execution
+    }
+}
+```
+</Tab>
+
+<Tab title="❌ Blocking Operations">
+```js
+// ❌ Don't block the main thread
+class BlockingModel extends Multisynq.Model {
+    tick() {
+        // This blocks synchronization!
+        for (let i = 0; i < 1000000; i++) {
+            this.heavyCalculation(i);
+        }
+        
+        this.future(16).tick();
+    }
+}
+
+// ✅ Break work into chunks
+class NonBlockingModel extends Multisynq.Model {
+    init() {
+        this.workQueue = [];
+        this.processWork();
+    }
+    
+    processWork() {
+        // Process only a small chunk each frame
+        const startTime = this.now();
+        while (this.workQueue.length > 0 && this.now() - startTime < 5) {
+            const work = this.workQueue.shift();
+            this.processWorkItem(work);
+        }
+        
+        this.future(16).processWork();
+    }
+}
+```
+</Tab>
+</Tabs>
+
+## Next Steps
+
+<CardGroup cols={2}>
+<Card title="Events & Pub-Sub" icon="satellite" href="/tutorials/events-pub-sub">
+  Learn how events work with time-based systems
+</Card>
+
+<Card title="Writing a Multisynq Model" icon="cogs" href="/tutorials/writing-multisynq-model">
+  Master model development with proper timing
+</Card>
+
+<Card title="View Smoothing" icon="play" href="/tutorials/view-smoothing">
+  Create smooth animations between model updates
+</Card>
+
+<Card title="Random" icon="dice" href="/tutorials/random">
+  Understand synchronized random number generation
+</Card>
+</CardGroup>
+
+<Note>
+Mastering simulation time and the `future()` method is essential for creating responsive, synchronized applications. Always use simulation time in models and real time in views to maintain perfect synchronization across all users.
+</Note> 

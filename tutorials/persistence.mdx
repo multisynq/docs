@@ -1,0 +1,1068 @@
+---
+title: "Persistence"
+description: "Learn how to save application data across code changes and versions using Multisynq's persistence mechanism"
+---
+
+# Persistence
+
+Multisynq automatically handles session state through snapshots, but what happens when you update your code? This tutorial covers explicit persistence - how to save and restore application data across different versions of your application.
+
+## Automatic vs. Explicit Persistence
+
+<Tabs>
+<Tab title="🔄 Automatic (Snapshots)">
+**Built-in session persistence**
+
+- Works automatically without any code
+- Preserves state when users leave and return
+- **Lost when code changes** (new session created)
+- Perfect for temporary game sessions
+
+```js
+// This data persists automatically between sessions
+class GameModel extends Multisynq.Model {
+    init() {
+        this.players = new Map();
+        this.score = 0;
+    }
+}
+```
+
+<Warning>
+Any code change creates a new session, losing all previous data.
+</Warning>
+</Tab>
+
+<Tab title="💾 Explicit (Persistence)">
+**Developer-controlled data persistence**
+
+- Requires explicit implementation
+- **Survives code changes** and updates
+- Selective - save only what matters
+- Essential for collaborative applications
+
+```js
+// This data can survive code changes
+class CollaborativeEditor extends Multisynq.Model {
+    init(options, persisted) {
+        if (persisted) {
+            this.restoreFromPersisted(persisted);
+        } else {
+            this.documents = new Map();
+            this.users = new Map();
+        }
+    }
+    
+    save() {
+        this.persistSession(() => ({
+            documents: Array.from(this.documents.entries()),
+            lastSaved: Date.now()
+        }));
+    }
+}
+```
+</Tab>
+</Tabs>
+
+## Session Identity System
+
+Understanding how Multisynq identifies sessions is crucial for persistence:
+
+<CardGroup cols={2}>
+<Card title="🆔 sessionId" icon="fingerprint">
+**Code-dependent session identifier**
+
+- Combination of `appId`, `name`, and **code hash**
+- Changes with any code modification
+- Used for snapshots and live sessions
+
+```js
+// These create the same sessionId:
+Session.join({ appId: "myapp", name: "room1" });
+// With identical code
+
+// This creates a different sessionId:
+Session.join({ appId: "myapp", name: "room1" });
+// With modified code (even tiny changes)
+```
+</Card>
+
+<Card title="🔄 persistentId" icon="database">
+**Code-independent persistent identifier**
+
+- Combination of `appId` and `name` only
+- **Survives code changes**
+- Used for persistence lookup
+
+```js
+// These share the same persistentId:
+Session.join({ appId: "myapp", name: "room1" });
+// Regardless of code changes
+
+// Different persistentId:
+Session.join({ appId: "myapp", name: "room2" });
+```
+</Card>
+</CardGroup>
+
+## How Persistence Works
+
+<Steps>
+<Step title="First Session Join">
+When joining a session with a **never-seen-before sessionId**:
+
+1. Multisynq looks up persistent data by `persistentId`
+2. If found, passes it to your model's `init()` method
+3. Your model restores state from persistent data
+
+```js
+class MyModel extends Multisynq.Model {
+    init(options, persisted) {
+        if (persisted) {
+            console.log("Restoring from persistent data:", persisted);
+            this.restoreState(persisted);
+        } else {
+            console.log("Fresh session - no persistent data");
+            this.initializeDefaults();
+        }
+    }
+}
+```
+</Step>
+
+<Step title="Saving Persistent Data">
+Your application decides when to save using `persistSession()`:
+
+```js
+save() {
+    this.persistSession(() => {
+        return {
+            version: 1,
+            data: this.collectImportantData(),
+            timestamp: Date.now()
+        };
+    });
+}
+```
+</Step>
+
+<Step title="Code Update">
+When you update your code:
+1. **New sessionId** is generated (code changed)
+2. **Same persistentId** is used (appId + name unchanged)
+3. Persistent data is loaded into new code version
+</Step>
+</Steps>
+
+## Basic Implementation
+
+<Tabs>
+<Tab title="Simple Pattern">
+**Most applications can use this straightforward approach:**
+
+```js
+class SimpleAppModel extends Multisynq.Model {
+    init(options, persisted) {
+        // Regular setup
+        this.users = new Map();
+        this.content = "";
+        this.lastModified = null;
+        
+        if (persisted) {
+            // Restore from persistent data
+            this.content = persisted.content || "";
+            this.lastModified = persisted.lastModified;
+            
+            // Restore users (handle Map serialization)
+            if (persisted.users) {
+                this.users = new Map(persisted.users);
+            }
+        }
+    }
+    
+    save() {
+        this.persistSession(() => {
+            return {
+                content: this.content,
+                lastModified: this.lastModified,
+                users: Array.from(this.users.entries()) // Convert Map to Array
+            };
+        });
+    }
+    
+    updateContent(newContent) {
+        this.content = newContent;
+        this.lastModified = Date.now();
+        
+        // Save after important changes
+        this.save();
+    }
+}
+```
+
+<Info>
+This pattern works well for simple applications with straightforward data structures.
+</Info>
+</Tab>
+
+<Tab title="Advanced Pattern">
+**For complex applications with versioning and error handling:**
+
+```js
+class ComplexAppModel extends Multisynq.Model {
+    init(options, persisted) {
+        if (persisted) {
+            this.loadFromPersisted(persisted);
+        } else {
+            this.initializeDefaults();
+        }
+    }
+    
+    initializeDefaults() {
+        this.documentA = DocumentModel.create();
+        this.documentB = DocumentModel.create();
+        this.metadata = { created: Date.now() };
+    }
+    
+    loadFromPersisted(persisted) {
+        // Handle versioning
+        switch (persisted.version) {
+            case 1:
+                this.loadVersion1(persisted);
+                break;
+            case 2:
+                this.loadVersion2(persisted);
+                break;
+            default:
+                console.warn("Unknown version:", persisted.version);
+                this.initializeDefaults();
+        }
+    }
+    
+    loadVersion1(data) {
+        // Restore from version 1 format
+        this.documentA = DocumentModel.create(data.documents.a);
+        this.documentB = DocumentModel.create(data.documents.b);
+        this.metadata = data.metadata || { created: Date.now() };
+    }
+    
+    loadVersion2(data) {
+        // Handle newer format with migration
+        this.loadVersion1(data); // Reuse v1 loading
+        this.newFeature = data.newFeature || null;
+    }
+    
+    save() {
+        this.persistSession(() => this.toSaveData());
+    }
+    
+    toSaveData() {
+        return {
+            version: 2, // Current version
+            documents: {
+                a: this.documentA.toSaveData(),
+                b: this.documentB.toSaveData()
+            },
+            metadata: this.metadata,
+            newFeature: this.newFeature
+        };
+    }
+}
+
+class DocumentModel extends Multisynq.Model {
+    init(options, persisted) {
+        this.title = "";
+        this.content = "";
+        
+        if (persisted) {
+            this.fromSaveData(persisted);
+        }
+    }
+    
+    toSaveData() {
+        return {
+            title: this.title,
+            content: this.content
+        };
+    }
+    
+    fromSaveData(data) {
+        this.title = data.title || "";
+        this.content = data.content || "";
+    }
+    
+    save() {
+        // Trigger root model save
+        this.wellKnownModel("modelRoot").save();
+    }
+}
+```
+</Tab>
+</Tabs>
+
+## Data Serialization Requirements
+
+<Warning>
+**Critical**: `persistSession()` uses stable JSON stringification. Non-JSON types require special handling.
+</Warning>
+
+<Tabs>
+<Tab title="✅ JSON-Safe Types">
+**These work automatically:**
+
+```js
+const safeData = {
+    strings: "text",
+    numbers: 42,
+    booleans: true,
+    arrays: [1, 2, 3],
+    objects: { nested: "value" },
+    nulls: null
+};
+
+this.persistSession(() => safeData);
+```
+</Tab>
+
+<Tab title="⚠️ Requires Conversion">
+**These need manual handling:**
+
+```js
+class MyModel extends Multisynq.Model {
+    init() {
+        this.userMap = new Map();
+        this.userSet = new Set();
+        this.createdAt = new Date();
+    }
+    
+    save() {
+        this.persistSession(() => ({
+            // Convert Map to Array
+            users: Array.from(this.userMap.entries()),
+            
+            // Convert Set to Array  
+            tags: Array.from(this.userSet),
+            
+            // Convert Date to timestamp
+            createdAt: this.createdAt.getTime(),
+            
+            // Don't include functions or DOM elements
+            // functions: this.myFunction, // ❌ Won't work
+            // element: this.domElement,  // ❌ Won't work
+        }));
+    }
+    
+    restoreFromPersisted(data) {
+        // Restore Map from Array
+        this.userMap = new Map(data.users || []);
+        
+        // Restore Set from Array
+        this.userSet = new Set(data.tags || []);
+        
+        // Restore Date from timestamp
+        this.createdAt = new Date(data.createdAt || Date.now());
+    }
+}
+```
+</Tab>
+</Tabs>
+
+## When to Use Persistence
+
+<AccordionGroup>
+<Accordion title="✅ Good Use Cases" icon="check">
+**Applications that benefit from persistence:**
+
+- **Collaborative editors**: Documents must survive code updates
+- **Creative tools**: User creations are valuable
+- **Configuration apps**: Settings should persist
+- **Score tracking**: High scores across game updates
+- **Chat applications**: Message history preservation
+
+```js
+// Example: Collaborative whiteboard
+class WhiteboardModel extends Multisynq.Model {
+    init(options, persisted) {
+        this.shapes = persisted?.shapes || [];
+        this.users = new Map(persisted?.users || []);
+    }
+    
+    addShape(shape) {
+        this.shapes.push(shape);
+        this.save(); // Save after important changes
+    }
+    
+    save() {
+        this.persistSession(() => ({
+            shapes: this.shapes,
+            users: Array.from(this.users.entries())
+        }));
+    }
+}
+```
+</Accordion>
+
+<Accordion title="❌ Not Needed" icon="x">
+**Applications that don't need persistence:**
+
+- **Simple games**: No long-term state to preserve
+- **Temporary demonstrations**: Short-lived sessions
+- **Real-time only**: No data worth preserving
+- **Prototype applications**: Data structure still changing
+
+```js
+// Example: Simple multiplayer pong game
+class PongModel extends Multisynq.Model {
+    init() {
+        // Game state that resets each session
+        this.ball = { x: 50, y: 50, vx: 1, vy: 1 };
+        this.players = new Map();
+        this.score = { left: 0, right: 0 };
+        
+        // No persistence needed - games start fresh
+    }
+}
+```
+
+<Info>
+If you don't need to preserve data across code changes, snapshots are sufficient.
+</Info>
+</Accordion>
+</AccordionGroup>
+
+## When to Save Data
+
+<Note>
+Unlike automatic snapshots, **you control when to save persistent data**. Balance data safety with performance.
+</Note>
+
+<Tabs>
+<Tab title="💥 Major Changes">
+**Save after significant data modifications:**
+
+```js
+class DocumentEditor extends Multisynq.Model {
+    addDocument(doc) {
+        this.documents.set(doc.id, doc);
+        this.save(); // Major change - save immediately
+    }
+    
+    deleteDocument(id) {
+        this.documents.delete(id);
+        this.save(); // Major change - save immediately  
+    }
+    
+    updateCursor(position) {
+        this.cursors.set(this.viewId, position);
+        // Minor change - don't save for every cursor move
+    }
+}
+```
+</Tab>
+
+<Tab title="⏰ Timer-Based">
+**Save after bursts of activity:**
+
+```js
+class TextEditor extends Multisynq.Model {
+    init() {
+        this.content = "";
+        this.saveTimer = null;
+        this.hasChanges = false;
+    }
+    
+    updateText(newText) {
+        this.content = newText;
+        this.hasChanges = true;
+        
+        // Reset save timer
+        if (this.saveTimer) {
+            this.saveTimer.cancel();
+        }
+        
+        // Save 30 seconds after last change
+        this.saveTimer = this.future(30000).saveIfChanged();
+    }
+    
+    saveIfChanged() {
+        if (this.hasChanges) {
+            this.save();
+            this.hasChanges = false;
+        }
+        this.saveTimer = null;
+    }
+    
+    save() {
+        this.persistSession(() => ({
+            content: this.content,
+            lastSaved: Date.now()
+        }));
+    }
+}
+```
+
+<Info>
+Multisynq automatically throttles rapid `persistSession()` calls to prevent excessive network traffic.
+</Info>
+</Tab>
+</Tabs>
+
+## Error Handling and Recovery
+
+<Warning>
+**Critical**: Implement error handling to prevent data corruption during development.
+</Warning>
+
+<Tabs>
+<Tab title="Safe Loading Pattern">
+**Protect against corrupted persistent data:**
+
+```js
+class SafeModel extends Multisynq.Model {
+    init(options, persisted) {
+        if (persisted) {
+            delete this.loadingPersistentDataErrored;
+            this.loadingPersistentData = true;
+            
+            try {
+                this.fromSavedData(persisted);
+                console.log("Successfully loaded persistent data");
+            } catch (error) {
+                console.error("Error loading persistent data:", error);
+                this.loadingPersistentDataErrored = true;
+                
+                // Fallback to defaults
+                this.initializeDefaults();
+            } finally {
+                delete this.loadingPersistentData;
+            }
+        } else {
+            this.initializeDefaults();
+        }
+    }
+    
+    save() {
+        // Don't save while loading (prevents corruption)
+        if (this.loadingPersistentData) return;
+        
+        // Don't save if loading failed (prevents overwriting good data)
+        if (this.loadingPersistentDataErrored) return;
+        
+        this.persistSession(() => this.toSaveData());
+    }
+    
+    fromSavedData(persisted) {
+        // Validate data structure
+        if (!persisted.version) {
+            throw new Error("Missing version in persistent data");
+        }
+        
+        if (persisted.version > 2) {
+            throw new Error(`Unsupported version: ${persisted.version}`);
+        }
+        
+        // Restore data
+        this.documents = new Map(persisted.documents || []);
+        this.metadata = persisted.metadata || {};
+    }
+    
+    toSaveData() {
+        return {
+            version: 2,
+            documents: Array.from(this.documents.entries()),
+            metadata: this.metadata
+        };
+    }
+}
+```
+</Tab>
+
+<Tab title="Development Workflow">
+**Safe development and testing process:**
+
+1. **Test saving logic:**
+   ```js
+   // Set breakpoint in toSaveData()
+   toSaveData() {
+       const data = {
+           version: 1,
+           content: this.content
+       };
+       console.log("Saving data:", data); // Check structure
+       return data;
+   }
+   ```
+
+2. **Test loading logic:**
+   ```js
+   // Modify code slightly to create new sessionId
+   // Add console.log("Testing v1.1"); to trigger new session
+   
+   fromSavedData(persisted) {
+       console.log("Loading data:", persisted); // Verify structure
+       // Set breakpoint here to inspect data
+   }
+   ```
+
+3. **Use separate deployments:**
+   - **Production version**: Create persistent data
+   - **Development version**: Test loading persistent data
+   - Prevents corrupting production data during development
+</Tab>
+</Tabs>
+
+## Version Management
+
+<AccordionGroup>
+<Accordion title="📈 Data Format Evolution" icon="arrow-trend-up">
+**Handle changing data formats over time:**
+
+```js
+class VersionedModel extends Multisynq.Model {
+    fromSavedData(persisted) {
+        switch (persisted.version) {
+            case 1:
+                this.loadVersion1(persisted);
+                break;
+            case 2:
+                this.loadVersion2(persisted);
+                break;
+            case 3:
+                this.loadVersion3(persisted);
+                break;
+            default:
+                if (persisted.version > 3) {
+                    throw new Error(`Future version not supported: ${persisted.version}`);
+                } else {
+                    // Legacy data without version
+                    this.loadLegacy(persisted);
+                }
+        }
+    }
+    
+    loadVersion1(data) {
+        // Original format
+        this.documents = new Map(data.documents || []);
+    }
+    
+    loadVersion2(data) {
+        // Added user permissions
+        this.loadVersion1(data);
+        this.permissions = new Map(data.permissions || []);
+    }
+    
+    loadVersion3(data) {
+        // Added collaboration features
+        this.loadVersion2(data);
+        this.collaborators = new Set(data.collaborators || []);
+        this.lastActivity = data.lastActivity || Date.now();
+    }
+    
+    toSaveData() {
+        return {
+            version: 3, // Always save in latest format
+            documents: Array.from(this.documents.entries()),
+            permissions: Array.from(this.permissions.entries()),
+            collaborators: Array.from(this.collaborators),
+            lastActivity: this.lastActivity
+        };
+    }
+}
+```
+</Accordion>
+
+<Accordion title="🔧 Migration Strategies" icon="wrench">
+**Handle breaking changes safely:**
+
+```js
+class MigrationModel extends Multisynq.Model {
+    fromSavedData(persisted) {
+        if (persisted.version === 1) {
+            // Major breaking change: documents now have structure
+            const oldDocuments = persisted.documents || [];
+            this.documents = new Map();
+            
+            // Migrate old format to new format
+            oldDocuments.forEach((oldDoc, index) => {
+                const newDoc = {
+                    id: `doc-${index}`,
+                    title: oldDoc.name || "Untitled",
+                    content: oldDoc.text || "",
+                    created: oldDoc.timestamp || Date.now(),
+                    modified: oldDoc.timestamp || Date.now()
+                };
+                this.documents.set(newDoc.id, newDoc);
+            });
+            
+            console.log(`Migrated ${oldDocuments.length} documents from v1 to v2`);
+        } else {
+            // Handle current versions normally
+            this.documents = new Map(persisted.documents || []);
+        }
+    }
+}
+```
+</Accordion>
+</AccordionGroup>
+
+## Debugging Tools
+
+<Tabs>
+<Tab title="Debug Options">
+**Enable detailed logging:**
+
+```js
+// In Session.join()
+Session.join({
+    appId: "myapp",
+    name: "session1",
+    model: MyModel,
+    view: MyView,
+    debug: "session" // Enables persistence logging
+});
+
+// Or via URL parameter
+// https://myapp.com/#session1&debug=session
+```
+
+**Console output:**
+```
+[Multisynq] Session loaded from persistent data (persistentId: myapp-session1)
+[Multisynq] Restoring 1.2KB of persistent data
+[Multisynq] Persistent data saved (2.3KB)
+```
+</Tab>
+
+<Tab title="Manual Inspection">
+**Check your persistent data structure:**
+
+```js
+class DebugModel extends Multisynq.Model {
+    save() {
+        const data = this.toSaveData();
+        
+        // Log before saving
+        console.log("About to save:", JSON.stringify(data, null, 2));
+        console.log("Data size:", JSON.stringify(data).length, "characters");
+        
+        this.persistSession(() => data);
+    }
+    
+    fromSavedData(persisted) {
+        console.log("Loading persistent data:", persisted);
+        console.log("Data keys:", Object.keys(persisted));
+        
+        // Validate structure
+        this.validatePersistentData(persisted);
+    }
+    
+    validatePersistentData(data) {
+        const required = ['version', 'documents'];
+        const missing = required.filter(key => !(key in data));
+        
+        if (missing.length > 0) {
+            console.warn("Missing required keys:", missing);
+        }
+        
+        console.log("Validation passed ✓");
+    }
+}
+```
+</Tab>
+</Tabs>
+
+## Security and Encryption
+
+<Info>
+**End-to-End Encryption**: Persistent data inherits Multisynq's security model.
+</Info>
+
+<CardGroup cols={2}>
+<Card title="🔐 Secure by Default" icon="shield">
+**Your data is protected:**
+
+- All persistent data is encrypted
+- Only clients with session password can decrypt
+- Server cannot read your data
+- Suitable for sensitive information
+
+```js
+// This data is automatically encrypted
+this.persistSession(() => ({
+    confidentialDocument: "sensitive content",
+    userSecrets: privateData
+}));
+```
+</Card>
+
+<Card title="⚠️ Password Management" icon="key">
+**Important considerations:**
+
+- **Lost password = lost data** (unrecoverable)
+- Consider password storage strategy
+- Balance security vs. convenience
+
+```js
+// Option 1: User-managed passwords (most secure)
+Session.join({
+    name: userProvidedSessionName,
+    password: userProvidedPassword // User remembers
+});
+
+// Option 2: Server-stored passwords (convenient but less secure)
+const sessionInfo = await getSessionFromServer(userId);
+Session.join({
+    name: sessionInfo.name,
+    password: sessionInfo.password // Server provides
+});
+```
+</Card>
+</CardGroup>
+
+## Best Practices Summary
+
+<CardGroup cols={2}>
+<Card title="📝 Planning" icon="clipboard">
+**Think ahead about persistence:**
+
+- Plan persistence from the start
+- Can't add persistence to existing sessions
+- Consider what data needs to survive updates
+- Design for data format evolution
+
+```js
+// ✅ Good: Plan persistence early
+class MyModel extends Multisynq.Model {
+    init(options, persisted) {
+        // Handle both cases from the start
+        if (persisted) {
+            this.restoreData(persisted);
+        } else {
+            this.initDefaults();
+        }
+    }
+}
+```
+</Card>
+
+<Card title="⚡ Performance" icon="bolt">
+**Optimize save frequency:**
+
+- Save after major changes only
+- Use timers for burst activity
+- Keep persistent data minimal
+- Clean up unnecessary data
+
+```js
+// ✅ Good: Strategic saving
+save() {
+    this.persistSession(() => ({
+        // Only essential data
+        documents: this.getEssentialDocs(),
+        metadata: this.coreMetadata,
+        // Skip: temporary UI state, caches, etc.
+    }));
+}
+```
+</Card>
+
+<Card title="🛡️ Safety" icon="shield">
+**Handle errors gracefully:**
+
+- Validate persistent data structure
+- Handle version mismatches
+- Don't save during loading
+- Test with corrupted data
+
+```js
+// ✅ Good: Safe error handling
+try {
+    this.fromSavedData(persisted);
+} catch (error) {
+    console.error("Load failed:", error);
+    this.initDefaults(); // Fallback
+    this.loadingErrored = true;
+}
+```
+</Card>
+
+<Card title="🔄 Testing" icon="arrows-rotate">
+**Test thoroughly:**
+
+- Test fresh sessions
+- Test loading from persistence  
+- Test data migrations
+- Use separate deployments for testing
+
+```js
+// Test both paths
+console.log(persisted ? "Loading saved data" : "Fresh start");
+```
+</Card>
+</CardGroup>
+
+## Real-World Examples
+
+<AccordionGroup>
+<Accordion title="📄 Document Editor" icon="file-text">
+```js
+class DocumentEditorModel extends Multisynq.Model {
+    init(options, persisted) {
+        if (persisted) {
+            this.documents = new Map(persisted.documents || []);
+            this.users = new Map(persisted.users || []);
+            this.settings = persisted.settings || {};
+        } else {
+            this.documents = new Map();
+            this.users = new Map();
+            this.settings = { theme: "light", autosave: true };
+        }
+        
+        this.setupAutosave();
+    }
+    
+    setupAutosave() {
+        if (this.settings.autosave) {
+            this.future(30000).autosave();
+        }
+    }
+    
+    autosave() {
+        if (this.hasUnsavedChanges) {
+            this.save();
+            this.hasUnsavedChanges = false;
+        }
+        this.setupAutosave(); // Schedule next autosave
+    }
+    
+    createDocument(title, content) {
+        const doc = {
+            id: this.generateId(),
+            title,
+            content,
+            created: Date.now(),
+            modified: Date.now()
+        };
+        
+        this.documents.set(doc.id, doc);
+        this.hasUnsavedChanges = true;
+        this.save(); // Save immediately for major changes
+    }
+    
+    updateDocument(id, changes) {
+        const doc = this.documents.get(id);
+        if (doc) {
+            Object.assign(doc, changes, { modified: Date.now() });
+            this.hasUnsavedChanges = true;
+            
+            // Don't save immediately - let autosave handle it
+        }
+    }
+    
+    save() {
+        this.persistSession(() => ({
+            version: 1,
+            documents: Array.from(this.documents.entries()),
+            users: Array.from(this.users.entries()),
+            settings: this.settings
+        }));
+    }
+}
+```
+</Accordion>
+
+<Accordion title="🎨 Creative Canvas" icon="palette">
+```js
+class CanvasModel extends Multisynq.Model {
+    init(options, persisted) {
+        this.loadingPersistentData = !!persisted;
+        
+        try {
+            if (persisted) {
+                this.fromSavedData(persisted);
+            } else {
+                this.shapes = [];
+                this.layers = [{ id: 'default', name: 'Layer 1', visible: true }];
+                this.canvasSize = { width: 800, height: 600 };
+            }
+        } catch (error) {
+            console.error("Failed to load canvas data:", error);
+            this.shapes = [];
+            this.layers = [{ id: 'default', name: 'Layer 1', visible: true }];
+            this.canvasSize = { width: 800, height: 600 };
+            this.loadingErrored = true;
+        } finally {
+            this.loadingPersistentData = false;
+        }
+    }
+    
+    addShape(shape) {
+        shape.id = this.generateId();
+        shape.created = Date.now();
+        this.shapes.push(shape);
+        
+        this.save(); // Save after adding shapes
+    }
+    
+    deleteShape(shapeId) {
+        const index = this.shapes.findIndex(s => s.id === shapeId);
+        if (index >= 0) {
+            this.shapes.splice(index, 1);
+            this.save(); // Save after deleting shapes
+        }
+    }
+    
+    save() {
+        if (this.loadingPersistentData || this.loadingErrored) return;
+        
+        this.persistSession(() => ({
+            version: 1,
+            shapes: this.shapes,
+            layers: this.layers,
+            canvasSize: this.canvasSize,
+            metadata: {
+                shapeCount: this.shapes.length,
+                lastModified: Date.now()
+            }
+        }));
+    }
+    
+    fromSavedData(persisted) {
+        if (persisted.version !== 1) {
+            throw new Error(`Unsupported version: ${persisted.version}`);
+        }
+        
+        this.shapes = persisted.shapes || [];
+        this.layers = persisted.layers || [];
+        this.canvasSize = persisted.canvasSize || { width: 800, height: 600 };
+        
+        console.log(`Restored ${this.shapes.length} shapes`);
+    }
+}
+```
+</Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+<Card title="Writing a Multisynq Model" icon="cogs" href="/tutorials/writing-multisynq-model">
+  Learn to build models with persistence in mind
+</Card>
+
+<Card title="Data API" icon="database" href="/tutorials/data-api">
+  Explore advanced data management patterns
+</Card>
+
+<Card title="Snapshots" icon="camera" href="/tutorials/snapshots">
+  Understand how snapshots and persistence work together
+</Card>
+
+<Card title="Sim Time & Future" icon="clock" href="/tutorials/sim-time-future">
+  Master time-based behaviors in persistent applications
+</Card>
+</CardGroup>
+
+<Note>
+Persistence is essential for applications where user data has long-term value. Plan for it early, implement it safely, and test thoroughly to ensure your users never lose their important work.
+</Note> 
