@@ -1,0 +1,197 @@
+---
+title: "App"
+description: "Application lifecycle and initialization utilities"
+---
+
+The App API provides utilities for managing application lifecycle, initialization, and global configuration in Multisynq applications.
+
+## Overview
+
+The App class serves as the entry point for Multisynq applications, handling:
+
+- **Application Initialization**: Set up global configuration and dependencies
+- **Session Management**: Create and manage collaborative sessions
+- **Resource Cleanup**: Handle proper teardown of resources
+- **Error Handling**: Centralized error management and reporting
+
+## Basic Usage
+
+```javascript
+import { App } from '@multisynq/client'
+
+// Initialize application
+const app = new App({
+  apiKey: 'your-api-key',
+  appId: 'your-app-id'
+})
+
+// Create a session
+const session = await app.createSession({
+  name: 'my-session',
+  password: 'optional-password'
+})
+
+// Join the session
+await session.join()
+```
+
+## Configuration
+
+### Application Options
+
+<AccordionGroup>
+  <Accordion title="apiKey (required)">
+    Your Multisynq API key for authentication
+  </Accordion>
+  
+  <Accordion title="appId (required)">
+    Unique identifier for your application
+  </Accordion>
+  
+  <Accordion title="debug (optional)">
+    Enable debug logging and diagnostics
+  </Accordion>
+  
+  <Accordion title="autoReconnect (optional)">
+    Automatically reconnect on connection loss (default: true)
+  </Accordion>
+</AccordionGroup>
+
+### Debug Mode
+
+```javascript
+const app = new App({
+  apiKey: 'your-api-key',
+  appId: 'your-app-id',
+  debug: true // Enable detailed logging
+})
+```
+
+## Methods
+
+### createSession(options)
+
+Create a new collaborative session.
+
+```javascript
+const session = await app.createSession({
+  name: 'session-name',
+  password: 'optional-password',
+  persistent: true
+})
+```
+
+**Parameters:**
+- `name` (string): Session identifier
+- `password` (string, optional): Session password for privacy
+- `persistent` (boolean, optional): Whether to persist session data
+
+**Returns:** Promise<Session>
+
+### joinSession(sessionName, password)
+
+Join an existing session by name.
+
+```javascript
+const session = await app.joinSession('existing-session', 'password')
+```
+
+**Parameters:**
+- `sessionName` (string): Name of the session to join
+- `password` (string, optional): Session password if required
+
+**Returns:** Promise<Session>
+
+### destroy()
+
+Clean up all resources and disconnect from services.
+
+```javascript
+await app.destroy()
+```
+
+## Error Handling
+
+### Connection Errors
+
+```javascript
+app.on('connectionError', (error) => {
+  console.error('Connection failed:', error)
+  // Handle reconnection logic
+})
+```
+
+### Authentication Errors
+
+```javascript
+app.on('authError', (error) => {
+  console.error('Authentication failed:', error)
+  // Redirect to login or show error message
+})
+```
+
+## Best Practices
+
+### Initialization Pattern
+
+```javascript
+async function initializeApp() {
+  try {
+    const app = new App({
+      apiKey: process.env.MULTISYNQ_API_KEY,
+      appId: 'my-app'
+    })
+    
+    await app.ready() // Wait for initialization
+    return app
+  } catch (error) {
+    console.error('Failed to initialize app:', error)
+    throw error
+  }
+}
+```
+
+### Resource Management
+
+```javascript
+class MyApplication {
+  constructor() {
+    this.app = null
+    this.session = null
+  }
+  
+  async start() {
+    this.app = await initializeApp()
+    this.session = await this.app.createSession({ name: 'main' })
+    
+    // Handle cleanup on page unload
+    window.addEventListener('beforeunload', () => this.cleanup())
+  }
+  
+  async cleanup() {
+    if (this.session) {
+      await this.session.leave()
+    }
+    if (this.app) {
+      await this.app.destroy()
+    }
+  }
+}
+```
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Session Management" icon="users" href="/api-reference/session">
+    Learn about collaborative sessions
+  </Card>
+  <Card title="Model Architecture" icon="cogs" href="/api-reference/model">
+    Understand synchronized application logic
+  </Card>
+  <Card title="View Patterns" icon="eye" href="/api-reference/view">
+    Handle user interface and input
+  </Card>
+  <Card title="Getting Started" icon="rocket" href="/quickstart">
+    Quick setup guide
+  </Card>
+</CardGroup> 

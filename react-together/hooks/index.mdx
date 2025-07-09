@@ -1,0 +1,245 @@
+---
+title: "React Together Hooks"
+description: "Complete reference for all React Together hooks and their usage patterns"
+---
+
+React Together provides a comprehensive set of hooks for building collaborative React applications. Each hook serves a specific purpose in creating synchronized, multi-user experiences.
+
+## Core State Hooks
+
+The foundation of collaborative React applications - these hooks handle shared state synchronization:
+
+<CardGroup cols={2}>
+  <Card title="useStateTogether" icon="refresh" href="/react-together/hooks/use-state-together">
+    Works like useState but keeps all users in sync
+  </Card>
+  <Card title="useStateTogetherWithPerUserValues" icon="users" href="/react-together/hooks/use-state-together-with-per-user-values">
+    Shared state with individual per-user values
+  </Card>
+  <Card title="useFunctionTogether" icon="code" href="/react-together/hooks/use-function-together">
+    Execute functions across all connected users
+  </Card>
+</CardGroup>
+
+## Connection & Session Hooks
+
+Manage user connections and session state:
+
+<CardGroup cols={2}>
+  <Card title="useIsTogether" icon="link" href="/react-together/hooks/use-is-together">
+    Check if currently in a collaborative session
+  </Card>
+  <Card title="useIsSynchronized" icon="sync" href="/react-together/hooks/use-is-synchronized">
+    Check if local state is synchronized with other users
+  </Card>
+  <Card title="useConnectedUsers" icon="user-group" href="/react-together/hooks/use-connected-users">
+    Get list of all connected users
+  </Card>
+  <Card title="useMyId" icon="user" href="/react-together/hooks/use-my-id">
+    Get current user's unique identifier
+  </Card>
+</CardGroup>
+
+## Session Management Hooks
+
+Create, join, and leave collaborative sessions:
+
+<CardGroup cols={2}>
+  <Card title="useCreateRandomSession" icon="random" href="/react-together/hooks/use-create-random-session">
+    Create sessions with randomly generated IDs
+  </Card>
+  <Card title="useJoinUrl" icon="share" href="/react-together/hooks/use-join-url">
+    Generate shareable URLs for session joining
+  </Card>
+  <Card title="useLeaveSession" icon="sign-out" href="/react-together/hooks/use-leave-session">
+    Programmatically leave the current session
+  </Card>
+</CardGroup>
+
+## Communication Hooks
+
+Enable real-time communication between users:
+
+<CardGroup cols={2}>
+  <Card title="useChat" icon="comments" href="/react-together/hooks/use-chat">
+    Add chat functionality to your app
+  </Card>
+  <Card title="useCursors" icon="cursor" href="/react-together/hooks/use-cursors">
+    Show real-time cursor positions
+  </Card>
+  <Card title="useHoveringUsers" icon="hand-pointer" href="/react-together/hooks/use-hovering-users">
+    Track which users are hovering over elements
+  </Card>
+</CardGroup>
+
+## Utility Hooks
+
+Helper hooks for common patterns and data access:
+
+<CardGroup cols={2}>
+  <Card title="useNicknames" icon="tag" href="/react-together/hooks/use-nicknames">
+    Get human-readable nicknames for users
+  </Card>
+  <Card title="useAllNicknames" icon="tags" href="/react-together/hooks/use-all-nicknames">
+    Access nicknames of all users in session
+  </Card>
+</CardGroup>
+
+## Hook Categories
+
+### By Use Case
+
+<AccordionGroup>
+  <Accordion title="Building Shared State">
+    **Primary:** `useStateTogether`, `useStateTogetherWithPerUserValues`  
+    **Advanced:** `useFunctionTogether`
+  </Accordion>
+  
+  <Accordion title="Session Management">
+    **Creation:** `useCreateRandomSession`  
+    **Sharing:** `useJoinUrl`  
+    **Leaving:** `useLeaveSession`
+  </Accordion>
+  
+  <Accordion title="User Awareness">
+    **Connection Status:** `useIsTogether`, `useIsSynchronized`  
+    **User Information:** `useConnectedUsers`, `useMyId`, `useNicknames`
+  </Accordion>
+  
+  <Accordion title="Real-time Features">
+    **Communication:** `useChat`  
+    **Interaction:** `useCursors`, `useHoveringUsers`
+  </Accordion>
+</AccordionGroup>
+
+### By Complexity Level
+
+<AccordionGroup>
+  <Accordion title="Beginner-Friendly">
+    Start with these hooks for basic collaborative features:
+    - `useStateTogether` - Shared state
+    - `useConnectedUsers` - See who's online
+    - `useChat` - Add messaging
+  </Accordion>
+  
+  <Accordion title="Intermediate">
+    Add these for more sophisticated collaboration:
+    - `useStateTogetherWithPerUserValues` - Personal preferences
+    - `useCursors` - Show user activity
+    - `useJoinUrl` - Session sharing
+  </Accordion>
+  
+  <Accordion title="Advanced">
+    These hooks enable complex collaborative patterns:
+    - `useFunctionTogether` - Synchronized actions
+    - `useHoveringUsers` - Fine-grained interaction tracking
+    - `useIsSynchronized` - Connection state management
+  </Accordion>
+</AccordionGroup>
+
+## Common Patterns
+
+### Basic Collaborative Component
+
+```tsx
+import { useStateTogether, useConnectedUsers } from 'react-together'
+
+function CollaborativeCounter() {
+  const [count, setCount] = useStateTogether('counter', 0)
+  const connectedUsers = useConnectedUsers()
+  
+  return (
+    <div>
+      <h1>Count: {count}</h1>
+      <button onClick={() => setCount(count + 1)}>
+        Increment
+      </button>
+      <p>{connectedUsers.length} users connected</p>
+    </div>
+  )
+}
+```
+
+### Session Management
+
+```tsx
+import { useCreateRandomSession, useJoinUrl, useLeaveSession } from 'react-together'
+
+function SessionControls() {
+  const createSession = useCreateRandomSession()
+  const joinUrl = useJoinUrl()
+  const leaveSession = useLeaveSession()
+  
+  return (
+    <div>
+      <button onClick={() => createSession()}>
+        Create New Session
+      </button>
+      {joinUrl && (
+        <div>
+          <p>Share this URL:</p>
+          <code>{joinUrl}</code>
+        </div>
+      )}
+      <button onClick={() => leaveSession()}>
+        Leave Session
+      </button>
+    </div>
+  )
+}
+```
+
+### User Awareness
+
+```tsx
+import { useConnectedUsers, useNicknames, useCursors } from 'react-together'
+
+function UserAwareness() {
+  const connectedUsers = useConnectedUsers()
+  const nicknames = useNicknames()
+  const cursors = useCursors()
+  
+  return (
+    <div>
+      <h3>Connected Users:</h3>
+      {connectedUsers.map(user => (
+        <div key={user.userId}>
+          {nicknames[user.userId] || 'Anonymous'}
+        </div>
+      ))}
+      
+      {/* Render cursors */}
+      {cursors.map(cursor => (
+        <div
+          key={cursor.userId}
+          style={{
+            position: 'absolute',
+            left: cursor.x,
+            top: cursor.y,
+            pointerEvents: 'none'
+          }}
+        >
+          👆 {nicknames[cursor.userId]}
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Getting Started" icon="rocket" href="/react-together/getting-started">
+    Set up React Together in your project
+  </Card>
+  <Card title="Components" icon="puzzle-piece" href="/react-together/components">
+    Explore pre-built collaborative components
+  </Card>
+  <Card title="Utilities" icon="wrench" href="/react-together/utilities">
+    Helper functions for common tasks
+  </Card>
+  <Card title="Examples" icon="code" href="/tutorials">
+    See hooks in action with complete examples
+  </Card>
+</CardGroup> 
