@@ -1,0 +1,24 @@
+# Ignore the generated build directory
+.next/ # if using Next.js for the Mintlify backend
+build/ # common build output directory
+
+# Node.js dependencies
+node_modules/
+
+# Log files
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Operating System temporary files
+.DS_Store # Mac
+Thumbs.db # Windows
+
+# IDE configuration files
+.vscode/ # for Visual Studio Code
+.idea/ # for IntelliJ IDEA
+*.sublime-project
+*.sublime-workspace
