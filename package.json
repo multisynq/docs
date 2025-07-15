@@ -8,7 +8,9 @@
     "docs:deploy": "./build-docs.sh",
     "docs:serve": "mintlify dev",
     "lint": "echo 'No linting configured for MDX files yet'",
-    "clean": "rm -rf .mintlify"
+    "clean": "rm -rf .mintlify",
+    "generate:llms": "node scripts/generate-llms-txt.js",
+    "generate:llms:watch": "nodemon scripts/generate-llms-txt.js"
   },
   "keywords": [
     "multisynq",
@@ -20,9 +22,12 @@
   "author": "Multisynq",
   "license": "MIT",
   "dependencies": {
-    "mintlify": "^4.0.0"
+    "mintlify": "^4.0.0",
+    "gray-matter": "^4.0.3"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/multisynq/multisynq"

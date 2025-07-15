@@ -1,0 +1,27 @@
+{
+  "inputs": [
+    {
+      "type": "promptString"
+    }
+  ],
+  "servers": {
+    "multisynq-docs": {
+      "url": "https://gitmcp.io/_/docs"
+    },
+    "github-mcp": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://gitmcp.io/multisynq/multisynq"
+      ]
+    },
+    "git-mcp": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-git",
+        "--repository",
+        "."
+      ]
+    }
+  }
+}

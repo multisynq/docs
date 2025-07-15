@@ -1,5 +1,7 @@
 # Multisynq Documentation
 
+[![GitMCP Compatible](https://img.shields.io/badge/GitMCP-Compatible-006EFF?style=flat&logo=github&logoColor=white)](https://gitmcp.io/multisynq/multisynq)
+
 Welcome to the official documentation for Multisynq - the platform for building real-time collaborative applications.
 
 ## 🚀 Quick Start

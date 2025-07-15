@@ -1,0 +1,2629 @@
+# Multisynq Docs
+
+> Complete documentation for Multisynq - the platform for building real-time collaborative applications. Build multiplayer experiences with ease using our JavaScript SDK and React components.
+
+## Guides
+
+### Get Started
+- [Introduction](/index) - Welcome to Multisynq - Build real-time collaborative applications with ease
+- [Quickstart](/quickstart) - Start building real-time collaborative applications with Multisynq in under 5 minutes
+
+### Tutorials
+- [Hello World Tutorial](/tutorials/hello-world) - Build your first Multisynq application - a synchronized counter that updates in real-time across all users
+- [Simple Animation](/tutorials/simple-animation) - Learn to create multi-user shared animations and interactions with bouncing balls simulation
+- [Multi-user Chat](/tutorials/multiuser-chat) - Learn to track users, manage message history, and handle timeouts in a real-time chat application
+- [View Smoothing](/tutorials/view-smoothing) - Learn to create smooth animations by interpolating between model updates for better user experience
+- [3D Animation](/tutorials/3d-animation) - Learn to integrate Three.js with Multisynq for synchronized 3D experiences with interactive elements
+- [Multiblaster Game Tutorial](/tutorials/multiblaster-game) - Build a complete multiplayer game step-by-step with Multisynq - from asteroids to spaceships, shooting, scoring, and persistence
+
+### Conceptual
+- [Model-View-Synchronizer](/tutorials/model-view-synchronizer) - The core architecture pattern that powers Multisynq applications
+- [Events & Pub-Sub](/tutorials/events-pub-sub) - Master the event-driven communication system that powers Multisynq Model-View interactions
+- [Snapshots](/tutorials/snapshots) - Understand how Multisynq automatically saves and restores session state for persistence and new user synchronization
+- [Persistence](/tutorials/persistence) - Learn how to save application data across code changes and versions using Multisynq's persistence mechanism
+- [Sim Time & Future](/tutorials/sim-time-future) - Master Multisynq's simulation time and future scheduling system for synchronized time-based behaviors
+- [Writing a Multisynq Model](/tutorials/writing-multisynq-model) - Learn the essential constraints and best practices for building synchronized models that work perfectly across all users
+- [Writing a Multisynq View](/tutorials/writing-multisynq-view) - Learn how to build responsive, interactive views that display model state and handle user input while maintaining perfect synchronization
+- [Writing a Multisynq App](/tutorials/writing-multisynq-app) - Learn how to structure and launch complete Multisynq applications with models, views, and session management
+- [Random](/tutorials/random) - Understand how random number generation works in Multisynq models and views to maintain perfect synchronization
+- [Data API](/tutorials/data-api) - Learn how to handle file uploads, bulk data storage, and secure data sharing in Multisynq applications
+
+### Essentials
+- [Real-time Synchronization](/essentials/sync) - Learn how Multisynq achieves perfect synchronization through deterministic execution
+- [Collaborative Editing](/essentials/collaboration) - Build real-time collaborative editing experiences with Multisynq's Model-View architecture
+- [Real-time Chat](/essentials/chat) - Build real-time chat systems with Multisynq
+- [Shared Whiteboard](/essentials/whiteboard) - Create collaborative drawing canvases with Multisynq
+- [Conflict Resolution](/essentials/conflicts) - Understand how Multisynq handles conflicts in real-time collaborative applications
+- [Scaling Applications](/essentials/scaling) - Learn how to scale your Multisynq applications for high performance and large user bases
+
+### AI Development
+- [Vibe Coding with AI](/essentials/vibe-coding) - Train your AI assistant with Multisynq context files for seamless multiplayer development
+
+## React Together
+
+### Getting Started
+- [Getting Started with React Together](/react-together/getting-started) - Add real-time multi-user interaction to any React app with React Together. No backend or net-code required!
+
+### Core Hooks
+- [useStateTogether](/react-together/hooks/use-state-together) - Synchronize state across all users in real-time. Works exactly like React's useState but keeps all users in sync.
+- [useStateTogetherWithPerUserValues](/react-together/hooks/use-state-together-with-per-user-values) - Share state between users while tracking individual user values in real-time collaborative applications
+- [useFunctionTogether](/react-together/hooks/use-function-together) - Synchronize function execution across all users in real-time collaborative applications
+
+### Connection & Session Hooks
+- [useIsTogether](/react-together/hooks/use-is-together) - Check if the user is connected to a React Together session. Perfect for conditional rendering and connection-aware features.
+- [useIsSynchronized](/react-together/hooks/use-is-synchronized) - Check if your local state is synchronized with the shared model. Essential for building responsive real-time interfaces.
+- [useConnectedUsers](/react-together/hooks/use-connected-users) - Get information about all users connected to the current React Together session, including their nicknames and connection status.
+- [useMyId](/react-together/hooks/use-my-id) - Get the current user's unique identifier. Essential for user-specific functionality and personal state management.
+- [useCreateRandomSession](/react-together/hooks/use-create-random-session) - Create and connect to a new React Together session with randomly generated credentials
+- [useJoinUrl](/react-together/hooks/use-join-url) - Get the join URL for sharing the current React Together session with other users
+- [useLeaveSession](/react-together/hooks/use-leave-session) - Leave the current React Together session while preserving local state
+
+### Communication Hooks
+- [useChat](/react-together/hooks/use-chat) - Build real-time chat functionality into your React Together applications with message history and user identification.
+- [useCursors](/react-together/hooks/use-cursors) - Track and display real-time cursor positions of all users in your collaborative application, perfect for collaborative editing and design tools.
+- [useHoveringUsers](/react-together/hooks/use-hovering-users) - Track which users are hovering over specific DOM elements in real-time, perfect for interactive collaborative features.
+
+### Utility Hooks
+- [useNicknames](/react-together/hooks/use-nicknames) - Manage and retrieve user nicknames in your React Together session, enabling personalized collaborative experiences.
+- [useAllNicknames](/react-together/hooks/use-all-nicknames) - Access all user nicknames in the current React Together session for display and user identification
+
+### Components
+- [ReactTogether](/react-together/components/react-together) - The main context provider component that enables real-time collaboration features in your React application.
+- [SessionManager](/react-together/components/session-manager) - A complete session management UI component for creating, joining, and leaving collaboration sessions with QR code sharing.
+- [Chat](/react-together/components/chat) - A complete real-time chat component with customizable UI elements and automatic message synchronization.
+- [Cursors](/react-together/components/cursors) - Display live mouse cursors from all connected users with smooth animations and customizable appearance.
+- [ConnectedUsers](/react-together/components/connected-users) - Display connected users with customizable avatars and user information. Shows who's currently active in your collaborative session.
+- [HoverHighlighter](/react-together/components/hover-highlighter) - Wrap elements to highlight them when other users hover over them. Perfect for showing real-time user interactions and collaborative awareness.
+
+### Utilities
+- [Utilities Overview](/react-together/utilities/index) - Helper functions for URL manipulation, user management, and session handling in React Together applications.
+- [getJoinUrl](/react-together/utilities/get-join-url) - Create shareable URLs with embedded session parameters for inviting users to collaborative sessions.
+- [getCleanUrl](/react-together/utilities/get-clean-url) - Remove session parameters from URLs for clean navigation and URL management.
+- [getSessionNameFromUrl](/react-together/utilities/get-session-name-from-url) - Extract session names from URL query parameters for automatic session joining and URL parsing.
+- [getSessionPasswordFromUrl](/react-together/utilities/get-session-password-from-url) - Extract session passwords from URL hash parameters for secure automatic session joining.
+- [deriveNickname](/react-together/utilities/derive-nickname) - Generate human-readable nicknames from user IDs using the unique-names-generator library for consistent user identification.
+- [getUserColor](/react-together/utilities/get-user-color) - Generate consistent HSL color strings based on user IDs for visual user identification in collaborative interfaces.
+
+## API Reference
+
+### Core API
+- [API Reference](/api-reference/introduction) - Complete reference for the Multisynq client-side synchronized architecture
+- [Session](/api-reference/session) - The Session class provides the main entry point for joining and managing Multisynq sessions. It handles connection, synchronization, and session lifecycle.
+- [Model](/api-reference/model) - The Model class is the core synchronized object class in Multisynq. Models are automatically kept in sync across all users in a session.
+- [View](/api-reference/view) - The View class handles user interface, input processing, and display output for Multisynq applications. Views are local and non-synchronized.
+
+## Resources
+
+- [Dashboard](https://multisynq.io) - Dashboard access
+- [Community](https://discord.gg/multisynq) - Community access
+- [GitHub](https://github.com/multisynq) - GitHub access
+- [Repository](https://github.com/multisynq/multisynq) - Source code and examples
+- [Package](https://www.npmjs.com/package/@multisynq/client) - NPM package
+- [Support](https://discord.gg/multisynq) - Community support
+
+## Additional Information
+
+This documentation is automatically updated and maintained. For the most current information, visit [docs.multisynq.io](https://docs.multisynq.io)
+
+Generated by automated llms.txt generator on 2025-07-15T07:33:36.703Z
+
+---
+# COMPLETE DOCUMENTATION CONTENT
+
+
+## Introduction
+
+
+<img
+  className="block dark:hidden"
+  src="/images/end-of-backends.webp"
+  alt="End of Backends"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/end-of-backends.webp"
+  alt="End of Backends"
+/>
+
+## What is Multisynq?
+
+Multisynq is a powerful platform for building real-time collaborative applications. With Multisynq, you can create synchronized experiences that work seamlessly across multiple users and devices.
+
+<CardGroup cols={2}>
+  <Card
+    title="Get Started"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Start building your first Multisynq application in minutes
+  </Card>
+  <Card
+    title="API Reference"
+    icon="code"
+    href="/api-reference/introduction"
+  >
+    Explore our comprehensive API documentation
+  </Card>
+</CardGroup>
+
+## Key Features
+
+Build powerful real-time applications with these core Multisynq features:
+
+<CardGroup cols={2}>
+  <Card
+    title="Real-time Synchronization"
+    icon="refresh"
+    href="/essentials/sync"
+  >
+    Keep all users in sync with automatic state synchronization
+  </Card>
+  <Card
+    title="Collaborative Editing"
+    icon="users"
+    href="/essentials/collaboration"
+  >
+    Enable multiple users to edit content simultaneously
+  </Card>
+  <Card
+    title="Conflict Resolution"
+    icon="shield-check"
+    href="/essentials/conflicts"
+  >
+    Intelligent conflict resolution for seamless collaboration
+  </Card>
+  <Card
+    title="Scalable Architecture"
+    icon="expand"
+    href="/essentials/scaling"
+  >
+    Built to scale from prototype to production
+  </Card>
+</CardGroup>
+
+## Start Building
+
+Ready to create your first Multisynq application? Check out our quickstart guide to get up and running in minutes.
+
+<Card
+  title="Quickstart Guide"
+  icon="rocket"
+  href="/quickstart"
+>
+  Build your first real-time collaborative app with Multisynq
+</Card>
+
+
+## Quickstart
+
+
+## Get Your API Key
+
+Before you begin, get your free API key from [multisynq.io/coder](https://multisynq.io/coder).
+
+## Create Your First Multisynq App
+
+### Step 1: Set Up HTML Structure
+
+Create an HTML file with the Multisynq client library:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #counter { font-size: 24px; margin: 20px 0; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>My First Multisynq App</h1>
+    <div id="counter">Count: 0</div>
+    <button id="increment">+1</button>
+    <button id="reset">Reset</button>
+</body>
+</html>
+```
+
+### Step 2: Create Your Model
+
+The Model contains your application logic and handles all state changes:
+
+```javascript
+class CounterModel extends Multisynq.Model {
+    init() {
+        // Initialize the counter
+        this.count = 0;
+        
+        // Subscribe to events from views
+        this.subscribe(this.sessionId, "increment", this.handleIncrement);
+        this.subscribe(this.sessionId, "reset", this.handleReset);
+    }
+    
+    handleIncrement() {
+        this.count += 1;
+        // Notify all views of the change
+        this.publish(this.sessionId, "countChanged", this.count);
+    }
+    
+    handleReset() {
+        this.count = 0;
+        this.publish(this.sessionId, "countChanged", this.count);
+    }
+}
+```
+
+### Step 3: Create Your View
+
+The View handles user interaction and displays the current state:
+
+```javascript
+class CounterView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        
+        // Subscribe to model updates
+        this.subscribe(this.sessionId, "countChanged", this.updateDisplay);
+        
+        // Set up UI event listeners
+        this.setupUI();
+        
+        // Display initial state
+        this.updateDisplay(model.count);
+    }
+    
+    setupUI() {
+        document.getElementById("increment").addEventListener("click", () => {
+            // Send event to model
+            this.publish(this.sessionId, "increment");
+        });
+        
+        document.getElementById("reset").addEventListener("click", () => {
+            this.publish(this.sessionId, "reset");
+        });
+    }
+    
+    updateDisplay(count) {
+        document.getElementById("counter").textContent = `Count: ${count}`;
+    }
+}
+```
+
+### Step 4: Start Your Session
+
+Connect everything together and start your collaborative session:
+
+```javascript
+// Start the Multisynq session
+Multisynq.Session.join({
+    apiKey: "your-api-key-here",           // Get from multisynq.io/coder
+    appId: "com.example.counter",          // Your unique app ID
+    model: CounterModel,                   // Your model class
+    view: CounterView,                     // Your view class
+    name: Multisynq.App.autoSession(),     // Auto session name from URL
+    password: Multisynq.App.autoPassword() // Auto password from URL
+}).then(session => {
+    console.log("Joined session:", session.id);
+    
+    // Show QR code for easy sharing
+    Multisynq.App.makeWidgetDock();
+});
+```
+
+## Complete Example
+
+<AccordionGroup>
+  <Accordion icon="code" title="Complete HTML File">
+    Here's the complete working example:
+    
+    ```html
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.min.js"></script>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            #counter { font-size: 24px; margin: 20px 0; }
+            button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+        </style>
+    </head>
+    <body>
+        <h1>My First Multisynq App</h1>
+        <div id="counter">Count: 0</div>
+        <button id="increment">+1</button>
+        <button id="reset">Reset</button>
+        
+        <script>
+            class CounterModel extends Multisynq.Model {
+                init() {
+                    this.count = 0;
+                    this.subscribe(this.sessionId, "increment", this.handleIncrement);
+                    this.subscribe(this.sessionId, "reset", this.handleReset);
+                }
+                
+                handleIncrement() {
+                    this.count += 1;
+                    this.publish(this.sessionId, "countChanged", this.count);
+                }
+                
+                handleReset() {
+                    this.count = 0;
+                    this.publish(this.sessionId, "countChanged", this.count);
+                }
+            }
+            
+            class CounterView extends Multisynq.View {
+                constructor(model) {
+                    super(model);
+                    this.subscribe(this.sessionId, "countChanged", this.updateDisplay);
+                    this.setupUI();
+                    this.updateDisplay(model.count);
+                }
+                
+                setupUI() {
+                    document.getElementById("increment").addEventListener("click", () => {
+                        this.publish(this.sessionId, "increment");
+                    });
+                    
+                    document.getElementById("reset").addEventListener("click", () => {
+                        this.publish(this.sessionId, "reset");
+                    });
+                }
+                
+                updateDisplay(count) {
+                    document.getElementById("counter").textContent = `Count: ${count}`;
+                }
+            }
+            
+            // Start your Multisynq session
+            Multisynq.Session.join({
+                apiKey: "your-api-key-here",
+                appId: "com.example.counter",
+                model: CounterModel,
+                view: CounterView,
+                name: Multisynq.App.autoSession(),
+                password: Multisynq.App.autoPassword()
+            }).then(session => {
+                console.log("Joined session:", session.id);
+                Multisynq.App.makeWidgetDock();
+            });
+        </script>
+    </body>
+    </html>
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## How It Works
+
+### Model-View Architecture
+Multisynq uses a strict Model-View separation:
+
+- **Model**: Contains all application logic and state. Runs in a deterministic virtual machine to ensure synchronization.
+- **View**: Handles user interface and user input. Can read from the model but never writes to it directly.
+- **Events**: All communication between Model and View happens through events.
+
+### Automatic Synchronization
+When you run this app:
+
+1. All users join the same session using the session name and password
+2. The Model runs identically on every user's device
+3. User actions trigger events that are synchronized across all clients
+4. Every user sees the same counter value in real-time
+
+### Testing Your App
+
+1. Replace `"your-api-key-here"` with your actual API key
+2. Open the HTML file in your browser
+3. Use the QR code to join from other devices
+4. Click the buttons - all connected users will see the updates instantly!
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Learn the Model API"
+    icon="cube"
+    href="/api-reference/model"
+  >
+    Deep dive into Models, events, and state management
+  </Card>
+  <Card
+    title="Learn the View API"
+    icon="eye"
+    href="/api-reference/view"
+  >
+    Understand Views, user interaction, and UI updates
+  </Card>
+  <Card
+    title="Session Management"
+    icon="users"
+    href="/api-reference/session"
+  >
+    Advanced session configuration and management
+  </Card>
+  <Card
+    title="Real Examples"
+    icon="rocket"
+    href="/tutorials/hello-world"
+  >
+    Explore comprehensive tutorials and examples
+  </Card>
+</CardGroup>
+
+
+## API Reference
+
+
+## Welcome to Multisynq
+
+Multisynq provides a revolutionary client-side synchronized architecture for building real-time collaborative applications. Unlike traditional server-client architectures, Multisynq runs your application logic on every user's device in perfect synchronization.
+
+## Core Architecture
+
+### Client-Side Synchronization
+Multisynq applications run entirely on the client side. All application logic executes on every user's device in a deterministic virtual machine, ensuring perfect synchronization without custom server code.
+
+### Model-View Separation
+Multisynq enforces a strict architectural pattern:
+
+- **Model**: Contains all application logic and state. Runs in a deterministic VM.
+- **View**: Handles user interface and input. Can read from the model but never writes directly.
+- **Events**: All communication happens through a publish-subscribe event system.
+
+### Reflector Network
+Simple, stateless message-passing servers handle:
+- Event ordering from all clients into a canonical stream
+- Synchronized time (heartbeat ticks)
+- No application logic execution
+
+## Getting Started
+
+### Installation
+
+Add Multisynq to your HTML page:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.min.js"></script>
+```
+
+Or import as ES module:
+
+```javascript
+import * as Multisynq from "https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.esm.js";
+```
+
+### API Key
+
+Get your free API key from [multisynq.io/coder](https://multisynq.io/coder).
+
+### Basic Usage
+
+```javascript
+// Define your Model
+class MyModel extends Multisynq.Model {
+    init() {
+        this.data = {};
+        this.subscribe(this.sessionId, "userEvent", this.handleUserEvent);
+    }
+    
+    handleUserEvent(data) {
+        // Update model state
+        this.data = data;
+        this.publish(this.sessionId, "dataChanged", this.data);
+    }
+}
+
+// Define your View
+class MyView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.subscribe(this.sessionId, "dataChanged", this.updateUI);
+    }
+    
+    updateUI(data) {
+        // Update your user interface
+    }
+}
+
+// Join a session
+Multisynq.Session.join({
+    apiKey: "your-api-key",
+    appId: "com.example.myapp",
+    model: MyModel,
+    view: MyView
+});
+```
+
+## Core APIs
+
+<CardGroup cols={2}>
+  <Card
+    title="Session"
+    icon="users"
+    href="/api-reference/session"
+  >
+    Join sessions and manage connection lifecycle
+  </Card>
+  <Card
+    title="Model"
+    icon="cube"
+    href="/api-reference/model"
+  >
+    Application logic, state management, and events
+  </Card>
+  <Card
+    title="View"
+    icon="eye"
+    href="/api-reference/view"
+  >
+    User interface, input handling, and rendering
+  </Card>
+  <Card
+    title="App Utilities"
+    icon="wrench"
+    href="/api-reference/app"
+  >
+    Session URLs, QR codes, and debugging tools
+  </Card>
+</CardGroup>
+
+## Key Concepts
+
+### Deterministic Execution
+All Model code runs in a deterministic virtual machine (Teatime). Given the same initial state and event sequence, every client produces identical results.
+
+### Event-Driven Architecture
+- Models communicate through events
+- Views can read model state but never write directly
+- All state changes flow through event handlers
+
+### Automatic Synchronization
+- No manual sync code required
+- Every user sees identical application state
+- Built-in conflict resolution through deterministic execution
+
+## Development Tools
+
+### Widget Dock
+Add a floating QR code and debug panel:
+
+```javascript
+Multisynq.App.makeWidgetDock();
+```
+
+### Auto Session Management
+Automatically handle session names and passwords from URLs:
+
+```javascript
+Multisynq.Session.join({
+    // ... other options
+    name: Multisynq.App.autoSession(),      // From ?q= parameter
+    password: Multisynq.App.autoPassword()  // From #pw= hash
+});
+```
+
+### Debug Options
+Enable detailed logging:
+
+```javascript
+Multisynq.Session.join({
+    // ... other options
+    debug: ["session", "messages", "events"]
+});
+```
+
+## Application Examples
+
+### Counter App
+```javascript
+class CounterModel extends Multisynq.Model {
+    init() {
+        this.count = 0;
+        this.subscribe(this.sessionId, "increment", this.increment);
+    }
+    
+    increment() {
+        this.count++;
+        this.publish(this.sessionId, "countChanged", this.count);
+    }
+}
+```
+
+### Chat System
+```javascript
+class ChatModel extends Multisynq.Model {
+    init() {
+        this.messages = [];
+        this.subscribe(this.sessionId, "sendMessage", this.addMessage);
+    }
+    
+    addMessage(messageData) {
+        this.messages.push({
+            id: this.random(), // Deterministic random
+            text: messageData.text,
+            user: messageData.user,
+            timestamp: this.now() // Synchronized time
+        });
+        this.publish(this.sessionId, "messagesUpdated", this.messages);
+    }
+}
+```
+
+## Next Steps
+
+Ready to build with Multisynq? Start with our comprehensive guides:
+
+<CardGroup cols={2}>
+  <Card
+    title="Quickstart Tutorial"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Build your first app in 5 minutes
+  </Card>
+  <Card
+    title="Hello World Tutorial"
+    icon="play"
+    href="/tutorials/hello-world"
+  >
+    Step-by-step comprehensive tutorial
+  </Card>
+</CardGroup>
+
+## Support
+
+- **Documentation**: Complete API reference and tutorials
+- **Community**: [GitHub Discussions](https://github.com/multisynq/community)
+- **API Keys**: Get started at [multisynq.io/coder](https://multisynq.io/coder)
+
+
+## Session
+
+
+## Overview
+
+The **Session** class is the foundation of every Multisynq application. It connects users to shared sessions, manages the lifecycle of Models and Views, and ensures synchronized execution across all participants.
+
+<Info>
+**Key Concept**: `Session.join()` is how you start a Multisynq application. It connects to a reflector, creates your Model and View instances, and begins synchronization.
+</Info>
+
+## Quick Start
+
+```javascript
+Multisynq.Session.join({
+    apiKey: "your_api_key_here",           // Get from multisynq.io/coder
+    appId: "com.example.myapp",            // Your app identifier
+    name: Multisynq.App.autoSession(),     // Auto-generated session name
+    password: Multisynq.App.autoPassword(), // Auto-generated password
+    model: MyGameModel,                    // Your Model class
+    view: MyGameView                       // Your View class
+}).then(session => {
+    console.log("Joined session:", session.id);
+});
+```
+
+## Session.join()
+
+The primary method for creating or joining a Multisynq session.
+
+### Basic Usage
+
+```javascript
+const session = await Multisynq.Session.join({
+    apiKey: "your_api_key",
+    appId: "com.example.myapp", 
+    model: MyModel,
+    view: MyView
+});
+```
+
+### Parameters
+
+`Session.join()` accepts a single configuration object with the following properties:
+
+#### Required Parameters
+
+<ParamField path="apiKey" type="string" required>
+  Your API key from [multisynq.io/coder](https://multisynq.io/coder)
+</ParamField>
+
+<ParamField path="appId" type="string" required>
+  Unique application identifier in dot-separated format (e.g., "com.example.myapp")
+</ParamField>
+
+<ParamField path="model" type="class" required>
+  Your Model class that extends `Multisynq.Model`
+</ParamField>
+
+#### Essential Parameters
+
+<ParamField path="view" type="class">
+  Your View class that extends `Multisynq.View`. If omitted, a default View is created.
+</ParamField>
+
+<ParamField path="name" type="string">
+  Session name to join or create. Use `Multisynq.App.autoSession()` for URL-based names.
+</ParamField>
+
+<ParamField path="password" type="string">
+  Session password for end-to-end encryption. Use `Multisynq.App.autoPassword()` for URL-based passwords.
+</ParamField>
+
+#### Configuration Parameters
+
+<ParamField path="options" type="object">
+  Options passed to your Model's `init()` method
+</ParamField>
+
+<ParamField path="viewOptions" type="object">
+  Options passed to your View's constructor
+</ParamField>
+
+<ParamField path="viewData" type="object">
+  Data included in "view-join" and "view-exit" events
+</ParamField>
+
+#### Performance Parameters
+
+<ParamField path="step" type="string" default="auto">
+  Stepping mode: `"auto"` for automatic stepping via `requestAnimationFrame`, or `"manual"` to control stepping yourself
+</ParamField>
+
+<ParamField path="tps" type="number" default="20">
+  Ticks per second from reflector (1-60). Higher values provide more responsive updates.
+</ParamField>
+
+<ParamField path="eventRateLimit" type="number" default="20">
+  Maximum events sent to reflector per second (1-60)
+</ParamField>
+
+<ParamField path="autoSleep" type="number | boolean" default="10">
+  Seconds before going dormant when app is hidden. `false` = never sleep, `true` = 10 seconds.
+</ParamField>
+
+<ParamField path="rejoinLimit" type="number" default="1000">
+  Milliseconds until view is destroyed after disconnection
+</ParamField>
+
+#### Server Parameters
+
+<ParamField path="reflector" type="string">
+  URL of custom reflector server (defaults to public reflector)
+</ParamField>
+
+<ParamField path="files" type="string">
+  URL of custom file server (defaults to public file server)
+</ParamField>
+
+<ParamField path="box" type="string">
+  Croquet-in-a-box server URL (combines reflector + file server)
+</ParamField>
+
+#### Debug Parameters
+
+<ParamField path="debug" type="string | string[]">
+  Debug options for console logging. Can be comma-separated string or array.
+</ParamField>
+
+### Debug Options
+
+<AccordionGroup>
+  <Accordion title="Available Debug Options">
+    | Option | Description |
+    |--------|-------------|
+    | `"session"` | Session ID and connection status |
+    | `"messages"` | Messages received from reflector |
+    | `"sends"` | Messages sent to reflector |
+    | `"snapshot"` | Snapshot statistics |
+    | `"data"` | Data API usage statistics |
+    | `"hashing"` | Code hashing for session ID generation |
+    | `"subscribe"` | Event subscription changes |
+    | `"publish"` | Event publishing activity |
+    | `"classes"` | Model/View class registrations |
+    | `"ticks"` | Individual tick processing |
+    | `"write"` | Detect accidental model writes from views |
+    | `"offline"` | Disable multiuser for testing |
+  </Accordion>
+</AccordionGroup>
+
+```javascript
+// Multiple debug options
+Multisynq.Session.join({
+    // ... other parameters
+    debug: ["session", "messages", "subscribe"]
+});
+
+// Single debug option
+Multisynq.Session.join({
+    // ... other parameters  
+    debug: "session"
+});
+```
+
+### Return Value
+
+`Session.join()` returns a Promise that resolves to a session object:
+
+```javascript
+{
+    id: "session-id-string",           // Unique session identifier
+    view: viewInstance,                // Your view instance
+    step: function(time) { ... },     // Manual stepping function
+    leave: async function() { ... }   // Leave session function
+}
+```
+
+## Session Properties
+
+### `id`
+<ParamField path="id" type="string" readonly>
+  Unique session identifier combining persistent ID and version ID
+</ParamField>
+
+```javascript
+const session = await Multisynq.Session.join({ /* ... */ });
+console.log("Session ID:", session.id);
+// Output: "abc123-def456-v1"
+```
+
+### `name` 
+<ParamField path="name" type="string" readonly>
+  The session name provided to `Session.join()`
+</ParamField>
+
+### `persistentId`
+<ParamField path="persistentId" type="string" readonly>
+  Persistent identifier that remains constant across code deployments
+</ParamField>
+
+### `data`
+<ParamField path="data" type="object" readonly>
+  Interface to the bulk Data API for this session
+</ParamField>
+
+## Session Methods
+
+### `leave()`
+
+Leave the current session permanently.
+
+<ParamField returns="Promise">
+  Promise that resolves when session is left
+</ParamField>
+
+```javascript
+const session = await Multisynq.Session.join({ /* ... */ });
+
+// Later, leave the session
+await session.leave();
+console.log("Left session");
+
+// To rejoin, you must call Session.join() again
+```
+
+### `step(time)`
+
+Manually advance the session (only for manual stepping mode).
+
+<ParamField path="time" type="number" required>
+  Current time in milliseconds (monotonically increasing)
+</ParamField>
+
+```javascript
+const session = await Multisynq.Session.join({
+    // ... other parameters
+    step: "manual"
+});
+
+function gameLoop(timestamp) {
+    session.step(timestamp);
+    // ... your rendering code
+    requestAnimationFrame(gameLoop);
+}
+
+requestAnimationFrame(gameLoop);
+```
+
+## Usage Examples
+
+### Basic Application
+
+```javascript
+class GameModel extends Multisynq.Model {
+    init() {
+        this.players = [];
+        this.score = 0;
+        this.subscribe(this.sessionId, "playerJoined", this.addPlayer);
+    }
+    
+    addPlayer(data) {
+        this.players.push(data);
+        this.publish(this.sessionId, "playersUpdated", this.players);
+    }
+}
+
+class GameView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.subscribe(this.sessionId, "playersUpdated", this.updatePlayerList);
+    }
+    
+    updatePlayerList(players) {
+        // Update UI with current players
+    }
+}
+
+GameModel.register("GameModel");
+
+// Start the application
+Multisynq.Session.join({
+    apiKey: "your_api_key_here",
+    appId: "com.example.mygame",
+    name: "game-room-1",
+    password: "secret123", 
+    model: GameModel,
+    view: GameView
+});
+```
+
+### Auto-Generated Session Names
+
+Use URL parameters to automatically generate session names and passwords:
+
+```javascript
+// URL: https://myapp.com/?session=abc123&password=secret
+Multisynq.Session.join({
+    apiKey: "your_api_key",
+    appId: "com.example.myapp",
+    name: Multisynq.App.autoSession(),     // Gets "abc123" from URL
+    password: Multisynq.App.autoPassword(), // Gets "secret" from URL
+    model: MyModel,
+    view: MyView
+});
+```
+
+### Development Mode with Debug
+
+```javascript
+Multisynq.Session.join({
+    apiKey: "your_api_key",
+    appId: "com.example.myapp", 
+    name: "dev-session",
+    model: MyModel,
+    view: MyView,
+    debug: ["session", "messages", "subscribe"],
+    tps: 60,  // Higher tick rate for development
+    eventRateLimit: 60  // Higher event rate for testing
+});
+```
+
+### WebXR with Manual Stepping
+
+```javascript
+const session = await Multisynq.Session.join({
+    apiKey: "your_api_key",
+    appId: "com.example.vrapp",
+    name: "vr-room",
+    model: VRModel,
+    view: VRView,
+    step: "manual"  // Control stepping for VR frame rate
+});
+
+// WebXR render loop
+function xrAnimationFrame(time, xrFrame) {
+    session.step(time);
+    
+    // Your VR rendering code here
+    renderer.render(scene, camera);
+    
+    xrSession.requestAnimationFrame(xrAnimationFrame);
+}
+
+xrSession.requestAnimationFrame(xrAnimationFrame);
+```
+
+### Production Configuration
+
+```javascript
+Multisynq.Session.join({
+    apiKey: process.env.MULTISYNQ_API_KEY,
+    appId: "com.mycompany.myapp",
+    name: generateSessionFromRoomCode(roomCode),
+    password: generateSecurePassword(),
+    model: ProductionModel,
+    view: ProductionView,
+    tps: 30,
+    autoSleep: 300,  // 5 minutes
+    rejoinLimit: 5000,  // 5 seconds for reconnection
+    eventRateLimit: 30
+});
+```
+
+## Session Lifecycle
+
+<Steps>
+  <Step title="Connection">
+    `Session.join()` connects to the reflector using your API key
+  </Step>
+  <Step title="Model Creation">
+    Your Model class is instantiated and `init()` is called
+  </Step>
+  <Step title="View Creation">
+    Your View class is instantiated with a reference to the model
+  </Step>
+  <Step title="Synchronization">
+    The session begins processing events and maintaining sync
+  </Step>
+  <Step title="Operation">
+    Models and Views communicate through publish/subscribe events
+  </Step>
+  <Step title="Cleanup">
+    Call `session.leave()` or close browser to end session
+  </Step>
+</Steps>
+
+## Error Handling
+
+```javascript
+try {
+    const session = await Multisynq.Session.join({
+        apiKey: "your_api_key",
+        appId: "com.example.myapp",
+        model: MyModel,
+        view: MyView
+    });
+    
+    console.log("Successfully joined session:", session.id);
+    
+} catch (error) {
+    console.error("Failed to join session:", error);
+    
+    // Handle specific error types
+    if (error.message.includes("invalid API key")) {
+        showError("Please check your API key");
+    } else if (error.message.includes("network")) {
+        showError("Please check your internet connection");
+    } else {
+        showError("Unable to connect to session");
+    }
+}
+```
+
+## Multiple Sessions
+
+You can join multiple sessions simultaneously:
+
+```javascript
+// Join a game session
+const gameSession = await Multisynq.Session.join({
+    apiKey: "your_api_key",
+    appId: "com.example.game",
+    name: "game-room",
+    model: GameModel,
+    view: GameView
+});
+
+// Join a chat session
+const chatSession = await Multisynq.Session.join({
+    apiKey: "your_api_key", 
+    appId: "com.example.chat",
+    name: "chat-room",
+    model: ChatModel,
+    view: ChatView
+});
+
+// Clean up both sessions
+await Promise.all([
+    gameSession.leave(),
+    chatSession.leave()
+]);
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Environment Variables" icon="shield-check">
+    Keep API keys secure and configurable
+    ```javascript
+    apiKey: process.env.MULTISYNQ_API_KEY
+    ```
+  </Card>
+  
+  <Card title="Handle Errors Gracefully" icon="exclamation-triangle">
+    Always wrap `Session.join()` in try-catch
+    ```javascript
+    try {
+        const session = await Multisynq.Session.join({...});
+    } catch (error) {
+        handleConnectionError(error);
+    }
+    ```
+  </Card>
+  
+  <Card title="Use Descriptive App IDs" icon="tag">
+    Follow reverse domain name convention
+    ```javascript
+    appId: "com.yourcompany.yourapp"
+    ```
+  </Card>
+  
+  <Card title="Configure for Your Use Case" icon="sliders">
+    Adjust performance parameters as needed
+    ```javascript
+    tps: 60,              // High refresh rate
+    eventRateLimit: 30,   // Moderate event rate
+    autoSleep: false      // Never sleep
+    ```
+  </Card>
+</CardGroup>
+
+## Session Events
+
+Your Models can subscribe to system session events:
+
+```javascript
+class MyModel extends Multisynq.Model {
+    init() {
+        // Listen for users joining/leaving
+        this.subscribe(this.sessionId, "view-join", this.handleUserJoin);
+        this.subscribe(this.sessionId, "view-exit", this.handleUserLeave);
+    }
+    
+    handleUserJoin(viewId) {
+        console.log("User joined:", viewId);
+        this.userCount++;
+        this.publish(this.sessionId, "userCountChanged", this.userCount);
+    }
+    
+    handleUserLeave(viewId) {
+        console.log("User left:", viewId);
+        this.userCount--;
+        this.publish(this.sessionId, "userCountChanged", this.userCount);
+    }
+}
+```
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Model Class" icon="gear" href="/api-reference/model">
+    Learn about synchronized application logic
+  </Card>
+  <Card title="View Class" icon="eye" href="/api-reference/view">
+    Understand user interface and input handling
+  </Card>
+  <Card title="Hello World Tutorial" icon="rocket" href="/tutorials/hello-world">
+    See Session.join() in action
+  </Card>
+  <Card title="Model-View Architecture" icon="sitemap" href="/tutorials/model-view-synchronizer">
+    Deep dive into the core concepts
+  </Card>
+</CardGroup>
+
+## Model
+
+
+## Overview
+
+The **Model** class provides the foundation for all synchronized objects in Multisynq applications. Models handle computation, maintain state, and ensure that all users see identical behavior through deterministic execution.
+
+<Info>
+**Key Concept**: Models run identically on every user's device, ensuring perfect synchronization. They communicate with Views only through publish/subscribe events.
+</Info>
+
+## Core Principles
+
+<CardGroup cols={2}>
+  <Card title="Deterministic Execution" icon="sync">
+    All models execute identically across users, ensuring synchronized state
+  </Card>
+  <Card title="Event-Driven Communication" icon="broadcast-tower">
+    Models communicate with Views only through publish/subscribe events
+  </Card>
+  <Card title="Automatic Synchronization" icon="refresh">
+    Model state is automatically kept in sync across all session participants
+  </Card>
+  <Card title="Time Management" icon="clock">
+    Models can schedule future events for time-based behavior
+  </Card>
+</CardGroup>
+
+## Critical Rules
+
+<Warning>
+**Implementation Requirements**:
+- **NEVER use `new` constructor** - Always use `Model.create()`
+- **NEVER override the constructor** - Override `init()` method instead  
+- **Always call `Model.register(classId)`** for all Model subclasses
+- **Always call `destroy()`** when model instance is no longer needed
+</Warning>
+
+## Basic Usage
+
+### Defining a Model
+
+```javascript
+class GameModel extends Multisynq.Model {
+    init(options = {}) {
+        super.init(options);
+        this.score = 0;
+        this.players = [];
+        
+        // Subscribe to events from views
+        this.subscribe(this.sessionId, "playerJoined", this.addPlayer);
+        this.subscribe(this.sessionId, "scoreChanged", this.updateScore);
+        
+        // Start game loop
+        this.future(1000).gameLoop();
+    }
+    
+    addPlayer(data) {
+        this.players.push(data);
+        this.publish(this.sessionId, "playersUpdated", this.players);
+    }
+    
+    updateScore(data) {
+        this.score += data.points;
+        this.publish(this.sessionId, "scoreUpdated", this.score);
+    }
+    
+    gameLoop() {
+        // Game logic here
+        this.future(1000).gameLoop(); // Schedule next update
+    }
+}
+
+// Required registration
+GameModel.register("GameModel");
+```
+
+### Creating Model Instances
+
+```javascript
+// Correct way to create models
+const childModel = ChildModel.create({ 
+    name: "example",
+    value: 42 
+});
+
+// Wrong - never use 'new'
+// const model = new ChildModel(); // DON'T DO THIS
+```
+
+## Properties
+
+### `id`
+<ParamField path="id" type="string" readonly>
+  Unique identifier for the model within the session
+</ParamField>
+
+```javascript
+init() {
+    // Use model ID to scope events
+    this.subscribe(this.id, "changed", this.handleChange);
+    this.publish(this.id, "initialized");
+}
+```
+
+### `sessionId` 
+<ParamField path="sessionId" type="string" readonly>
+  Global session identifier shared by all users
+</ParamField>
+
+```javascript
+init() {
+    // Subscribe to global session events
+    this.subscribe(this.sessionId, "view-join", this.handleUserJoin);
+    this.subscribe(this.sessionId, "view-exit", this.handleUserLeave);
+}
+```
+
+### `viewCount`
+<ParamField path="viewCount" type="number" readonly>
+  Number of users currently in the session
+</ParamField>
+
+```javascript
+handleUserJoin() {
+    console.log(`Total users: ${this.viewCount}`);
+    
+    // Adjust game difficulty based on user count
+    if (this.viewCount > 4) {
+        this.increaseDifficulty();
+    }
+}
+```
+
+### `activeSubscription`
+<ParamField path="activeSubscription" type="object" readonly>
+  Information about the currently executing subscription handler
+</ParamField>
+
+```javascript
+handleEvent() {
+    console.log("Handling:", this.activeSubscription);
+    // Output: { scope: "gameId", event: "playerMoved", source: "view" }
+}
+```
+
+## Core Methods
+
+### `init(options, persistentData)`
+
+Override this method to initialize your model. Called automatically by `create()`.
+
+<ParamField path="options" type="object">
+  Configuration options passed to `create()`
+</ParamField>
+
+<ParamField path="persistentData" type="object">
+  Data restored from previous sessions (if using persistence)
+</ParamField>
+
+```javascript
+class PlayerModel extends Multisynq.Model {
+    init(options = {}) {
+        super.init(options);
+        
+        this.name = options.name || "Anonymous";
+        this.position = options.position || { x: 0, y: 0 };
+        this.health = options.health || 100;
+        
+        // Set up event handlers
+        this.subscribe(this.id, "move", this.handleMove);
+        this.subscribe(this.id, "takeDamage", this.takeDamage);
+    }
+    
+    handleMove(data) {
+        this.position = data.position;
+        this.publish(this.sessionId, "playerMoved", {
+            playerId: this.id,
+            position: this.position
+        });
+    }
+}
+```
+
+### `publish(scope, event, data)`
+
+Send an event to a specific scope. Primary communication method with Views.
+
+<ParamField path="scope" type="string" required>
+  Event scope (often `this.sessionId` for global events)
+</ParamField>
+
+<ParamField path="event" type="string" required>
+  Event name
+</ParamField>
+
+<ParamField path="data" type="any">
+  Data to send with the event
+</ParamField>
+
+```javascript
+// Publish to all users in session
+this.publish(this.sessionId, "gameStarted", { 
+    startTime: this.now(),
+    playerCount: this.viewCount 
+});
+
+// Publish to specific model instance
+this.publish(this.id, "healthChanged", { 
+    health: this.health,
+    maxHealth: this.maxHealth 
+});
+
+// Publish to specific view
+this.publish(viewId, "privateMessage", { 
+    from: "server", 
+    message: "Welcome!" 
+});
+```
+
+### `subscribe(scope, event, handler)`
+
+Register an event handler for specific events.
+
+<ParamField path="scope" type="string" required>
+  Event scope to listen to
+</ParamField>
+
+<ParamField path="event" type="string" required>
+  Event name to handle
+</ParamField>
+
+<ParamField path="handler" type="function" required>
+  Method to call when event occurs
+</ParamField>
+
+```javascript
+init() {
+    // Listen for user actions
+    this.subscribe(this.sessionId, "userAction", this.handleUserAction);
+    
+    // Listen for system events
+    this.subscribe(this.sessionId, "view-join", this.handleUserJoin);
+    this.subscribe(this.sessionId, "view-exit", this.handleUserLeave);
+    
+    // Listen for model-specific events
+    this.subscribe(this.id, "configure", this.configure);
+}
+
+handleUserAction(data) {
+    const { userId, action, payload } = data;
+    // Process user action
+}
+```
+
+### `unsubscribe(scope, event, handler)`
+
+Remove event handler(s).
+
+```javascript
+// Unsubscribe specific handler
+this.unsubscribe(this.sessionId, "gameEvent", this.handleGameEvent);
+
+// Unsubscribe all handlers for event
+this.unsubscribe(this.sessionId, "gameEvent");
+
+// Unsubscribe all handlers for scope
+this.unsubscribe(this.sessionId);
+```
+
+### `future(milliseconds)`
+
+Schedule a method call for future execution.
+
+<ParamField path="milliseconds" type="number" default="0">
+  Delay in milliseconds before execution
+</ParamField>
+
+```javascript
+init() {
+    // Start immediate game loop
+    this.future(0).gameLoop();
+    
+    // Schedule periodic saves
+    this.future(30000).autoSave(); // Every 30 seconds
+}
+
+gameLoop() {
+    this.updateGame();
+    this.checkWinConditions();
+    
+    // Schedule next frame (60 FPS)
+    this.future(16.67).gameLoop();
+}
+
+autoSave() {
+    this.saveGameState();
+    this.future(30000).autoSave(); // Schedule next save
+}
+```
+
+### `cancelFuture(method)`
+
+Cancel a previously scheduled future message.
+
+<ParamField path="method" type="function" required>
+  The method that was scheduled
+</ParamField>
+
+<ParamField returns="boolean">
+  True if message was found and canceled
+</ParamField>
+
+```javascript
+startTimer() {
+    this.future(5000).timeOut();
+}
+
+stopTimer() {
+    const canceled = this.cancelFuture(this.timeOut);
+    console.log(canceled ? "Timer stopped" : "Timer not found");
+}
+```
+
+### `now()`
+
+Get the current model time in milliseconds.
+
+<ParamField returns="number">
+  Current time in milliseconds since session start
+</ParamField>
+
+```javascript
+logEvent(eventType) {
+    const timestamp = this.now();
+    this.events.push({ 
+        type: eventType, 
+        time: timestamp,
+        frame: this.frameCount 
+    });
+}
+```
+
+### `random()`
+
+Generate a synchronized random number (0-1) identical across all users.
+
+<ParamField returns="number">
+  Random number between 0 and 1
+</ParamField>
+
+```javascript
+spawnEnemy() {
+    const enemy = EnemyModel.create({
+        x: this.random() * this.worldWidth,
+        y: this.random() * this.worldHeight,
+        type: this.enemyTypes[Math.floor(this.random() * this.enemyTypes.length)]
+    });
+}
+```
+
+## Model Management
+
+### `destroy()`
+
+Clean up model instance when no longer needed.
+
+```javascript
+removePlayer(playerId) {
+    const player = this.getModel(playerId);
+    if (player) {
+        // Clean up player data
+        const index = this.players.indexOf(player);
+        this.players.splice(index, 1);
+        
+        // Destroy the model
+        player.destroy();
+        
+        // Notify views
+        this.publish(this.sessionId, "playerRemoved", { playerId });
+    }
+}
+```
+
+### `getModel(id)`
+
+Look up another model in the session by ID.
+
+<ParamField path="id" type="string" required>
+  Model ID to look up
+</ParamField>
+
+<ParamField returns="Model">
+  Model instance or undefined if not found
+</ParamField>
+
+```javascript
+attack(targetId) {
+    const target = this.getModel(targetId);
+    if (target && this.isInRange(target)) {
+        target.takeDamage(this.attackPower);
+    }
+}
+```
+
+## Static Methods
+
+### `Model.create(options, persistentData)`
+
+Create a new model instance. Always use this instead of `new`.
+
+<ParamField path="options" type="object">
+  Configuration options
+</ParamField>
+
+<ParamField path="persistentData" type="object">
+  Restored persistent data
+</ParamField>
+
+<ParamField returns="Model">
+  New model instance
+</ParamField>
+
+```javascript
+// Create child models
+const bullet = BulletModel.create({
+    position: this.position,
+    velocity: this.calculateVelocity(),
+    damage: this.weaponDamage
+});
+
+this.bullets.push(bullet);
+```
+
+### `Model.register(classId)`
+
+Register a model class with Multisynq. Required for all model subclasses.
+
+<ParamField path="classId" type="string" required>
+  Unique identifier for the model class
+</ParamField>
+
+```javascript
+class WeaponModel extends Multisynq.Model {
+    // ... model implementation
+}
+
+// Required registration
+WeaponModel.register("WeaponModel");
+```
+
+## Well-Known Models
+
+### `beWellKnownAs(name)`
+
+Make this model globally accessible.
+
+<ParamField path="name" type="string" required>
+  Global name for this model
+</ParamField>
+
+```javascript
+init() {
+    super.init();
+    this.beWellKnownAs("GameManager");
+}
+```
+
+### `wellKnownModel(name)`
+
+Access a globally registered model.
+
+<ParamField path="name" type="string" required>
+  Name of the well-known model
+</ParamField>
+
+<ParamField returns="Model">
+  Model instance or undefined
+</ParamField>
+
+```javascript
+// Access from instance method
+handleEvent() {
+    const gameManager = this.wellKnownModel("GameManager");
+    gameManager.logEvent("playerAction");
+}
+
+// Access from static context
+static method() {
+    const gameManager = Model.wellKnownModel("GameManager");
+    return gameManager.getCurrentState();
+}
+```
+
+## Advanced Features
+
+### Serialization
+
+Models automatically serialize supported data types:
+
+<Accordion title="Supported Types">
+**Supported**:
+- Plain Object, Array, number, string, boolean, null
+- Special numbers: -0, NaN, Infinity, -Infinity  
+- BigInt, undefined
+- ArrayBuffer, DataView, typed arrays
+- Set, Map
+
+**Not Supported**:
+- Date (timezone issues)
+- RegExp (non-introspectable state)
+- WeakMap, WeakSet (not enumerable)
+- Symbol (non-serializable)
+- Function, Promise, Generator (closure issues)
+</Accordion>
+
+### Dollar Properties
+
+Properties starting with `$` are ignored in snapshots:
+
+```javascript
+init() {
+    this.gameData = { score: 0, level: 1 };      // Saved in snapshots
+    this.$cachedView = null;                      // Not saved (cache)
+    this.$tempCalculation = 0;                    // Not saved (temporary)
+}
+```
+
+### Custom Serialization
+
+Define custom serialization for non-model classes:
+
+```javascript
+class GameModel extends Multisynq.Model {
+    static types() {
+        return {
+            "THREE.Vector3": THREE.Vector3,
+            "CustomClass": {
+                cls: MyCustomClass,
+                write: obj => obj.serialize(),
+                read: state => MyCustomClass.deserialize(state)
+            }
+        };
+    }
+}
+```
+
+## Common Patterns
+
+### Game State Management
+
+```javascript
+class GameStateModel extends Multisynq.Model {
+    init() {
+        this.state = "waiting";  // waiting, playing, paused, ended
+        this.players = new Map();
+        this.beWellKnownAs("GameState");
+        
+        this.subscribe(this.sessionId, "view-join", this.handlePlayerJoin);
+        this.subscribe(this.sessionId, "startGame", this.startGame);
+    }
+    
+    handlePlayerJoin(viewId) {
+        this.players.set(viewId, PlayerModel.create({ 
+            id: viewId,
+            name: `Player ${this.players.size + 1}`
+        }));
+        
+        if (this.players.size >= 2 && this.state === "waiting") {
+            this.future(3000).startGame(); // Auto-start with delay
+        }
+    }
+    
+    startGame() {
+        this.state = "playing";
+        this.startTime = this.now();
+        this.publish(this.sessionId, "gameStarted", {
+            playerCount: this.players.size,
+            startTime: this.startTime
+        });
+    }
+}
+```
+
+### Hierarchical Models
+
+```javascript
+class WorldModel extends Multisynq.Model {
+    init() {
+        this.regions = [];
+        this.npcs = [];
+        
+        // Create child models
+        for (let i = 0; i < 4; i++) {
+            const region = RegionModel.create({ 
+                id: i, 
+                worldId: this.id 
+            });
+            this.regions.push(region);
+        }
+    }
+    
+    destroy() {
+        // Clean up child models
+        this.regions.forEach(region => region.destroy());
+        this.npcs.forEach(npc => npc.destroy());
+        super.destroy();
+    }
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Event Naming" icon="tag">
+    Use descriptive, namespaced event names
+    ```javascript
+    // Good
+    this.publish(this.sessionId, "game.playerJoined", data);
+    
+    // Avoid
+    this.publish(this.sessionId, "event", data);
+    ```
+  </Card>
+  
+  <Card title="State Validation" icon="shield-check">
+    Validate state changes to prevent corruption
+    ```javascript
+    setHealth(value) {
+        this.health = Math.max(0, Math.min(100, value));
+        if (this.health <= 0) {
+            this.handleDeath();
+        }
+    }
+    ```
+  </Card>
+  
+  <Card title="Performance" icon="gauge">
+    Batch updates and limit event frequency
+    ```javascript
+    updatePositions() {
+        // Batch multiple changes
+        this.entities.forEach(entity => entity.update());
+        
+        // Single notification
+        this.publish(this.sessionId, "entitiesUpdated");
+    }
+    ```
+  </Card>
+  
+  <Card title="Error Handling" icon="exclamation-triangle">
+    Handle edge cases gracefully
+    ```javascript
+    handleInput(data) {
+        if (!data || !this.isValidInput(data)) {
+            console.warn("Invalid input received:", data);
+            return;
+        }
+        this.processInput(data);
+    }
+    ```
+  </Card>
+</CardGroup>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="View Class" icon="eye" href="/api-reference/view">
+    Learn about the View class for UI and user input
+  </Card>
+  <Card title="Session Management" icon="users" href="/api-reference/session">
+    Understand session lifecycle and management
+  </Card>
+  <Card title="Model-View Architecture" icon="sitemap" href="/tutorials/model-view-synchronizer">
+    Deep dive into the architectural concepts
+  </Card>
+  <Card title="Hello World Tutorial" icon="rocket" href="/tutorials/hello-world">
+    See models in action with a complete example
+  </Card>
+</CardGroup>
+
+## View
+
+
+## Overview
+
+The **View** class represents the local, user-interface portion of Multisynq applications. While Models are synchronized across all users, Views are local to each device and handle user input, display output, and UI interactions.
+
+<Info>
+**Key Concept**: Views are local and independent on each device. They subscribe to Model events to stay synchronized and publish events to communicate with Models.
+</Info>
+
+## Core Principles
+
+<CardGroup cols={2}>
+  <Card title="Local & Non-Synchronized" icon="desktop">
+    Each device creates its own independent view instance
+  </Card>
+  <Card title="UI Framework Agnostic" icon="code">
+    Works with any UI framework: HTML DOM, React, Three.js, Unity, etc.
+  </Card>
+  <Card title="Event-Driven Updates" icon="broadcast-tower">
+    Subscribe to model changes and publish user interactions
+  </Card>
+  <Card title="Real-time Rendering" icon="eye">
+    Handle smooth animations and responsive user interfaces
+  </Card>
+</CardGroup>
+
+## Basic Usage
+
+### Defining a View
+
+```javascript
+class GameView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.model = model;
+        
+        // Set up UI elements
+        this.setupUI();
+        
+        // Subscribe to model events
+        this.subscribe(this.sessionId, "gameStateChanged", this.updateGameState);
+        this.subscribe(this.model.id, "playerMoved", this.updatePlayerPosition);
+        
+        // Set up input handlers
+        this.setupInputHandlers();
+        
+        // Initialize display
+        this.render();
+    }
+    
+    setupUI() {
+        this.canvas = document.getElementById('game-canvas');
+        this.scoreDisplay = document.getElementById('score');
+        this.playerList = document.getElementById('players');
+    }
+    
+    setupInputHandlers() {
+        this.canvas.addEventListener('click', (event) => {
+            const pos = this.getClickPosition(event);
+            this.publish(this.sessionId, "playerClicked", {
+                userId: this.viewId,
+                position: pos
+            });
+        });
+        
+        document.addEventListener('keydown', (event) => {
+            this.publish(this.sessionId, "keyPressed", {
+                key: event.key,
+                userId: this.viewId
+            });
+        });
+    }
+    
+    updateGameState(data) {
+        this.scoreDisplay.textContent = `Score: ${data.score}`;
+        this.render();
+    }
+    
+    updatePlayerPosition(data) {
+        // Update player visual position
+        this.movePlayerSprite(data.playerId, data.position);
+    }
+    
+    render() {
+        // Update display based on current model state
+        this.drawPlayers();
+        this.drawGameObjects();
+    }
+    
+    detach() {
+        // Clean up event listeners and resources
+        this.canvas.removeEventListener('click', this.handleClick);
+        document.removeEventListener('keydown', this.handleKeyDown);
+        super.detach();
+    }
+}
+```
+
+## Constructor
+
+### `new View(model, viewOptions)`
+
+Creates a new View instance. Called automatically during `Session.join()`.
+
+<ParamField path="model" type="Model" required>
+  The model instance this view will display
+</ParamField>
+
+<ParamField path="viewOptions" type="object">
+  Optional configuration passed from `Session.join()`
+</ParamField>
+
+```javascript
+class PlayerView extends Multisynq.View {
+    constructor(model, viewOptions = {}) {
+        super(model, viewOptions);
+        
+        this.model = model;
+        this.showDebugInfo = viewOptions.debug || false;
+        this.theme = viewOptions.theme || 'default';
+        
+        // Initialize view state to match model
+        this.recreateViewState();
+        
+        // Set up subscriptions
+        this.setupSubscriptions();
+        
+        // Set up UI
+        this.initializeUI();
+    }
+}
+```
+
+## Properties
+
+### `id`
+<ParamField path="id" type="string" readonly>
+  Unique identifier for this view instance
+</ParamField>
+
+```javascript
+constructor(model) {
+    super(model);
+    
+    // Use view ID for scoped events
+    this.subscribe(this.id, "highlighted", this.highlight);
+    this.subscribe(this.id, "selected", this.select);
+}
+```
+
+### `viewId`
+<ParamField path="viewId" type="string" readonly>
+  Identifies the current user's connection to the session
+</ParamField>
+
+```javascript
+handleUserInput(data) {
+    // Tag events with user ID
+    this.publish(this.sessionId, "userAction", {
+        userId: this.viewId,
+        action: data.action,
+        timestamp: this.now()
+    });
+}
+```
+
+### `sessionId`
+<ParamField path="sessionId" type="string" readonly>
+  Global session identifier shared by all users
+</ParamField>
+
+```javascript
+constructor(model) {
+    super(model);
+    
+    // Subscribe to global session events
+    this.subscribe(this.sessionId, "gameStarted", this.startGame);
+    this.subscribe(this.sessionId, "gameEnded", this.endGame);
+}
+```
+
+### `session`
+<ParamField path="session" type="object" readonly>
+  Reference to the session object (undefined when disconnected)
+</ParamField>
+
+```javascript
+handleReconnection() {
+    if (!this.session) {
+        console.log("Disconnected from session");
+        this.showReconnectingMessage();
+        return;
+    }
+    
+    // Session is active
+    this.hideReconnectingMessage();
+}
+```
+
+### `activeSubscription`
+<ParamField path="activeSubscription" type="object" readonly>
+  Information about the currently executing subscription handler
+</ParamField>
+
+```javascript
+logEvents(data) {
+    const { scope, event, source } = this.activeSubscription;
+    console.log(`Event from ${source}: ${scope}:${event}`, data);
+}
+```
+
+## Core Methods
+
+### `publish(scope, event, data)`
+
+Send an event to a specific scope. Primary way to communicate with Models.
+
+<ParamField path="scope" type="string" required>
+  Event scope (often `this.sessionId` for global events)
+</ParamField>
+
+<ParamField path="event" type="string" required>
+  Event name
+</ParamField>
+
+<ParamField path="data" type="any">
+  Event data (must be serializable for view-to-model communication)
+</ParamField>
+
+```javascript
+// Send user input to model
+handleMouseClick(event) {
+    const position = this.getMousePosition(event);
+    this.publish(this.sessionId, "mouseClicked", {
+        userId: this.viewId,
+        position: position,
+        button: event.button
+    });
+}
+
+// Send configuration change
+changeSettings(newSettings) {
+    this.publish(this.model.id, "configureSettings", newSettings);
+}
+
+// Send private message to specific view
+sendPrivateMessage(targetViewId, message) {
+    this.publish(targetViewId, "privateMessage", {
+        from: this.viewId,
+        message: message,
+        timestamp: this.now()
+    });
+}
+```
+
+### `subscribe(scope, eventSpec, handler)`
+
+Register an event handler for specific events.
+
+<ParamField path="scope" type="string" required>
+  Event scope to listen to
+</ParamField>
+
+<ParamField path="eventSpec" type="string | object" required>
+  Event name or specification object
+</ParamField>
+
+<ParamField path="handler" type="function" required>
+  Function to call when event occurs
+</ParamField>
+
+#### Event Handling Types
+
+```javascript
+constructor(model) {
+    super(model);
+    
+    // Queued handling (default) - called once per publish on next frame
+    this.subscribe(this.sessionId, "scoreChanged", this.updateScore);
+    
+    // Once per frame - called only once per frame with latest data
+    this.subscribe(this.model.id, {
+        event: "positionChanged", 
+        handling: "oncePerFrame"
+    }, this.updatePosition);
+    
+    // Immediate - called synchronously during publish
+    this.subscribe(this.sessionId, {
+        event: "criticalAlert",
+        handling: "immediate"
+    }, this.showAlert);
+}
+
+updatePosition(position) {
+    // Smooth position updates, only latest position per frame
+    this.sprite.setPosition(position.x, position.y);
+}
+```
+
+### `unsubscribe(scope, event, handler)`
+
+Remove event handler(s).
+
+```javascript
+// Unsubscribe specific handler
+this.unsubscribe(this.sessionId, "gameEvent", this.handleGameEvent);
+
+// Unsubscribe all handlers for an event
+this.unsubscribe(this.sessionId, "gameEvent");
+
+// Unsubscribe all handlers for a scope
+this.unsubscribe(this.sessionId);
+```
+
+### `detach()`
+
+Clean up the view when no longer needed. **Critical for preventing memory leaks**.
+
+```javascript
+detach() {
+    // Remove DOM event listeners
+    this.canvas.removeEventListener('click', this.handleClick);
+    this.canvas.removeEventListener('mousemove', this.handleMouseMove);
+    document.removeEventListener('keydown', this.handleKeyDown);
+    
+    // Clean up child views
+    this.childViews.forEach(child => child.detach());
+    
+    // Clean up resources
+    this.stopAnimations();
+    this.releaseResources();
+    
+    // Call parent detach
+    super.detach();
+}
+```
+
+## Time and Synchronization
+
+### `now()`
+
+Get the current model time in milliseconds.
+
+<ParamField returns="number">
+  Model time since session start
+</ParamField>
+
+```javascript
+animate() {
+    const modelTime = this.now();
+    const progress = (modelTime % 2000) / 2000; // 2-second loop
+    
+    this.updateAnimation(progress);
+    requestAnimationFrame(() => this.animate());
+}
+```
+
+### `externalNow()`
+
+Get the latest timestamp from the reflector.
+
+<ParamField returns="number">
+  Latest reflector timestamp
+</ParamField>
+
+```javascript
+checkSyncStatus() {
+    const modelTime = this.now();
+    const serverTime = this.externalNow();
+    const backlog = serverTime - modelTime;
+    
+    if (backlog > 1000) {
+        this.showLagWarning();
+    }
+}
+```
+
+### `extrapolatedNow()`
+
+Get extrapolated time beyond the latest reflector timestamp.
+
+<ParamField returns="number">
+  Extrapolated current time
+</ParamField>
+
+```javascript
+predictiveRender() {
+    const currentTime = this.extrapolatedNow();
+    
+    // Predict where objects should be now
+    this.entities.forEach(entity => {
+        const predictedPos = entity.predictPosition(currentTime);
+        entity.sprite.setPosition(predictedPos.x, predictedPos.y);
+    });
+}
+```
+
+## Frame Updates
+
+### `update(time)`
+
+Called once per frame on the root view. Override for frame-based logic.
+
+<ParamField path="time" type="number">
+  Frame timestamp from `requestAnimationFrame`
+</ParamField>
+
+```javascript
+class GameView extends Multisynq.View {
+    update(time) {
+        // Update animations
+        this.updateParticles(time);
+        this.updateUI(time);
+        
+        // Handle input polling
+        this.pollInput();
+        
+        // Render frame
+        this.render();
+    }
+    
+    updateParticles(time) {
+        this.particles.forEach(particle => {
+            particle.update(time - this.lastFrameTime);
+        });
+        this.lastFrameTime = time;
+    }
+}
+```
+
+## Model Access
+
+### `wellKnownModel(name)`
+
+Access globally registered models.
+
+<ParamField path="name" type="string" required>
+  Name given to `Model.beWellKnownAs()`
+</ParamField>
+
+<ParamField returns="Model">
+  Model instance or undefined
+</ParamField>
+
+```javascript
+updateGlobalUI() {
+    const gameManager = this.wellKnownModel("GameManager");
+    const playerManager = this.wellKnownModel("PlayerManager");
+    
+    if (gameManager) {
+        this.updateGameStats(gameManager.getStats());
+    }
+    
+    if (playerManager) {
+        this.updatePlayerList(playerManager.getAllPlayers());
+    }
+}
+```
+
+## UI Framework Integration
+
+### React Integration
+
+```javascript
+import React, { useEffect, useState } from 'react';
+
+class ReactMultisynqView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.model = model;
+        this.reactState = {};
+        this.setReactState = null;
+        
+        this.subscribe(this.sessionId, "dataChanged", this.handleDataChange);
+    }
+    
+    setReactStateSetter(setState) {
+        this.setReactState = setState;
+    }
+    
+    handleDataChange(data) {
+        if (this.setReactState) {
+            this.setReactState(data);
+        }
+    }
+}
+
+function GameComponent({ view }) {
+    const [gameData, setGameData] = useState({});
+    
+    useEffect(() => {
+        view.setReactStateSetter(setGameData);
+        return () => view.detach();
+    }, [view]);
+    
+    return <div>Score: {gameData.score}</div>;
+}
+```
+
+### Three.js Integration
+
+```javascript
+class ThreeJSView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.model = model;
+        
+        this.setupThreeJS();
+        this.subscribe(this.sessionId, "objectMoved", this.moveObject);
+    }
+    
+    setupThreeJS() {
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer();
+        
+        document.body.appendChild(this.renderer.domElement);
+        this.animate();
+    }
+    
+    moveObject(data) {
+        const object = this.scene.getObjectByName(data.objectId);
+        if (object) {
+            object.position.set(data.x, data.y, data.z);
+        }
+    }
+    
+    animate() {
+        requestAnimationFrame(() => this.animate());
+        this.renderer.render(this.scene, this.camera);
+    }
+}
+```
+
+## Input Handling Patterns
+
+### Keyboard Input
+
+```javascript
+class InputView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.keys = new Set();
+        
+        document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+        document.addEventListener('keyup', (e) => this.handleKeyUp(e));
+    }
+    
+    handleKeyDown(event) {
+        if (this.keys.has(event.code)) return; // Prevent repeat
+        
+        this.keys.add(event.code);
+        this.publish(this.sessionId, "keyPressed", {
+            key: event.code,
+            userId: this.viewId
+        });
+    }
+    
+    handleKeyUp(event) {
+        this.keys.delete(event.code);
+        this.publish(this.sessionId, "keyReleased", {
+            key: event.code,
+            userId: this.viewId
+        });
+    }
+}
+```
+
+### Touch Input
+
+```javascript
+handleTouch(event) {
+    event.preventDefault();
+    
+    const touches = Array.from(event.touches).map(touch => ({
+        id: touch.identifier,
+        x: touch.clientX,
+        y: touch.clientY
+    }));
+    
+    this.publish(this.sessionId, "touchInput", {
+        type: event.type,
+        touches: touches,
+        userId: this.viewId
+    });
+}
+```
+
+## Advanced Patterns
+
+### Hierarchical Views
+
+```javascript
+class WorldView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.childViews = [];
+        
+        // Create child views for sub-objects
+        model.regions.forEach(region => {
+            const regionView = new RegionView(region);
+            this.childViews.push(regionView);
+        });
+    }
+    
+    detach() {
+        // Clean up child views
+        this.childViews.forEach(child => child.detach());
+        super.detach();
+    }
+}
+```
+
+### Performance Optimization
+
+```javascript
+class OptimizedView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.frameSkipping = false;
+        this.lastRenderTime = 0;
+        
+        // Throttle expensive updates
+        this.subscribe(this.sessionId, {
+            event: "heavyUpdate",
+            handling: "oncePerFrame"
+        }, this.expensiveUpdate);
+    }
+    
+    update(time) {
+        // Skip frames if performance is poor
+        if (time - this.lastRenderTime < 16.67 && this.frameSkipping) {
+            return;
+        }
+        
+        this.render();
+        this.lastRenderTime = time;
+    }
+    
+    expensiveUpdate(data) {
+        // Only process latest data per frame
+        this.rebuildComplexUI(data);
+    }
+}
+```
+
+## Error Handling
+
+```javascript
+class RobustView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        
+        // Wrap event handlers in try-catch
+        this.subscribe(this.sessionId, "dataUpdate", (data) => {
+            try {
+                this.processData(data);
+            } catch (error) {
+                console.error("Error processing data:", error);
+                this.handleDataError(error, data);
+            }
+        });
+    }
+    
+    handleDataError(error, data) {
+        // Graceful error recovery
+        this.showErrorMessage("Data processing failed");
+        
+        // Request fresh data
+        this.publish(this.sessionId, "requestDataRefresh", {
+            userId: this.viewId
+        });
+    }
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Always Call detach()" icon="trash">
+    Prevent memory leaks by cleaning up properly
+    ```javascript
+    detach() {
+        this.removeEventListeners();
+        this.childViews.forEach(c => c.detach());
+        super.detach();
+    }
+    ```
+  </Card>
+  
+  <Card title="Use oncePerFrame for Smooth Updates" icon="refresh">
+    Optimize rendering with appropriate event handling
+    ```javascript
+    this.subscribe(this.id, {
+        event: "moved",
+        handling: "oncePerFrame"
+    }, this.updatePosition);
+    ```
+  </Card>
+  
+  <Card title="Check Session State" icon="wifi">
+    Handle disconnections gracefully
+    ```javascript
+    handleEvent() {
+        if (!this.session) return;
+        // Process event
+    }
+    ```
+  </Card>
+  
+  <Card title="Separate UI and Logic" icon="layers">
+    Keep view focused on presentation
+    ```javascript
+    // Good: Send intent to model
+    this.publish(this.sessionId, "playerAttack", target);
+    
+    // Avoid: Complex logic in view
+    // this.calculateDamage(attacker, target);
+    ```
+  </Card>
+</CardGroup>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Model Class" icon="gear" href="/api-reference/model">
+    Learn about the Model class for synchronized logic
+  </Card>
+  <Card title="Session Management" icon="users" href="/api-reference/session">
+    Understand session lifecycle and user management
+  </Card>
+  <Card title="Hello World Tutorial" icon="rocket" href="/tutorials/hello-world">
+    See Views in action with a complete example
+  </Card>
+  <Card title="Multi-user Chat" icon="comments" href="/tutorials/multiuser-chat">
+    Build interactive Views with user input
+  </Card>
+</CardGroup>

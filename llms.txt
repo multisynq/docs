@@ -1,0 +1,108 @@
+# Multisynq Docs
+
+> Complete documentation for Multisynq - the platform for building real-time collaborative applications. Build multiplayer experiences with ease using our JavaScript SDK and React components.
+
+## Guides
+
+### Get Started
+- [Introduction](/index) - Welcome to Multisynq - Build real-time collaborative applications with ease
+- [Quickstart](/quickstart) - Start building real-time collaborative applications with Multisynq in under 5 minutes
+
+### Tutorials
+- [Hello World Tutorial](/tutorials/hello-world) - Build your first Multisynq application - a synchronized counter that updates in real-time across all users
+- [Simple Animation](/tutorials/simple-animation) - Learn to create multi-user shared animations and interactions with bouncing balls simulation
+- [Multi-user Chat](/tutorials/multiuser-chat) - Learn to track users, manage message history, and handle timeouts in a real-time chat application
+- [View Smoothing](/tutorials/view-smoothing) - Learn to create smooth animations by interpolating between model updates for better user experience
+- [3D Animation](/tutorials/3d-animation) - Learn to integrate Three.js with Multisynq for synchronized 3D experiences with interactive elements
+- [Multiblaster Game Tutorial](/tutorials/multiblaster-game) - Build a complete multiplayer game step-by-step with Multisynq - from asteroids to spaceships, shooting, scoring, and persistence
+
+### Conceptual
+- [Model-View-Synchronizer](/tutorials/model-view-synchronizer) - The core architecture pattern that powers Multisynq applications
+- [Events & Pub-Sub](/tutorials/events-pub-sub) - Master the event-driven communication system that powers Multisynq Model-View interactions
+- [Snapshots](/tutorials/snapshots) - Understand how Multisynq automatically saves and restores session state for persistence and new user synchronization
+- [Persistence](/tutorials/persistence) - Learn how to save application data across code changes and versions using Multisynq's persistence mechanism
+- [Sim Time & Future](/tutorials/sim-time-future) - Master Multisynq's simulation time and future scheduling system for synchronized time-based behaviors
+- [Writing a Multisynq Model](/tutorials/writing-multisynq-model) - Learn the essential constraints and best practices for building synchronized models that work perfectly across all users
+- [Writing a Multisynq View](/tutorials/writing-multisynq-view) - Learn how to build responsive, interactive views that display model state and handle user input while maintaining perfect synchronization
+- [Writing a Multisynq App](/tutorials/writing-multisynq-app) - Learn how to structure and launch complete Multisynq applications with models, views, and session management
+- [Random](/tutorials/random) - Understand how random number generation works in Multisynq models and views to maintain perfect synchronization
+- [Data API](/tutorials/data-api) - Learn how to handle file uploads, bulk data storage, and secure data sharing in Multisynq applications
+
+### Essentials
+- [Real-time Synchronization](/essentials/sync) - Learn how Multisynq achieves perfect synchronization through deterministic execution
+- [Collaborative Editing](/essentials/collaboration) - Build real-time collaborative editing experiences with Multisynq's Model-View architecture
+- [Real-time Chat](/essentials/chat) - Build real-time chat systems with Multisynq
+- [Shared Whiteboard](/essentials/whiteboard) - Create collaborative drawing canvases with Multisynq
+- [Conflict Resolution](/essentials/conflicts) - Understand how Multisynq handles conflicts in real-time collaborative applications
+- [Scaling Applications](/essentials/scaling) - Learn how to scale your Multisynq applications for high performance and large user bases
+
+### AI Development
+- [Vibe Coding with AI](/essentials/vibe-coding) - Train your AI assistant with Multisynq context files for seamless multiplayer development
+
+## React Together
+
+### Getting Started
+- [Getting Started with React Together](/react-together/getting-started) - Add real-time multi-user interaction to any React app with React Together. No backend or net-code required!
+
+### Core Hooks
+- [useStateTogether](/react-together/hooks/use-state-together) - Synchronize state across all users in real-time. Works exactly like React's useState but keeps all users in sync.
+- [useStateTogetherWithPerUserValues](/react-together/hooks/use-state-together-with-per-user-values) - Share state between users while tracking individual user values in real-time collaborative applications
+- [useFunctionTogether](/react-together/hooks/use-function-together) - Synchronize function execution across all users in real-time collaborative applications
+
+### Connection & Session Hooks
+- [useIsTogether](/react-together/hooks/use-is-together) - Check if the user is connected to a React Together session. Perfect for conditional rendering and connection-aware features.
+- [useIsSynchronized](/react-together/hooks/use-is-synchronized) - Check if your local state is synchronized with the shared model. Essential for building responsive real-time interfaces.
+- [useConnectedUsers](/react-together/hooks/use-connected-users) - Get information about all users connected to the current React Together session, including their nicknames and connection status.
+- [useMyId](/react-together/hooks/use-my-id) - Get the current user's unique identifier. Essential for user-specific functionality and personal state management.
+- [useCreateRandomSession](/react-together/hooks/use-create-random-session) - Create and connect to a new React Together session with randomly generated credentials
+- [useJoinUrl](/react-together/hooks/use-join-url) - Get the join URL for sharing the current React Together session with other users
+- [useLeaveSession](/react-together/hooks/use-leave-session) - Leave the current React Together session while preserving local state
+
+### Communication Hooks
+- [useChat](/react-together/hooks/use-chat) - Build real-time chat functionality into your React Together applications with message history and user identification.
+- [useCursors](/react-together/hooks/use-cursors) - Track and display real-time cursor positions of all users in your collaborative application, perfect for collaborative editing and design tools.
+- [useHoveringUsers](/react-together/hooks/use-hovering-users) - Track which users are hovering over specific DOM elements in real-time, perfect for interactive collaborative features.
+
+### Utility Hooks
+- [useNicknames](/react-together/hooks/use-nicknames) - Manage and retrieve user nicknames in your React Together session, enabling personalized collaborative experiences.
+- [useAllNicknames](/react-together/hooks/use-all-nicknames) - Access all user nicknames in the current React Together session for display and user identification
+
+### Components
+- [ReactTogether](/react-together/components/react-together) - The main context provider component that enables real-time collaboration features in your React application.
+- [SessionManager](/react-together/components/session-manager) - A complete session management UI component for creating, joining, and leaving collaboration sessions with QR code sharing.
+- [Chat](/react-together/components/chat) - A complete real-time chat component with customizable UI elements and automatic message synchronization.
+- [Cursors](/react-together/components/cursors) - Display live mouse cursors from all connected users with smooth animations and customizable appearance.
+- [ConnectedUsers](/react-together/components/connected-users) - Display connected users with customizable avatars and user information. Shows who's currently active in your collaborative session.
+- [HoverHighlighter](/react-together/components/hover-highlighter) - Wrap elements to highlight them when other users hover over them. Perfect for showing real-time user interactions and collaborative awareness.
+
+### Utilities
+- [Utilities Overview](/react-together/utilities/index) - Helper functions for URL manipulation, user management, and session handling in React Together applications.
+- [getJoinUrl](/react-together/utilities/get-join-url) - Create shareable URLs with embedded session parameters for inviting users to collaborative sessions.
+- [getCleanUrl](/react-together/utilities/get-clean-url) - Remove session parameters from URLs for clean navigation and URL management.
+- [getSessionNameFromUrl](/react-together/utilities/get-session-name-from-url) - Extract session names from URL query parameters for automatic session joining and URL parsing.
+- [getSessionPasswordFromUrl](/react-together/utilities/get-session-password-from-url) - Extract session passwords from URL hash parameters for secure automatic session joining.
+- [deriveNickname](/react-together/utilities/derive-nickname) - Generate human-readable nicknames from user IDs using the unique-names-generator library for consistent user identification.
+- [getUserColor](/react-together/utilities/get-user-color) - Generate consistent HSL color strings based on user IDs for visual user identification in collaborative interfaces.
+
+## API Reference
+
+### Core API
+- [API Reference](/api-reference/introduction) - Complete reference for the Multisynq client-side synchronized architecture
+- [Session](/api-reference/session) - The Session class provides the main entry point for joining and managing Multisynq sessions. It handles connection, synchronization, and session lifecycle.
+- [Model](/api-reference/model) - The Model class is the core synchronized object class in Multisynq. Models are automatically kept in sync across all users in a session.
+- [View](/api-reference/view) - The View class handles user interface, input processing, and display output for Multisynq applications. Views are local and non-synchronized.
+
+## Resources
+
+- [Dashboard](https://multisynq.io) - Dashboard access
+- [Community](https://discord.gg/multisynq) - Community access
+- [GitHub](https://github.com/multisynq) - GitHub access
+- [Repository](https://github.com/multisynq/multisynq) - Source code and examples
+- [Package](https://www.npmjs.com/package/@multisynq/client) - NPM package
+- [Support](https://discord.gg/multisynq) - Community support
+
+## Additional Information
+
+This documentation is automatically updated and maintained. For the most current information, visit [docs.multisynq.io](https://docs.multisynq.io)
+
+Generated by automated llms.txt generator on 2025-07-15T07:33:36.703Z
