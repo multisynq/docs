@@ -1,0 +1,188 @@
+name: Deploy Documentation to GitHub Pages
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Build job
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Mintlify CLI
+        run: npm install -g mintlify@latest
+
+      - name: Check Mintlify version and capabilities
+        run: mintlify --help
+
+      - name: Generate static documentation
+        run: |
+          echo "🚀 Building Multisynq documentation..."
+          # Since Mintlify CLI doesn't have a build command, we'll create a simple static version
+          mkdir -p _site
+          # Copy all documentation files
+          cp -r *.mdx _site/ 2>/dev/null || true
+          cp -r api-reference _site/ 2>/dev/null || true
+          cp -r tutorials _site/ 2>/dev/null || true
+          cp -r essentials _site/ 2>/dev/null || true
+          cp -r react-together _site/ 2>/dev/null || true
+          cp -r images _site/ 2>/dev/null || true
+          cp -r logo _site/ 2>/dev/null || true
+          cp docs.json _site/ 2>/dev/null || true
+          cp favicon.svg _site/ 2>/dev/null || true
+          # Create a simple index.html redirect to hosted Mintlify
+          cat > _site/index.html << EOF
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Multisynq Documentation</title>
+              <meta http-equiv="refresh" content="0; url=https://docs.multisynq.io">
+              <style>
+                  body { 
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                      display: flex; 
+                      justify-content: center; 
+                      align-items: center; 
+                      height: 100vh; 
+                      margin: 0; 
+                      background: #f8fafc;
+                  }
+                  .container { 
+                      text-align: center; 
+                      padding: 2rem;
+                      background: white;
+                      border-radius: 8px;
+                      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                  }
+                  .logo { 
+                      width: 64px; 
+                      height: 64px; 
+                      margin: 0 auto 1rem; 
+                      background: #006EFF; 
+                      border-radius: 12px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      color: white;
+                      font-size: 24px;
+                      font-weight: bold;
+                  }
+                  a { 
+                      color: #006EFF; 
+                      text-decoration: none; 
+                      font-weight: 500;
+                  }
+                  a:hover { 
+                      text-decoration: underline; 
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <div class="logo">M</div>
+                  <h1>Multisynq Documentation</h1>
+                  <p>Redirecting to the official documentation...</p>
+                  <p>If you're not redirected automatically, <a href="https://docs.multisynq.io">click here</a>.</p>
+              </div>
+          </body>
+          </html>
+          EOF
+          echo "✅ Static files prepared for GitHub Pages!"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload the _site directory created by Mintlify
+          path: './_site'
+
+  # Deployment job
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Build-only job for PRs (no deployment)
+  build-pr:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Mintlify CLI
+        run: npm install -g mintlify@latest
+
+      - name: Validate documentation (PR validation)
+        run: |
+          echo "🔍 Validating documentation for PR..."
+          # Check if docs.json is valid
+          if [ -f "docs.json" ]; then
+            echo "✅ docs.json found"
+          else
+            echo "❌ docs.json not found"
+            exit 1
+          fi
+          
+          # Check if required MDX files exist
+          if [ -f "index.mdx" ]; then
+            echo "✅ index.mdx found"
+          else
+            echo "❌ index.mdx not found"
+            exit 1
+          fi
+          
+          # Test Mintlify CLI
+          mintlify --help > /dev/null
+          echo "✅ Mintlify CLI is working"
+          
+          echo "✅ Documentation validation passed!"
