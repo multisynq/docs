@@ -28,7 +28,6 @@ Create an HTML file with the Multisynq client library:
 <body>
     <h1>My First Multisynq App</h1>
     <div id="counter">Count: 0</div>
-    <button id="increment">+1</button>
     <button id="reset">Reset</button>
 </body>
 </html>
@@ -41,25 +40,21 @@ The Model contains your application logic and handles all state changes:
 ```javascript
 class CounterModel extends Multisynq.Model {
     init() {
-        // Initialize the counter
         this.count = 0;
-        
-        // Subscribe to events from views
-        this.subscribe(this.sessionId, "increment", this.handleIncrement);
-        this.subscribe(this.sessionId, "reset", this.handleReset);
+        this.subscribe("counter", "reset", this.handleReset);
+        this.future(1000).increment();
     }
-    
-    handleIncrement() {
+
+    increment() {
         this.count += 1;
-        // Notify all views of the change
-        this.publish(this.sessionId, "countChanged", this.count);
+        this.future(1000).increment();
     }
-    
+
     handleReset() {
         this.count = 0;
-        this.publish(this.sessionId, "countChanged", this.count);
     }
 }
+CounterModel.register("CounterModel");
 ```
 
 ### Step 3: Create Your View
@@ -70,30 +65,19 @@ The View handles user interaction and displays the current state:
 class CounterView extends Multisynq.View {
     constructor(model) {
         super(model);
-        
-        // Subscribe to model updates
-        this.subscribe(this.sessionId, "countChanged", this.updateDisplay);
-        
-        // Set up UI event listeners
-        this.setupUI();
-        
-        // Display initial state
-        this.updateDisplay(model.count);
+        this.model = model;
+        this.onClickHandler = () => this.publish("counter", "reset");
+        document.getElementById("reset").addEventListener("click", this.onClickHandler);
     }
-    
-    setupUI() {
-        document.getElementById("increment").addEventListener("click", () => {
-            // Send event to model
-            this.publish(this.sessionId, "increment");
-        });
-        
-        document.getElementById("reset").addEventListener("click", () => {
-            this.publish(this.sessionId, "reset");
-        });
+
+    detach() {
+        super.detach();
+        document.getElementById("reset").removeEventListener("click", this.onClickHandler);
     }
-    
-    updateDisplay(count) {
-        document.getElementById("counter").textContent = `Count: ${count}`;
+
+    update() {
+        super.update();
+        document.getElementById("counter").textContent = `Count: ${this.model.count}`;
     }
 }
 ```
@@ -103,6 +87,8 @@ class CounterView extends Multisynq.View {
 Connect everything together and start your collaborative session:
 
 ```javascript
+// Show QR code for easy sharing
+Multisynq.App.makeWidgetDock();
 // Start the Multisynq session
 Multisynq.Session.join({
     apiKey: "your-api-key-here",           // Get from multisynq.io/coder
@@ -113,9 +99,6 @@ Multisynq.Session.join({
     password: Multisynq.App.autoPassword() // Auto password from URL
 }).then(session => {
     console.log("Joined session:", session.id);
-    
-    // Show QR code for easy sharing
-    Multisynq.App.makeWidgetDock();
 });
 ```
 
@@ -124,7 +107,7 @@ Multisynq.Session.join({
 <AccordionGroup>
   <Accordion icon="code" title="Complete HTML File">
     Here's the complete working example:
-    
+
     ```html
     <!DOCTYPE html>
     <html>
@@ -140,52 +123,48 @@ Multisynq.Session.join({
     <body>
         <h1>My First Multisynq App</h1>
         <div id="counter">Count: 0</div>
-        <button id="increment">+1</button>
         <button id="reset">Reset</button>
-        
+
         <script>
             class CounterModel extends Multisynq.Model {
                 init() {
                     this.count = 0;
-                    this.subscribe(this.sessionId, "increment", this.handleIncrement);
-                    this.subscribe(this.sessionId, "reset", this.handleReset);
+                    this.subscribe("counter", "reset", this.handleReset);
+                    this.future(1000).increment();
                 }
-                
-                handleIncrement() {
+
+                increment() {
                     this.count += 1;
-                    this.publish(this.sessionId, "countChanged", this.count);
+                    this.future(1000).increment();
                 }
-                
+
                 handleReset() {
                     this.count = 0;
-                    this.publish(this.sessionId, "countChanged", this.count);
                 }
             }
-            
+            CounterModel.register("CounterModel");
+
             class CounterView extends Multisynq.View {
                 constructor(model) {
                     super(model);
-                    this.subscribe(this.sessionId, "countChanged", this.updateDisplay);
-                    this.setupUI();
-                    this.updateDisplay(model.count);
+                    this.model = model;
+                    this.onClickHandler = () => this.publish("counter", "reset");
+                    document.getElementById("reset").addEventListener("click", this.onClickHandler);
                 }
-                
-                setupUI() {
-                    document.getElementById("increment").addEventListener("click", () => {
-                        this.publish(this.sessionId, "increment");
-                    });
-                    
-                    document.getElementById("reset").addEventListener("click", () => {
-                        this.publish(this.sessionId, "reset");
-                    });
+
+                detach() {
+                    super.detach();
+                    document.getElementById("reset").removeEventListener("click", this.onClickHandler);
                 }
-                
-                updateDisplay(count) {
-                    document.getElementById("counter").textContent = `Count: ${count}`;
+
+                update() {
+                    super.update();
+                    document.getElementById("counter").textContent = `Count: ${this.model.count}`;
                 }
             }
-            
+
             // Start your Multisynq session
+            Multisynq.App.makeWidgetDock();
             Multisynq.Session.join({
                 apiKey: "your-api-key-here",
                 appId: "com.example.counter",
@@ -195,7 +174,6 @@ Multisynq.Session.join({
                 password: Multisynq.App.autoPassword()
             }).then(session => {
                 console.log("Joined session:", session.id);
-                Multisynq.App.makeWidgetDock();
             });
         </script>
     </body>
@@ -225,7 +203,7 @@ When you run this app:
 
 1. Replace `"your-api-key-here"` with your actual API key
 2. Open the HTML file in your browser
-3. Use the QR code to join from other devices
+3. Use the QR code to join from other devices (or open the generated session URL in another browser)
 4. Click the buttons - all connected users will see the updates instantly!
 
 ## Next Steps
