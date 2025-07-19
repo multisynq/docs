@@ -1,6 +1,6 @@
 # Multisynq Documentation
 
-Welcome to the official documentation for Multisynq - the platform for building real-time collaborative applications.
+Welcome to the official docs for Multisynq - the platform for building real-time collaborative applications.
 
 ## 🚀 Quick Start
 
