@@ -430,3 +430,23 @@ the multisynq.io docs are in the process of           │
 3. add a todo for strategizing automated syncing for croquet classes, multisynq-client docs (incl tutorials), Tutorials Repo List (this file doesnt exist create it and put @https://github.com/multisynq/physics-fountain , @https://github.com/multisynq/multiblaster-lobby and @https://github.com/multisynq/vibecoded-gallery  in it
 4. add a todo for writing a super thorough test suite for all /docs pages and navigation/ui/images/interactive components using playwright 
 5. continue working on the todos until all are complete
+
+7/24/2025
+read @Mintlify and the relevant project files eg @package.json @docs.json @README.md as well as the fragmented summary and overview files:@AUTOMATED_SYNCING_STRATEGY.md @MIGRATION_ANALYSIS.md @SOURCES_OF_TRUTH.md and the Proposed Automation Strategy from @BUILD_PROCESS.md . then, assimilate this information carefully and create a CURSOR.md file with detailed context/info (review any other files you normally would for this and include all info you normally would as well as what you learned from reading the referenced files). it should also include the Critical Base Instruction from @TODOv1.md and instruct the llm reader to ALWAYS also read ROADMAP.md (create this file, it will include a summary of the previously completed todo.md files and ALL THE OUTSTANDING TODOs, ESPECIALLY jsdoc to mdx automated pipeline from the original source, and the COMPLETELY MISSING multisynq/react docs, https://github.com/multisynq/multisynq-react as well as a layout/navigation restructuring to clearly show each of our npm packages and their corresponding docs, as well as fixing the broken vibe coding // ai integration section + mdx file) and STYLE.md (create this file and have it include the tips from mintlify docs below to ensure ai-assistant-friendly formatting and other mintlify best practices you saw in the rest of the mintlify docs)
+<@https://mintlify.com/docs/guides/assistant >
+Making content AI ingestible
+Structure your documentation to help the assistant provide accurate, relevant answers. Clear organization and comprehensive context benefit both human readers and AI understanding.
+Structure and organization
+Use semantic markup.
+Write descriptive headings for sections.
+Create a logical information hierarchy.
+Use consistent formatting across your docs.
+Include comprehensive metadata in page frontmatter.
+Break up long blocks of text into shorter paragraphs.
+Context
+Define specific terms and acronyms when first introduced.
+Provide sufficient conceptual content about features and procedures.
+Include examples and use cases.
+Cross-reference related topics.
+Add hidden pages with additional context that users don’t need, but the assistant can reference.
+</@https://mintlify.com/docs/guides/assistant >

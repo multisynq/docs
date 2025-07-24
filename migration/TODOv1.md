@@ -1,7 +1,7 @@
 # Multisynq.io Documentation Migration - Implementation Plan
 
 ## Critical Base Instruction
-NEVER make up ANYTHING (imports, types, fn por object names, etc) about implementation & usage details for any document. Instead reference the actual source material (from the adjacent repo folders) when new content must be generated (vs copied). For all non-copied content (anything newly written), ensure accuracy and correctness by referencing the corresponding code directly (eg type definitions, multisynq-client exported functions, react-together/packages/react-together exports, croquet/packages/croquet/teatime/*.js files) or one of the summary files: multisynq-js.md, react-together.md, croquet-teatime.md
+NEVER make up ANYTHING (imports, types, fn por object names, etc) about implementation & usage details for any document. Instead reference the actual source material (from the adjacent repo folders) when new content must be generated (vs copied). For all non-copied content (anything newly written), ensure accuracy and correctness by referencing the corresponding code directly (eg type definitions, multisynq-client exported functions, react-together/packages/react-together exports, croquet/packages/croquet/teatime/*.js files) or one of the summary files: multisynq-js.txt, multisynq-react.txt, multisynq-react-llm.md, and multisynq-js-llm.md
 
 ## 🎉 PROJECT COMPLETED! 🎉
 

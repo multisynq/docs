@@ -96,7 +96,6 @@ docs/
 #### MDX Components
 Use Mintlify's built-in components:
 
-```mdx
 <Card title="Feature" icon="rocket">
   Description of the feature
 </Card>
@@ -104,10 +103,6 @@ Use Mintlify's built-in components:
 <CodeGroup>
 ```bash npm
 npm install react-together
-```
-
-```bash yarn
-yarn add react-together
 ```
 </CodeGroup>
 

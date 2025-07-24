@@ -86,7 +86,7 @@ const session = await app.createSession({
 - `password` (string, optional): Session password for privacy
 - `persistent` (boolean, optional): Whether to persist session data
 
-**Returns:** Promise<Session>
+**Returns:** `Promise<Session>`
 
 ### joinSession(sessionName, password)
 
@@ -100,7 +100,7 @@ const session = await app.joinSession('existing-session', 'password')
 - `sessionName` (string): Name of the session to join
 - `password` (string, optional): Session password if required
 
-**Returns:** Promise<Session>
+**Returns:** `Promise<Session>`
 
 ### destroy()
 
