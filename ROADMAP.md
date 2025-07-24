@@ -96,4 +96,13 @@ This next phase focuses on automating documentation generation, expanding conten
 -   **Action**:
     1.  Review every page that is not a direct copy from a source repository.
     2.  Validate all API signatures, import paths, and architectural descriptions against the canonical sources of truth.
-    3.  Ensure there are no remaining fabricated examples or APIs. 
+    3.  Ensure there are no remaining fabricated examples or APIs.
+
+#### **8. ✅ Consolidate API Reference & Automate from JSDoc**
+
+-   **Goal**: Replace the fragmented API reference with a single, comprehensive page that is automatically generated from TSDoc/JSDoc comments in the source code.
+-   **Plan**: Follow the detailed strategy outlined in `JSDOC_MIGRATION_PLAN.md`.
+-   **Key Steps**:
+    1.  **Manual Consolidation (Interim)**: Combine `api-reference/introduction.mdx`, `api-reference/model.mdx`, `api-reference/view.mdx`, and `api-reference/session.mdx` into a single `api-reference/index.mdx`.
+    2.  **Script Development**: Create the `docs/scripts/jsdoc-to-mdx.js` automation script.
+    3.  **CI/CD Integration**: Set up a GitHub Action to run the script and keep the documentation in sync with the source code. 

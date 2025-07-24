@@ -1,0 +1,343 @@
+---
+title: 'Core API Reference'
+description: 'Complete reference for the Multisynq client-side synchronized architecture, including Model, View, Session, and more.'
+---
+
+<Note>
+This page provides a comprehensive reference for the Multisynq Core JavaScript API. Use the table of contents to navigate between major sections like `Model`, `View`, and `Session`.
+</Note>
+
+## Core Architecture
+
+Multisynq provides a revolutionary client-side synchronized architecture for building real-time collaborative applications. Unlike traditional server-client architectures, Multisynq runs your application logic on every user's device in perfect synchronization.
+
+### Client-Side Synchronization
+Multisynq applications run entirely on the client side. All application logic executes on every user's device in a deterministic virtual machine, ensuring perfect synchronization without custom server code.
+
+### Model-View Separation
+Multisynq enforces a strict architectural pattern:
+
+- **Model**: Contains all application logic and state. Runs in a deterministic VM.
+- **View**: Handles user interface and input. Can read from the model but never writes directly.
+- **Events**: All communication happens through a publish-subscribe event system.
+
+### Reflector Network
+Simple, stateless message-passing servers handle:
+- Event ordering from all clients into a canonical stream
+- Synchronized time (heartbeat ticks)
+- No application logic execution
+
+---
+
+## Installation & Setup
+
+### Installation
+
+Add Multisynq to your HTML page:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.min.js"></script>
+```
+
+Or import as an ES module:
+
+```javascript
+import * as Multisynq from "https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.esm.js";
+```
+
+### API Key
+
+Get your free API key from [multisynq.io/coder](https://multisynq.io/coder).
+
+---
+
+## `Multisynq.Model`
+
+The **Model** class provides the foundation for all synchronized objects in Multisynq applications. Models handle computation, maintain state, and ensure that all users see identical behavior through deterministic execution.
+
+<Info>
+**Key Concept**: Models run identically on every user's device, ensuring perfect synchronization. They communicate with Views only through publish/subscribe events.
+</Info>
+
+### Critical Rules
+
+<Warning>
+**Implementation Requirements**:
+- **NEVER use `new` constructor** - Always use `Model.create()`
+- **NEVER override the constructor** - Override `init()` method instead
+- **Always call `Model.register(classId)`** for all Model subclasses
+- **Always call `destroy()`** when a model instance is no longer needed
+</Warning>
+
+### Properties
+
+#### `id`
+<ParamField path="id" type="string" readonly>
+  Unique identifier for the model within the session.
+</ParamField>
+
+#### `sessionId`
+<ParamField path="sessionId" type="string" readonly>
+  Global session identifier shared by all users.
+</ParamField>
+
+#### `viewCount`
+<ParamField path="viewCount" type="number" readonly>
+  Number of users currently in the session.
+</ParamField>
+
+#### `activeSubscription`
+<ParamField path="activeSubscription" type="object" readonly>
+  Information about the currently executing subscription handler (e.g., `{ scope, event, source }`).
+</ParamField>
+
+### Instance Methods
+
+#### `init(options, persistentData)`
+Override this method to initialize your model. Called automatically by `create()`.
+
+<ParamField path="options" type="object">
+  Configuration options passed to `create()`.
+</ParamField>
+
+<ParamField path="persistentData" type="object">
+  Data restored from previous sessions (if using persistence).
+</ParamField>
+
+#### `publish(scope, event, data)`
+Send an event to a specific scope.
+
+<ParamField path="scope" type="string" required>Event scope (e.g., `this.sessionId`).</ParamField>
+<ParamField path="event" type="string" required>Event name.</ParamField>
+<ParamField path="data" type="any">Data to send with the event.</ParamField>
+
+#### `subscribe(scope, event, handler)`
+Register an event handler for specific events.
+
+<ParamField path="scope" type="string" required>Event scope to listen to.</ParamField>
+<ParamField path="event" type="string" required>Event name to handle.</ParamField>
+<ParamField path="handler" type="function" required>Method to call when event occurs.</ParamField>
+
+#### `unsubscribe(scope, event, handler)`
+Remove an event handler.
+
+#### `future(milliseconds)`
+Schedule a method call for future execution. Returns a proxy object that you call a method on.
+`this.future(1000).myMethod(arg1, arg2);`
+
+<ParamField path="milliseconds" type="number" default="0">
+  Delay in milliseconds before execution.
+</ParamField>
+
+#### `cancelFuture(method)`
+Cancel a previously scheduled future message.
+
+<ParamField path="method" type="function" required>The method that was scheduled.</ParamField>
+<ParamField returns="boolean">True if message was found and canceled.</ParamField>
+
+#### `now()`
+Get the current model time in milliseconds.
+
+<ParamField returns="number">Current time in milliseconds since session start.</ParamField>
+
+#### `random()`
+Generate a synchronized random number (0-1) identical across all users.
+
+<ParamField returns="number">Random number between 0 and 1.</ParamField>
+
+#### `destroy()`
+Clean up a model instance when it's no longer needed. This is critical for preventing memory leaks.
+
+#### `getModel(id)`
+Look up another model in the session by its ID.
+
+<ParamField path="id" type="string" required>Model ID to look up.</ParamField>
+<ParamField returns="Model">Model instance or undefined if not found.</ParamField>
+
+### Static Methods
+
+#### `Model.create(options)`
+Create a new model instance. Always use this instead of `new`.
+
+<ParamField path="options" type="object">Configuration options passed to `init()`.</ParamField>
+<ParamField returns="Model">New model instance.</ParamField>
+
+#### `Model.register(classId)`
+Register a model class with Multisynq. Required for all model subclasses.
+
+<ParamField path="classId" type="string" required>Unique identifier for the model class.</ParamField>
+
+### Well-Known Models
+
+#### `beWellKnownAs(name)`
+Make a model instance globally accessible by a string name.
+
+<ParamField path="name" type="string" required>Global name for this model.</ParamField>
+
+#### `wellKnownModel(name)`
+Access a globally registered model from an instance method.
+
+<ParamField path="name" type="string" required>Name of the well-known model.</ParamField>
+<ParamField returns="Model">Model instance or undefined.</ParamField>
+
+#### `Model.wellKnownModel(name)`
+Access a globally registered model from a static method.
+
+<ParamField path="name" type="string" required>Name of the well-known model.</ParamField>
+<ParamField returns="Model">Model instance or undefined.</ParamField>
+
+---
+
+## `Multisynq.View`
+
+The **View** class represents the local, user-interface portion of Multisynq applications. Views are local to each device and handle user input, display output, and UI interactions.
+
+<Info>
+**Key Concept**: Views are local and independent on each device. They subscribe to Model events to stay synchronized and publish events to communicate with Models.
+</Info>
+
+### Constructor
+
+#### `new View(model, viewOptions)`
+Creates a new View instance. Called automatically during `Session.join()`.
+
+<ParamField path="model" type="Model" required>The model instance this view will display.</ParamField>
+<ParamField path="viewOptions" type="object">Optional configuration passed from `Session.join()`.</ParamField>
+
+### Properties
+
+#### `viewId`
+<ParamField path="viewId" type="string" readonly>
+  Identifies the current user's connection to the session.
+</ParamField>
+
+#### `session`
+<ParamField path="session" type="object" readonly>
+  Reference to the session object.
+</ParamField>
+
+### Instance Methods
+
+#### `publish(scope, event, data)`
+Send an event. For view-to-model communication, `data` must be serializable.
+
+<ParamField path="scope" type="string" required>Event scope.</ParamField>
+<ParamField path="event" type="string" required>Event name.</ParamField>
+<ParamField path="data" type="any">Event data.</ParamField>
+
+#### `subscribe(scope, eventSpec, handler)`
+Register an event handler.
+
+<ParamField path="scope" type="string" required>Event scope to listen to.</ParamField>
+<ParamField path="eventSpec" type="string | object" required>Event name or specification object for handling type.</ParamField>
+<ParamField path="handler" type="function" required>Function to call when event occurs.</ParamField>
+
+##### Event Handling Types
+- **`"queued"` (default)**: Called once per publish on the next frame.
+- **`"oncePerFrame"`**: Called only once per frame with the latest data. Ideal for rendering updates.
+- **`"immediate"`**: Called synchronously during the `publish` call.
+
+```javascript
+// Example of 'oncePerFrame' for smooth rendering
+this.subscribe(this.model.id, {
+    event: "positionChanged",
+    handling: "oncePerFrame"
+}, this.updatePosition);
+```
+
+#### `unsubscribe(scope, event, handler)`
+Remove an event handler.
+
+#### `detach()`
+Clean up the view when it is no longer needed. **This is critical for preventing memory leaks.**
+
+#### `now()`
+Get the current model time in milliseconds.
+
+<ParamField returns="number">Model time since session start.</ParamField>
+
+#### `externalNow()`
+Get the latest timestamp from the reflector, which may be ahead of `now()` if the client is catching up.
+
+<ParamField returns="number">Latest reflector timestamp.</ParamField>
+
+#### `extrapolatedNow()`
+Get an extrapolated time based on the last reflector timestamp and local time. Useful for predictive rendering.
+
+<ParamField returns="number">Extrapolated current time.</ParamField>
+
+#### `update(time)`
+Called once per frame on the root view (if using `"auto"` stepping). Override this for frame-based logic like input polling or animation.
+
+<ParamField path="time" type="number">Frame timestamp from `requestAnimationFrame`.</ParamField>
+
+#### `wellKnownModel(name)`
+Access a globally registered model from a view instance.
+
+<ParamField path="name" type="string" required>Name given to `Model.beWellKnownAs()`.</ParamField>
+<ParamField returns="Model">Model instance or undefined.</ParamField>
+
+---
+
+## `Multisynq.Session`
+
+The **Session** class is the main entry point for joining and managing Multisynq sessions.
+
+### `Session.join(parameters)`
+The primary method for creating or joining a Multisynq session. It returns a Promise that resolves to a session object.
+
+#### Key Parameters
+
+<ParamField path="apiKey" type="string" required>Your API key.</ParamField>
+<ParamField path="appId" type="string" required>Unique application identifier (e.g., "com.example.myapp").</ParamField>
+<ParamField path="model" type="class" required>Your root Model class.</ParamField>
+<ParamField path="view" type="class">Your root View class.</ParamField>
+<ParamField path="name" type="string">Session name. Use `Multisynq.App.autoSession()` for URL-based names.</ParamField>
+<ParamField path="password" type="string">Session password. Use `Multisynq.App.autoPassword()` for URL-based passwords.</ParamField>
+<ParamField path="options" type="object">Options passed to your Model's `init()` method.</ParamField>
+<ParamField path="tps" type="number" default="20">Ticks per second from the reflector (1-60).</ParamField>
+<ParamField path="debug" type="string | string[]">Debug options for console logging.</ParamField>
+
+A full list of parameters can be found in the `types.d.ts` file.
+
+### Session Object
+The object returned from `Session.join()` contains:
+- **`id`**: Unique session identifier.
+- **`view`**: Your root view instance.
+- **`leave()`**: A function to leave the session.
+- **`step(time)`**: A function for manual stepping.
+
+---
+
+## `Multisynq.App`
+A collection of utilities for managing session URLs, QR codes, and debugging tools.
+
+*(This section is a placeholder and will be expanded by the automation script.)*
+
+---
+
+## `Multisynq.Data`
+The API for storing and retrieving large, immutable data blobs associated with a session.
+
+*(This section is a placeholder and will be expanded by the automation script.)*
+
+---
+
+## System Events
+
+Your models can subscribe to system-level events published on the `sessionId` scope.
+
+### `view-join`
+Published when a new user enters the session.
+
+<ParamField path="data" type="string | object">The `viewId` of the joining user, or `{viewId, viewData}` if `viewData` was provided to `Session.join()`.</ParamField>
+
+### `view-exit`
+Published when a user leaves the session.
+
+<ParamField path="data" type="string | object">The `viewId` of the exiting user, or `{viewId, viewDta}`.</ParamField>
+
+### `synced`
+A view-only event published when the local session has caught up to the reflector and the loading screen is hidden.
+
+<ParamField path="data" type="boolean">`true` if in sync, `false` if backlogged.</ParamField> 
