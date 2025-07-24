@@ -1,0 +1,32 @@
+---
+title: 'MCP Setup'
+description: 'How to install and use the Multisynq MCP server.'
+---
+
+## Multisynq Model Context Protocol (MCP) Server
+
+You can install the Multisynq MCP server to connect AI applications and large language models directly to the Multisynq platform's functions.
+
+### Installation
+
+To install the server, run the command provided by the contextual menu, or copy and paste the following into your terminal:
+
+<CodeGroup>
+```bash
+npx mint-mcp add multisynq.io
+```
+</CodeGroup>
+
+When you run the command, you will be prompted for two API keys:
+- `External Admin Key`
+- `Assistant API Key`
+
+You can find these keys in your Mintlify dashboard under **Settings > API Keys**.
+
+### Available Tools
+
+Once configured, your MCP server will be ready to use. It includes the `search` tool by default, which allows you to query information across this entire documentation site.
+
+If the project's OpenAPI specification is configured with the `x-mcp` extension, those API functions will also be available as tools.
+
+For more information on the Model Context Protocol, please see the [official Mintlify documentation](https://mintlify.com/docs/mcp). 

@@ -192,5 +192,42 @@
       "github": "https://github.com/multisynq",
       "linkedin": "https://www.linkedin.com/company/multisynq/"
     }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      {
+        "title": "Ask Gemini",
+        "description": "Ask Google Gemini about the current page",
+        "icon": "sparkle",
+        "href": {
+          "base": "https://gemini.google.com/app",
+          "query": [
+            {
+              "key": "q",
+              "value": "Ask a question about the following documentation page for Multisynq: https://docs.multisynq.io$path"
+            }
+          ]
+        }
+      },
+      {
+        "title": "Add Multisynq MCP",
+        "description": "Install the Multisynq MCP server for this project",
+        "icon": "stars",
+        "href": {
+            "base": "https://docs.multisynq.io/mcp-setup",
+            "query": [
+                {
+                    "key": "cmd",
+                    "value": "npx mint-mcp add multisynq.io"
+                }
+            ]
+        }
+      }
+    ]
   }
 }
