@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["es2020", "dom"]
+  },
+  "include": [
+    "../multisynq-client/client/types.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+} 

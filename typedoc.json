@@ -1,0 +1,17 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "entryPoints": [
+        "../multisynq-client/client/teatime/index.js",
+        "../multisynq-client/client/types.d.ts"
+    ],
+    "json": "./api-reference-temp/output.json",
+    "entryPointStrategy": "expand",
+    "blockTags": [
+        "@tutorial"
+    ],
+    "inlineTags": [
+        "@tutorial",
+        "@link"
+    ],
+    "skipErrorChecking": true
+} 

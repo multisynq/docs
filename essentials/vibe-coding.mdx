@@ -10,144 +10,137 @@ icon: 'robot'
   alt="AI Development with Multisynq"
 />
 
-Build multiplayer experiences without breaking your flow. Train your AI assistant with our comprehensive context files and start coding collaborative applications in minutes.
+Build multiplayer experiences without breaking your flow. This guide explains how to use Multisynq's AI features, including training context files and one-click AI integrations, to build collaborative applications in minutes.
 
 <Note>
-**What is Vibe Coding?** It's the new wave of AI-native development where you train your AI assistant with domain-specific context, then collaborate naturally to build complex applications. No more explaining APIs or searching documentation - your AI knows Multisynq inside and out.
+**What is Vibe Coding?** It's a new wave of AI-native development where you train your AI assistant with domain-specific context, then collaborate naturally to build complex applications. No more explaining APIs or searching documentation - your AI knows Multisynq inside and out.
 </Note>
 
-## How to Get Started
+## How It Works: Two Methods
 
+You can integrate Multisynq with your AI assistant in two primary ways:
+
+<CardGroup cols={2}>
+  <Card title="1. Contextual AI Menu" icon="zap">
+    **Easiest method.** Use the menu at the top of any page to send the content directly to your favorite AI (ChatGPT, Claude, Gemini). It's a one-click way to give the AI context for a specific task.
+  </Card>
+  <Card title="2. Full Context Files" icon="files">
+    **Most powerful method.** For building entire applications from scratch, provide your AI with a full training file. This gives the AI a deep understanding of the entire Multisynq library.
+  </Card>
+</CardGroup>
+
+---
+
+## Method 1: Using the Contextual AI Menu
+
+At the top right of every documentation page, you'll find a menu with several AI-powered options. This is the quickest way to get help with specific questions or code snippets.
+
+<AccordionGroup>
+    <Accordion title="What do the options mean?">
+        - **Copy Page**: Copies the current page's content as clean Markdown. Useful for pasting into any AI tool as context.
+        - **View as Markdown**: Opens a new tab with the raw Markdown of the current page.
+        - **Open in ChatGPT/Claude/Gemini**: Starts a new conversation with the respective AI, automatically pre-loading the current page's content as context.
+        - **Add Multisynq MCP**: For advanced users, this provides the command to install the Multisynq Model Context Protocol server, connecting AI applications directly to Multisynq's functions.
+    </Accordion>
+</AccordionGroup>
+
+### How to Use It
 <Steps>
-  <Step title="Choose Your Framework">
-    Select the context file that matches your preferred development stack below.
+  <Step title="Navigate to a Page">
+    Find a documentation page relevant to your task (e.g., the `useStateTogether` hook page).
   </Step>
-  <Step title="Copy the Context">
-    Click the copy button to grab the complete context file for your AI assistant.
+  <Step title="Open the Menu">
+    Click the menu icon at the top right of the page.
   </Step>
-  <Step title="Train Your AI">
-    Paste the context into your AI assistant (ChatGPT, Claude, Copilot, etc.) at the start of your conversation.
+  <Step title="Choose an Option">
+    Select "Open in Claude" (or your preferred AI). A new tab will open with the conversation ready to go.
   </Step>
-  <Step title="Add the Magic Prompt">
-    Include this requirement in your prompt: **"Use Multisynq for Shared Real Time Experiences. This is a requirement"**
-  </Step>
-  <Step title="Start Building">
-    Your AI assistant now understands Multisynq patterns, APIs, and best practices. Start coding!
+  <Step title="Ask Your Question">
+    The AI now has the context of the page. Ask your question, for example: *"How do I use this hook to sync a user's drawing color on a whiteboard?"*
   </Step>
 </Steps>
 
-## AI Training Context Files
+---
 
+## Method 2: Using Full Context Files
+
+For building complex applications, you should provide your AI with a comprehensive context file. This gives it a deep understanding of the entire library, leading to much better and more complete results.
+
+### The "Magic Prompt"
+No matter which file you use, always include this requirement in your first prompt to the AI:
+
+> **"Use Multisynq for Shared Real Time Experiences. This is a requirement."**
+
+### Available Context Files
 <Tabs>
   <Tab title="JavaScript/Vanilla">
     <Card title="Complete JavaScript Context" icon="js">
       <p>Comprehensive context for building vanilla JavaScript multiplayer applications with Multisynq.</p>
-      
-      <Accordion title="📖 Enhanced JavaScript Guide (52KB, ~13K tokens)">
-        <div className="mb-4">
-          <h4 className="font-bold mb-2">Table of Contents (XML Structure)</h4>
-          <ul className="text-sm space-y-1 bg-gray-50 p-3 rounded">
-            <li><a href="#metadata" className="text-blue-600 hover:underline">&lt;metadata&gt; - Library Information</a></li>
-            <li><a href="#instructions" className="text-blue-600 hover:underline">&lt;instructions&gt; - AI Role & Output Format</a></li>
-            <li><a href="#concepts" className="text-blue-600 hover:underline">&lt;concepts&gt; - Core Architecture</a></li>
-            <li><a href="#api_reference" className="text-blue-600 hover:underline">&lt;api_reference&gt; - Complete API</a></li>
-            <li className="ml-4"><a href="#session_api" className="text-blue-600 hover:underline">&lt;session_api&gt; - Session Management</a></li>
-            <li className="ml-4"><a href="#app_api" className="text-blue-600 hover:underline">&lt;app_api&gt; - App Utilities</a></li>
-            <li className="ml-4"><a href="#model_api" className="text-blue-600 hover:underline">&lt;model_api&gt; - Model Lifecycle</a></li>
-            <li className="ml-4"><a href="#view_api" className="text-blue-600 hover:underline">&lt;view_api&gt; - View Patterns</a></li>
-            <li><a href="#examples" className="text-blue-600 hover:underline">&lt;examples&gt; - Complete Applications</a></li>
-            <li><a href="#patterns" className="text-blue-600 hover:underline">&lt;patterns&gt; - Best Practices</a></li>
-          </ul>
-        </div>
-        
+
+      <Accordion title="📖 Enhanced JavaScript Guide (XML Format)">
+        <p className="text-sm text-gray-600 mb-2">**Best for:** AI models that work well with structured data, like Claude. This XML-formatted file provides a detailed breakdown of the entire API, concepts, and examples.</p>
         <div className="bg-gray-100 p-4 rounded max-h-96 overflow-y-auto text-sm font-mono">
-          <strong>Preview (first 500 characters):</strong><br/><br/>
+          <strong>Preview:</strong><br/><br/>
           &lt;documentation&gt;<br/>
           &nbsp;&nbsp;&lt;metadata&gt;<br/>
           &nbsp;&nbsp;&nbsp;&nbsp;&lt;library&gt;@multisynq/client&lt;/library&gt;<br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;&lt;version&gt;v3&lt;/version&gt;<br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;&lt;purpose&gt;A comprehensive guide for an AI assistant on building real-time, multiplayer web applications using the Multisynq JavaScript SDK. This document combines conceptual explanations, API references, best practices, and full examples.&lt;/purpose&gt;<br/>
-          &nbsp;&nbsp;&lt;/metadata&gt;<br/><br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+          &nbsp;&nbsp;&lt;/metadata&gt;<br/>
           &nbsp;&nbsp;&lt;instructions&gt;<br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;&lt;role&gt;<br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;You are an expert Multisynq web application builder who specializes in real-time multi-user experiences...
+          &nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+          &nbsp;&nbsp;&lt;/instructions&gt;<br/>
+          ...
         </div>
-        
         <div className="flex gap-2 mt-4">
-          <button 
+          <button
             onClick={() => {
               fetch('/multisynq-js-llm.md').then(r => r.text()).then(content => {
                 navigator.clipboard.writeText(content);
                 alert('JavaScript Enhanced Context copied to clipboard!');
-              }).catch(() => alert('Could not copy file. Please download manually.'));
+              }).catch(() => alert('Could not copy file.'));
             }}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
           >
             📋 Copy Full Context
           </button>
-          <a 
+          <a
             href="/multisynq-js-llm.md"
             download="multisynq-js-llm.md"
             className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
           >
             💾 Download
           </a>
-          <span className="text-sm text-gray-600 flex items-center">
-            52KB • ~13,000 tokens
-          </span>
         </div>
       </Accordion>
 
-      <Accordion title="📄 Core JavaScript Context (191KB, ~48K tokens)">
-        <div className="mb-4">
-          <h4 className="font-bold mb-2">Raw API Documentation</h4>
-          <p className="text-sm text-gray-600 mb-2">Complete JavaScript context file with API references, examples, and implementation details.</p>
-          <ul className="text-sm space-y-1 bg-gray-50 p-3 rounded">
-            <li><a href="#session-management" className="text-blue-600 hover:underline">Session Management</a></li>
-            <li><a href="#model-architecture" className="text-blue-600 hover:underline">Model Architecture</a></li>
-            <li><a href="#view-patterns" className="text-blue-600 hover:underline">View Patterns</a></li>
-            <li><a href="#event-system" className="text-blue-600 hover:underline">Event System</a></li>
-            <li><a href="#complete-examples" className="text-blue-600 hover:underline">Complete Examples</a></li>
-            <li><a href="#troubleshooting" className="text-blue-600 hover:underline">Troubleshooting</a></li>
-          </ul>
-        </div>
-        
+      <Accordion title="📄 Core JavaScript Context (Raw Text)">
+         <p className="text-sm text-gray-600 mb-2">**Best for:** Simpler AI models or when you need a raw text dump of the documentation. This file contains the core API reference and examples in plain text.</p>
         <div className="bg-gray-100 p-4 rounded max-h-96 overflow-y-auto text-sm font-mono">
-          <strong>Preview (first 500 characters):</strong><br/><br/>
+          <strong>Preview:</strong><br/><br/>
           # Multisynq JavaScript SDK Documentation<br/>
           ## For AI Assistant Training<br/><br/>
-          This comprehensive guide provides everything an AI assistant needs to build real-time multiplayer web applications with Multisynq.<br/><br/>
-          ## Table of Contents<br/>
-          1. Quick Start<br/>
-          2. Core Concepts<br/>
-          3. Session Management<br/>
-          4. Model Architecture<br/>
-          5. View Implementation<br/>
-          6. Event System...
+          This comprehensive guide provides everything an AI assistant needs to build real-time multiplayer web applications with Multisynq.<br/>
+          ...
         </div>
-        
         <div className="flex gap-2 mt-4">
-          <button 
+          <button
             onClick={() => {
               fetch('/multisynq-js.txt').then(r => r.text()).then(content => {
                 navigator.clipboard.writeText(content);
                 alert('JavaScript Core Context copied to clipboard!');
-              }).catch(() => alert('Could not copy file. Please download manually.'));
+              }).catch(() => alert('Could not copy file.'));
             }}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
           >
             📋 Copy Raw Context
           </button>
-          <a 
+          <a
             href="/multisynq-js.txt"
             download="multisynq-js.txt"
             className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
           >
             💾 Download
           </a>
-          <span className="text-sm text-gray-600 flex items-center">
-            191KB • ~48,000 tokens
-          </span>
         </div>
       </Accordion>
     </Card>
@@ -155,114 +148,68 @@ Build multiplayer experiences without breaking your flow. Train your AI assistan
 
   <Tab title="React Together">
     <Card title="React Together Context" icon="react">
-      <p>Complete context for building React-based collaborative applications with React Together hooks and components.</p>
-      
-      <Accordion title="📖 Enhanced React Guide (71KB, ~18K tokens)">
-        <div className="mb-4">
-          <h4 className="font-bold mb-2">Table of Contents (XML Structure)</h4>
-          <ul className="text-sm space-y-1 bg-gray-50 p-3 rounded">
-            <li><a href="#metadata" className="text-blue-600 hover:underline">&lt;metadata&gt; - React Together Info</a></li>
-            <li><a href="#instructions" className="text-blue-600 hover:underline">&lt;instructions&gt; - React AI Instructions</a></li>
-            <li><a href="#setup" className="text-blue-600 hover:underline">&lt;setup&gt; - Installation & Config</a></li>
-            <li><a href="#concepts" className="text-blue-600 hover:underline">&lt;concepts&gt; - React Together Concepts</a></li>
-            <li><a href="#api" className="text-blue-600 hover:underline">&lt;api&gt; - Complete Hook Reference</a></li>
-            <li className="ml-4"><a href="#provider" className="text-blue-600 hover:underline">&lt;provider&gt; - ReactTogether Provider</a></li>
-            <li className="ml-4"><a href="#hooks" className="text-blue-600 hover:underline">&lt;hooks&gt; - All React Hooks</a></li>
-            <li className="ml-4"><a href="#components" className="text-blue-600 hover:underline">&lt;components&gt; - Pre-built Components</a></li>
-            <li><a href="#examples" className="text-blue-600 hover:underline">&lt;examples&gt; - Complete React Apps</a></li>
-            <li><a href="#patterns" className="text-blue-600 hover:underline">&lt;patterns&gt; - React Patterns</a></li>
-          </ul>
-        </div>
-        
+      <p>Context for building React-based collaborative applications with React Together hooks and components.</p>
+      <Accordion title="📖 Enhanced React Guide (XML Format)">
+        <p className="text-sm text-gray-600 mb-2">**Best for:** AI models that work well with structured data, like Claude. This file provides a detailed breakdown of all hooks, components, and patterns for `react-together`.</p>
         <div className="bg-gray-100 p-4 rounded max-h-96 overflow-y-auto text-sm font-mono">
-          <strong>Preview (first 500 characters):</strong><br/><br/>
+          <strong>Preview:</strong><br/><br/>
           &lt;documentation&gt;<br/>
           &nbsp;&nbsp;&lt;metadata&gt;<br/>
           &nbsp;&nbsp;&nbsp;&nbsp;&lt;library&gt;react-together&lt;/library&gt;<br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;&lt;version&gt;latest&lt;/version&gt;<br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;&lt;purpose&gt;A comprehensive guide for an AI assistant on building real-time, collaborative React applications using the `react-together` library, which is built on top of `@multisynq/client`.&lt;/purpose&gt;<br/>
-          &nbsp;&nbsp;&lt;/metadata&gt;<br/><br/>
-          &nbsp;&nbsp;&lt;instructions&gt;<br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;&lt;role&gt;<br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;You are an expert web application builder specializing in real-time, multi-user experiences with Multisynq and React...
+          &nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+          &nbsp;&nbsp;&lt;/metadata&gt;<br/>
+          ...
         </div>
-        
         <div className="flex gap-2 mt-4">
-          <button 
+          <button
             onClick={() => {
               fetch('/multisynq-react-llm.md').then(r => r.text()).then(content => {
                 navigator.clipboard.writeText(content);
                 alert('React Enhanced Context copied to clipboard!');
-              }).catch(() => alert('Could not copy file. Please download manually.'));
+              }).catch(() => alert('Could not copy file.'));
             }}
             className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
           >
             📋 Copy Full Context
           </button>
-          <a 
+          <a
             href="/multisynq-react-llm.md"
             download="multisynq-react-llm.md"
             className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
           >
             💾 Download
           </a>
-          <span className="text-sm text-gray-600 flex items-center">
-            71KB • ~18,000 tokens
-          </span>
         </div>
       </Accordion>
-
-      <Accordion title="📄 Core React Context (32KB, ~8K tokens)">
-        <div className="mb-4">
-          <h4 className="font-bold mb-2">React Together Essentials</h4>
-          <p className="text-sm text-gray-600 mb-2">Essential React Together hooks, components, and patterns for collaborative applications.</p>
-          <ul className="text-sm space-y-1 bg-gray-50 p-3 rounded">
-            <li><a href="#react-hooks" className="text-blue-600 hover:underline">Core Hooks</a></li>
-            <li><a href="#react-components" className="text-blue-600 hover:underline">Components</a></li>
-            <li><a href="#react-providers" className="text-blue-600 hover:underline">Provider Setup</a></li>
-            <li><a href="#react-patterns" className="text-blue-600 hover:underline">Common Patterns</a></li>
-            <li><a href="#react-examples" className="text-blue-600 hover:underline">Complete Examples</a></li>
-            <li><a href="#react-troubleshooting" className="text-blue-600 hover:underline">Troubleshooting</a></li>
-          </ul>
-        </div>
+      <Accordion title="📄 Core React Context (Raw Text)">
+         <p className="text-sm text-gray-600 mb-2">**Best for:** Simpler AI models or a raw text dump of the `react-together` documentation.</p>
         <div className="bg-gray-100 p-4 rounded max-h-96 overflow-y-auto text-sm font-mono">
-          <strong>Preview (first 500 characters):</strong><br/><br/>
+          <strong>Preview:</strong><br/><br/>
           # React Together Documentation<br/>
           ## For AI Assistant Training<br/><br/>
-          Complete guide for building real-time collaborative React applications with React Together.<br/><br/>
-          ## Quick Start<br/>
-          ```tsx<br/>
-          import &#123; ReactTogether, useStateTogether &#125; from 'react-together';<br/><br/>
-          function App() &#123;<br/>
-          &nbsp;&nbsp;const [count, setCount] = useStateTogether('counter', 0);<br/>
-          &nbsp;&nbsp;return &lt;button onClick=&#123;() =&gt; setCount(c =&gt; c + 1)&#125;&gt;&#123;count&#125;&lt;/button&gt;;<br/>
-          &#125;
+          Complete guide for building real-time collaborative React applications with React Together.<br/>
+          ...
         </div>
-        
         <div className="flex gap-2 mt-4">
-          <button 
+          <button
             onClick={() => {
               fetch('/multisynq-react.txt').then(r => r.text()).then(content => {
                 navigator.clipboard.writeText(content);
                 alert('React Core Context copied to clipboard!');
-              }).catch(() => alert('Could not copy file. Please download manually.'));
+              }).catch(() => alert('Could not copy file.'));
             }}
             className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
           >
             📋 Copy Raw Context
           </button>
-          <a 
+          <a
             href="/multisynq-react.txt"
             download="multisynq-react.txt"
             className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
           >
             💾 Download
           </a>
-          <span className="text-sm text-gray-600 flex items-center">
-            32KB • ~8,000 tokens
-          </span>
         </div>
-
       </Accordion>
     </Card>
   </Tab>
@@ -270,95 +217,86 @@ Build multiplayer experiences without breaking your flow. Train your AI assistan
   <Tab title="Three.js">
     <Card title="3D Multiplayer Context" icon="cube">
       <p>Context for building real-time 3D multiplayer experiences with Three.js and Multisynq.</p>
-      
       <Accordion title="🎮 Three.js Integration Guide">
-        
+        <p className="text-sm text-gray-600 mb-2">This is a starting point for integrating Multisynq with Three.js. For a full, working example, see the GitHub repository.</p>
         ```javascript
         // Three.js + Multisynq Integration Pattern
-        import * as THREE from 'https://cdn.skypack.dev/three@0.135.0';
-        import * as Multisynq from "https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.esm.js";
+        import * as THREE from 'three';
+        import * as Multisynq from "@multisynq/client";
 
         class World3DModel extends Multisynq.Model {
             init() {
-                this.objects = new Map(); // 3D object states
-                this.users = new Map();   // User positions/rotations
-                
+                this.objects = new Map(); // Map<objectId, {position, rotation, scale}>
+                this.users = new Map();   // Map<viewId, {position, rotation}>
                 this.subscribe(this.sessionId, "userMove", this.handleUserMove);
-                this.subscribe(this.sessionId, "spawnObject", this.handleSpawnObject);
             }
-            
+
             handleUserMove({ viewId, position, rotation }) {
                 this.users.set(viewId, { position, rotation });
-                this.publish(this.sessionId, "worldUpdate", {
+                this.publish(this.sessionId, "worldUpdate", this.getWorldState());
+            }
+
+            getWorldState() {
+                return {
                     users: Object.fromEntries(this.users),
                     objects: Object.fromEntries(this.objects)
-                });
+                };
             }
         }
-
-        class World3DView extends Multisynq.View {
-            constructor(model) {
-                super(model);
-                this.setupThreeJS();
-                this.subscribe(this.sessionId, "worldUpdate", this.updateWorld);
-            }
-            
-            setupThreeJS() {
-                this.scene = new THREE.Scene();
-                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                this.renderer = new THREE.WebGLRenderer();
-                // ... Three.js setup
-            }
-        }
+        World3DModel.register("World3DModel");
         ```
-        
         <div className="flex gap-2 mt-4">
-          <a 
-            href="https://github.com/multisynq/vibe-coding-multisynq-threejs" 
+          <a
+            href="https://github.com/multisynq/vibe-coding-multisynq-threejs"
             target="_blank"
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
           >
-            🔗 View GitHub Example
+            🔗 View Full Example on GitHub
           </a>
-          <span className="text-sm text-gray-600 flex items-center">
-            Complete 3D multiplayer template
-          </span>
         </div>
-
       </Accordion>
     </Card>
   </Tab>
 </Tabs>
 
-## AI Assistant Tips
+## Popular AI-Built Examples
 
-<CardGroup cols={2}>
-  <Card title="ChatGPT/Claude" icon="message-circle">
-    1. Start a new conversation
-    2. Paste the context file first
-    3. Wait for confirmation  
-    4. Add: "Use Multisynq for multiplayer features"
-    5. Describe your app idea
+<CardGroup cols={3}>
+  <Card title="Collaborative Todo" icon="check-square">
+    **Prompt:** "Build a collaborative todo app where teams can create, assign, and complete tasks together in real-time"
   </Card>
-  <Card title="GitHub Copilot" icon="code">
-    1. Create a new file with the context as comments
-    2. Add the magic prompt in comments
-    3. Start coding - Copilot will suggest Multisynq patterns
-    4. Use `// TODO: ` comments for specific features
+  <Card title="Multiplayer Tic-Tac-Toe" icon="grid-3x3">
+    **Prompt:** "Create a tic-tac-toe game where players can join matches and others can watch live"
+  </Card>
+  <Card title="Collaborative Whiteboard" icon="pen-tool">
+    **Prompt:** "Build a whiteboard where multiple people can draw, add shapes, and see cursors in real-time"
   </Card>
 </CardGroup>
 
-## Magic Prompts
 
-Use these proven prompts to get the best results from your AI assistant:
+## AI Assistant Tips & Magic Prompts
 
-<Accordion title="🎯 Application Starters">
+<CardGroup cols={2}>
+  <Card title="ChatGPT/Claude/Gemini" icon="message-circle">
+    1. Start a new conversation.
+    2. Paste one of the full context files.
+    3. Wait for the AI to acknowledge it has read the context.
+    4. Add the "Magic Prompt" with your app idea.
+  </Card>
+  <Card title="GitHub Copilot" icon="code">
+    1. Create a new file (`context.md`) and paste the context.
+    2. In your main code file, add the Magic Prompt in comments.
+    3. Start coding - Copilot will now provide Multisynq-aware suggestions.
+  </Card>
+</CardGroup>
+
+<Accordion title="Magic Prompts for Great Results">
 **For Building New Apps:**
 ```
 Use Multisynq for Shared Real Time Experiences. This is a requirement.
 
-Build a [describe your app] that allows multiple users to collaborate in real-time. 
-Include user presence, real-time state synchronization, and a beautiful UI.
+Build a [describe your app] that allows multiple users to collaborate in real-time.
+Include user presence, real-time state synchronization, and a beautiful UI using TailwindCSS.
 Make it work on mobile and desktop.
 ```
 
@@ -372,94 +310,7 @@ Please help me integrate Multisynq to enable this.
 ```
 </Accordion>
 
-<Accordion title="🔧 Feature Requests">
-**For Specific Features:**
-```
-Using Multisynq, add these collaborative features:
-- [ ] Real-time cursor tracking
-- [ ] User presence indicators  
-- [ ] Shared state for [specific data]
-- [ ] Live chat/comments
-- [ ] Conflict-free collaboration
-
-Make sure everything syncs instantly across all connected users.
-```
-</Accordion>
-
-<Accordion title="🎨 UI/UX Prompts">
-**For Beautiful Interfaces:**
-```
-Create a beautiful, modern UI using TailwindCSS with:
-- Smooth animations for state changes
-- User avatars and presence indicators
-- Visual feedback for real-time updates
-- Mobile-responsive design
-- Dark/light mode support
-
-Show connection status and make collaboration feel magical.
-```
-</Accordion>
-
-## Popular AI-Built Examples
-
-<CardGroup cols={3}>
-  <Card title="Collaborative Todo" icon="check-square">
-    **What it does:** Real-time todo list with assignees
-    
-    **Prompt:** "Build a collaborative todo app where teams can create, assign, and complete tasks together in real-time"
-    
-    [View Demo](https://todo-demo.multisynq.io)
-  </Card>
-  <Card title="Multiplayer Tic-Tac-Toe" icon="grid-3x3">
-    **What it does:** Classic game with spectators
-    
-    **Prompt:** "Create a tic-tac-toe game where players can join matches and others can watch live"
-    
-    [View Demo](https://github.com/multisynq/tictactoe-example)
-  </Card>
-  <Card title="Collaborative Whiteboard" icon="pen-tool">
-    **What it does:** Shared drawing canvas
-    
-    **Prompt:** "Build a whiteboard where multiple people can draw, add shapes, and see cursors in real-time"
-    
-    [View Demo](https://github.com/multisynq/whiteboard-example)
-  </Card>
-</CardGroup>
-
-## Advanced Features
-
-<Tabs>
-  <Tab title="User Management">
-    ```javascript
-    // Track and display connected users
-    const [users] = useConnectedUsers();
-    const [nicknames] = useNicknames();
-    
-    // Show user presence
-    const [cursors] = useCursors();
-    const [hovering] = useHoveringUsers();
-    ```
-  </Tab>
-  <Tab title="Real-time Communication">
-    ```javascript
-    // Add chat and messaging
-    const [messages, sendMessage] = useChat();
-    
-    // Custom events
-    const sendNotification = useFunctionTogether("sendNotif");
-    ```
-  </Tab>
-  <Tab title="Persistent State">
-    ```javascript
-    // State that persists across sessions
-    const [gameState, setGameState] = useStateTogether("game", initialState);
-    
-    // Per-user persistent data  
-    const [userPrefs, setUserPrefs] = useStateTogetherWithPerUserValues("prefs", {});
-    ```
-  </Tab>
-</Tabs>
-
+---
 <Warning>
 **Important for AI Assistants:** Always use the exact Multisynq APIs and patterns from the context files. Don't invent or modify API names, method signatures, or architectural patterns. When in doubt, refer back to the context documentation.
 </Warning>
@@ -470,18 +321,11 @@ Ready to start building? Get your free API key and start vibing with AI:
 
 <Card title="Get Started" icon="key">
   <p>Get your free Multisynq API key to enable real-time collaboration in your AI-built applications.</p>
-  
-  <a 
-    href="https://multisynq.io/coder" 
+  <a
+    href="https://multisynq.io/coder"
     target="_blank"
     className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-block mt-4"
   >
     🚀 Get Free API Key
   </a>
-</Card>
-
----
-
-<Note>
-**Questions?** Join our [Discord community](https://discord.gg/multisynq) where developers share AI-built Multisynq applications and help each other with vibe coding techniques.
-</Note> 
+</Card> 

@@ -20,9 +20,14 @@
   "author": "Multisynq",
   "license": "MIT",
   "dependencies": {
-    "mintlify": "^4.0.0"
+    "mintlify": "^4.0.0",
+    "jsdoc-to-markdown": "^8.0.0",
+    "typedoc-plugin-markdown": "^3.17.1",
+    "typedoc-json-parser": "^10.2.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+      "typedoc": "^0.25.13"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/multisynq/multisynq"
