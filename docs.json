@@ -190,6 +190,16 @@
       "linkedin": "https://www.linkedin.com/company/multisynq/"
     }
   },
+  "redirects": [
+    { "source": "/api-reference/introduction", "destination": "/api-reference" },
+    { "source": "/api-reference/model", "destination": "/api-reference#multisynq-model" },
+    { "source": "/api-reference/view", "destination": "/api-reference#multisynq-view" },
+    { "source": "/api-reference/session", "destination": "/api-reference#multisynq-session" },
+    { "source": "/Model.html", "destination": "/api-reference#multisynq-model" },
+    { "source": "/View.html", "destination": "/api-reference#multisynq-view" },
+    { "source": "/Session.html", "destination": "/api-reference#multisynq-session" },
+    { "source": "/Data.html", "destination": "/api-reference#multisynq-data" }
+  ],
   "contextual": {
     "options": [
       "copy",
