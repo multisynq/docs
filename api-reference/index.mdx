@@ -18,24 +18,24 @@ Models advance time by sending messages into their [future](#modelfuture)(#model
 
 ## Instance Creation and Initialization
 
-### Do __NOT__ create a [Model](#model) instance using `\`new\`` and<br>do __NOT__ override the `\`constructor\``!
+### Do __NOT__ create a [Model](#model) instance using `new\`` and<br>do __NOT__ override the `constructor\``!
 
 To __create__ a new instance, use [create()](#modelcreate)(#modelcreate), for example:
-`\`\`\`
+```javascript
 this.foo = FooModel.create({answer: 123});
-\`\`\``
+```
 To __initialize__ an instance, override [init()](#modelinit)(#modelinit), for example:
-`\`\`\`
+```javascript
 class FooModel extends Multisynq.Model {
     init(options={}) {
         this.answer = options.answer || 42;
     }
 }
-\`\`\``
-The **reason** for this is that Models are only initialized by calling `\`init()\``
+```
+The **reason** for this is that Models are only initialized by calling `init()\``
 the first time the object comes into existence in the session.
 After that, when joining a session, the models are deserialized from the snapshot, which
-restores all properties automatically without calling `\`init()\``. A constructor would
+restores all properties automatically without calling `init()\``. A constructor would
 be called all the time, not just when starting a session.
 
 #### `constructor`
@@ -54,16 +54,16 @@ be called all the time, not just when starting a session.
 
 (as opposed to the [viewId](#viewviewid)(#viewviewid) which identifies the non-shared views of each user).
 
-The session id is used as "global" scope for events like [`\`"view-join"\``](#eventview-join)(#eventview-join).
+The session id is used as "global" scope for events like [`"view-join"\``](#eventview-join)(#eventview-join).
 
 See [Session.join](#sessionjoin) for how the session id is generated.
 
 If your app has several sessions at the same time, each session id will be different.
 
 Example
-`\`\`\`
+```javascript
 this.subscribe(this.sessionId, "view-join", this.addUser);
-\`\`\``
+```
 
 ##### `viewCount`
 
@@ -71,15 +71,15 @@ this.subscribe(this.sessionId, "view-join", this.addUser);
 
 All users in a session share the same Model (meaning all model objects) but each user has a different View
 (meaning all the non-model state). This is the number of views currently sharing this model.
-It increases by 1 for every [`\`"view-join"\``](#eventview-join)(#eventview-join)
-and decreases by 1 for every [`\`"view-exit"\``](#eventview-exit)(#eventview-exit) event.
+It increases by 1 for every [`"view-join"\``](#eventview-join)(#eventview-join)
+and decreases by 1 for every [`"view-exit"\``](#eventview-exit)(#eventview-exit) event.
 
 Example
-`\`\`\`
+```javascript
 this.subscribe(this.sessionId, "view-join", this.showUsers);
 this.subscribe(this.sessionId, "view-exit", this.showUsers);
 showUsers() { this.publish(this.sessionId, "view-count", this.viewCount); }
-\`\`\``
+```
 
 ##### `Multisynq`
 
@@ -95,7 +95,7 @@ using [wellKnownModel()](#modelwellknownmodel)(#modelwellknownmodel).
 Hint: Another way to make a model well-known is to pass a name as second argument to [Model.create()]Model#create.
 
 Example:
-`\`\`\`
+```javascript
  class FooManager extends Multisynq.Model {
      init() {
          this.beWellKnownAs("UberFoo");
@@ -106,7 +106,7 @@ Example:
          this.wellKnownModel("UberFoo").report(something);
      }
  }
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="name" type="string">
@@ -126,7 +126,7 @@ but you can also pass the name of the method as a string.
 
 <RequestExample>
 <ParamField path="method" type="FutureHandler">
-the method (must be a method of `\`this\``)
+the method (must be a method of `this\``)
 </ParamField>
 </RequestExample>
 
@@ -143,14 +143,14 @@ not be introspected by the snapshot mechanism. This method creates a serializabl
 the original function.
 
 The function can only access global references (like classes), *all local
-references must be passed in the `\`env\`` object*. They are captured
+references must be passed in the `env\`` object*. They are captured
 as constants at the time the QFunc is created. Since they are constants,
 re-assignments will throw an error.
 
-In a fat-arrow function, `\`this\`` is bound to the model that called `\`createQFunc\``,
-even in a different lexical scope. It is okay to call a model's `\`createQFunc\`` from
+In a fat-arrow function, `this\`` is bound to the model that called `createQFunc\``,
+even in a different lexical scope. It is okay to call a model's `createQFunc\`` from
 anywhere, e.g. from a view. QFuncs can be passed from view to model as arguments
-in `\`publish()\`` (provided their environment is serializable).
+in `publish()\`` (provided their environment is serializable).
 
 **Warning:** Minification can change the names of local variables and functions,
 but the env will still use the unminified names. You need to disable
@@ -180,13 +180,13 @@ unschedules all [future](#modelfuture)(#modelfuture) messages,
 and removes it from future snapshots.
 
 Example:
-`\`\`\`
+```javascript
 removeChild(child) {
    const index = this.children.indexOf(child);
    this.children.splice(index, 1);
    child.destroy();
 }
-\`\`\``
+```
 
 #### `future()`
 
@@ -194,38 +194,38 @@ removeChild(child) {
 
 Use a future message to automatically advance time in a model,
 for example for animations.
-The execution will be scheduled `\`tOffset\`` milliseconds into the future.
-It will run at precisely `\`this.now() + tOffset\``.
+The execution will be scheduled `tOffset\`` milliseconds into the future.
+It will run at precisely `this.now() + tOffset\``.
 
-Use the form `\`this.future(100).methodName(args)\`` to schedule the execution
-of `\`this.methodName(args)\`` at time `\`this.now() + tOffset\``.
+Use the form `this.future(100).methodName(args)\`` to schedule the execution
+of `this.methodName(args)\`` at time `this.now() + tOffset\``.
 
-**Hint**: This would be an unusual use of `\`future()\``, but the `\`tOffset\`` given may be `\`0\``,
+**Hint**: This would be an unusual use of `future()\``, but the `tOffset\`` given may be `0\``,
 in which case the execution will happen asynchronously before advancing time.
 This is the only way for asynchronous execution in the model since you must not
 use Promises or async functions in model code (because a snapshot may happen at any time
 and it would not capture those executions).
 
-**Note:** the recommended form given above is equivalent to `\`this.future(100, "methodName", arg1, arg2)\``
+**Note:** the recommended form given above is equivalent to `this.future(100, "methodName", arg1, arg2)\``
 but makes it more clear that "methodName" is not just a string but the name of a method of this object.
 Also, this will survive minification.
 Technically, it answers a [Proxy](#httpsdevelopermozillaorgdocswebjavascriptreferenceglobal_objectsproxy)(https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Proxy)
-that captures the name and arguments of `\`.methodName(args)\`` for later execution.
+that captures the name and arguments of `.methodName(args)\`` for later execution.
 
 See this [tutorial]1_1_hello_world for a complete example.
 
 Example: single invocation with two arguments
-`\`\`\`
+```javascript
 this.future(3000).say("hello", "world");
-\`\`\``
+```
 Example: repeated invocation with no arguments
-`\`\`\`
+```javascript
 tick() {
     this.n++;
     this.publish(this.id, "count", {time: this.now(), count: this.n)});
     this.future(100).tick();
 }
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="tOffset" type="number">
@@ -244,12 +244,12 @@ time offset in milliseconds, must be >= 0
 
 #### `getModel()`
 
-Look up a model in the current session given its `\`id\``.
+Look up a model in the current session given its `id\``.
 
 Example:
-`\`\`\`
+```javascript
 const otherModel = this.getModel(otherId);
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="id" type="string">
@@ -282,10 +282,10 @@ This methods checks if it is being called from a model, and throws an Error othe
 Use this to protect some model code against accidentally being called from a view.
 
 Example:
-`\`\`\`
+```javascript
 get foo() { return this._foo; }
 set foo(value) { this.modelOnly(); this._foo = value; }
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="errorMessage" type="string">
@@ -331,17 +331,17 @@ See View's [publish](#viewpublish)(#viewpublish) method for restrictions in pass
 If you subscribe inside the model to an event that is published by the model,
 the handler will be called immediately, before the publish method returns.
 If you want to have it handled asynchronously, you can use a future message:
-`\`this.future(0).publish("scope", "event", data)\``.
+`this.future(0).publish("scope", "event", data)\``.
 
 Note that there is no way of testing whether subscriptions exist or not (because models can exist independent of views).
 Publishing an event that has no subscriptions is about as cheap as that test would be, so feel free to always publish,
 there is very little overhead.
 
 Example:
-`\`\`\`
+```javascript
 this.publish("something", "changed");
 this.publish(this.id, "moved", this.pos);
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="scope" type="string">
@@ -370,33 +370,33 @@ generated must also be exactly the same for everyone. This method provides acces
 
 **Register an event handler for an event published to a scope.**
 
-Both `\`scope\`` and `\`event\`` can be arbitrary strings.
+Both `scope\`` and `event\`` can be arbitrary strings.
 Typically, the scope would select the object (or groups of objects) to respond to the event,
 and the event name would select which operation to perform.
 
-A commonly used scope is `\`this.id\`` (in a model) and `\`model.id\`` (in a view) to establish
+A commonly used scope is `this.id\`` (in a model) and `model.id\`` (in a view) to establish
 a communication channel between a model and its corresponding view.
 
-You can use any literal string as a global scope, or use [`\`this.sessionId\``](#modelsessionid)(#modelsessionid) for a
+You can use any literal string as a global scope, or use [`this.sessionId\``](#modelsessionid)(#modelsessionid) for a
 session-global scope (if your application supports multipe sessions at the same time).
-The predefined events [`\`"view-join"\``](#view-join)(#view-join) and [`\`"view-exit"\``](#view-exit)(#view-exit)
+The predefined events [`"view-join"\``](#view-join)(#view-join) and [`"view-exit"\``](#view-exit)(#view-exit)
 use this session scope.
 
-The handler must be a method of `\`this\``, e.g. `\`subscribe("scope", "event", this.methodName)\`` will schedule the
-invocation of `\`this["methodName"](data)\`` whenever `\`publish("scope", "event", data)\`` is executed.
+The handler must be a method of `this\``, e.g. `subscribe("scope", "event", this.methodName)\`` will schedule the
+invocation of `this["methodName"](data)\`` whenever `publish("scope", "event", data)\`` is executed.
 
-If `\`data\`` was passed to the [publish](#modelpublish)(#modelpublish) call, it will be passed as an argument to the handler method.
+If `data\`` was passed to the [publish](#modelpublish)(#modelpublish) call, it will be passed as an argument to the handler method.
 You can have at most one argument. To pass multiple values, pass an Object or Array containing those values.
 Note that views can only pass serializable data to models, because those events are routed via a reflector server
 (see [View.publish](#viewpublish)(#viewpublish)).
 
 Example:
-`\`\`\`
+```javascript
 this.subscribe("something", "changed", this.update);
 this.subscribe(this.id, "moved", this.handleMove);
-\`\`\``
+```
 Example:
-`\`\`\`
+```javascript
 class MyModel extends Multisynq.Model {
   init() {
     this.subscribe(this.id, "moved", this.handleMove);
@@ -416,7 +416,7 @@ class MyView extends Multisynq.View {
      this.publish(this.modelId, "moved", {x,y});
   }
 }
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="scope" type="string">
@@ -426,7 +426,7 @@ the event scope (to distinguish between events of the same name used by differen
 the event name (user-defined or system-defined)
 </ParamField>
 <ParamField path="handler" type="SubscriptionHandler">
-the event handler (must be a method of `\`this\``, or the method name as string)
+the event handler (must be a method of `this\``, or the method name as string)
 </ParamField>
 </RequestExample>
 
@@ -457,13 +457,13 @@ Unsubscribes all of this model's handlers for any event in any scope.
 
 Access a model that was registered previously using beWellKnownAs().
 
-Note: The instance of your root Model class is automatically made well-known as `\`"modelRoot"\``
+Note: The instance of your root Model class is automatically made well-known as `"modelRoot"\``
 and passed to the [constructor](#viewconstructor)(#viewconstructor) of your root View during [Session.join](#sessionjoin)(#sessionjoin).
 
 Example:
-`\`\`\`
+```javascript
 const topModel = this.wellKnownModel("modelRoot");
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="name" type="string">
@@ -483,12 +483,12 @@ passing the [options](#options).
 **Note:** When your model instance is no longer needed, you must [destroy](#modeldestroy)(#modeldestroy) it.
 Otherwise it will be kept in the snapshot forever.
 
-**Warning**: never create a Model instance using `\`new\``, or override its constructor. See [above](#model)(#model).
+**Warning**: never create a Model instance using `new\``, or override its constructor. See [above](#model)(#model).
 
 Example:
-`\`\`\`
+```javascript
 this.foo = FooModel.create({answer: 123});
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="this" type="T">
@@ -505,15 +505,15 @@ option object to be passed to [init()](#modelinit)(#modelinit).
 Find classes inside an external library
 
 This recursivley traverses a dummy object and gathers all object classes found.
-Returns a mapping that can be returned from a Model's static `\`types()\`` method.
+Returns a mapping that can be returned from a Model's static `types()\`` method.
 
 This can be used to gather all internal class types of a third party library
 that otherwise would not be accessible to the serializer
 
-Example: If `\`Foo\`` is a class from a third party library
-  that internally create a `\`Bar\`` instance,
+Example: If `Foo\`` is a class from a third party library
+  that internally create a `Bar\`` instance,
   this would find both classes
-`\`\`\`
+```javascript
 class Bar {}
 class Foo { bar = new Bar(); }
 static types() {
@@ -521,7 +521,7 @@ static types() {
    return this.gatherClassTypes(sample, "MyLib");
    // returns { "MyLib.Foo": Foo, "MyLib.Bar": Bar }
 }
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="dummyObject" type="T">
@@ -539,19 +539,19 @@ __Registers this model subclass with Multisynq__
 It is necessary to register all Model subclasses so the serializer can recreate their instances from a snapshot.
 Also, the [session id](#sessionjoin)(#sessionjoin) is derived by hashing the source code of all registered classes.
 
-**Important**: for the hashing to work reliably across browsers, be sure to specify `\`charset="utf-8"\`` for your `\`<html>\`` or all `\`<script>\`` tags.
+**Important**: for the hashing to work reliably across browsers, be sure to specify `charset="utf-8"\`` for your `<html>\`` or all `<script>\`` tags.
 
 Example
-`\`\`\`
+```javascript
 class MyModel extends Multisynq.Model {
   ...
 }
 MyModel.register("MyModel")
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="classId" type="string">
-Id for this model class. Must be unique. If you use the same class name in two files, use e.g. `\`"file1/MyModel"\`` and `\`"file2/MyModel"\``.
+Id for this model class. Must be unique. If you use the same class name in two files, use e.g. `"file1/MyModel"\`` and `"file2/MyModel"\``.
 </ParamField>
 </RequestExample>
 
@@ -562,14 +562,14 @@ __Static declaration of how to serialize non-model classes.__
 The Multisynq snapshot mechanism only knows about [Model](#model) subclasses.
 If you want to store instances of non-model classes in your model, override this method.
 
-`\`types()\`` needs to return an Object that maps _names_ to _class descriptions_:
+`types()\`` needs to return an Object that maps _names_ to _class descriptions_:
 - the name can be any string, it just has to be unique within your app
 - the class description can either be just the class itself (if the serializer should
-  snapshot all its fields, see first example below), or an object with `\`write()\`` and `\`read()\`` methods to
+  snapshot all its fields, see first example below), or an object with `write()\`` and `read()\`` methods to
   convert instances from and to their serializable form (see second example below).
-- the serialized form answered by `\`write()\`` can be almost anything. E.g. if it answers an Array of objects
+- the serialized form answered by `write()\`` can be almost anything. E.g. if it answers an Array of objects
   then the serializer will be called for each of those objects. Conversely, these objects will be deserialized
-  before passing the Array to `\`read()\``.
+  before passing the Array to `read()\``.
 
 The types only need to be declared once, even if several different Model subclasses are using them.
 
@@ -577,7 +577,7 @@ __NOTE:__ This is currently the only way to customize serialization (for example
 The serialization of Model subclasses themselves can not be customized.
 
 Example: To use the default serializer just declare the class:</caption>
-`\`\`\`
+```javascript
 class MyModel extends Multisynq.Model {
   static types() {
     return {
@@ -587,10 +587,10 @@ class MyModel extends Multisynq.Model {
     };
   }
 }
-\`\`\``
+```
 
 Example: To define your own serializer, declare read and write functions:
-`\`\`\`
+```javascript
 class MyModel extends Multisynq.Model {
   static types() {
     return {
@@ -607,7 +607,7 @@ class MyModel extends Multisynq.Model {
     };
   }
 }
-\`\`\``
+```
 
 #### `wellKnownModel()`
 
@@ -621,7 +621,7 @@ Like any global state, that can lead to divergence.
 Will throw an error if called from outside model code.
 
 Example:
-`\`\`\`
+```javascript
 static get Default() {
     let default = this.wellKnownModel("DefaultModel");
     if (!default) {
@@ -631,7 +631,7 @@ static get Default() {
     }
     return default;
 }
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="name" type="string">
@@ -750,31 +750,31 @@ and removes it from the list of views**
 This needs to be called when a view is no longer needed to prevent memory leaks.
 
 Example:
-`\`\`\`
+```javascript
 removeChild(child) {
    const index = this.children.indexOf(child);
    this.children.splice(index, 1);
    child.detach();
 }
-\`\`\``
+```
 
 #### `externalNow()`
 
 *The latest timestamp received from reflector**
 
 Timestamps are received asynchronously from the reflector at the specified tick rate.
-[Model time]{@View#now} however only advances synchronously on every iteration of the [main loop](#sessionjoin)(#sessionjoin).
-Usually `\`now == externalNow\``, but if the model has not caught up yet, then `\`now < externalNow\``.
+Model time however only advances synchronously on every iteration of the [main loop](#sessionjoin).
+Usually `now == externalNow`, but if the model has not caught up yet, then `now < externalNow`.
 
 We call the difference "backlog". If the backlog is too large, Multisynq will put an overlay on the scene,
-and remove it once the model simulation has caught up. The `\`"synced"\`` event is sent when that happens.
+and remove it once the model simulation has caught up. The `"synced"` event is sent when that happens.
 
-The `\`externalNow\`` value is rarely used by apps but may be useful if you need to synchronize views to real-time.
+The `externalNow\`` value is rarely used by apps but may be useful if you need to synchronize views to real-time.
 
 Example:
-`\`\`\`
+```javascript
 const backlog = this.externalNow() - this.now();
-\`\`\``
+```
 
 #### `extrapolatedNow()`
 
@@ -782,10 +782,10 @@ const backlog = this.externalNow() - this.now();
 
 Timestamps are received asynchronously from the reflector at the specified tick rate.
 In-between ticks or messages, neither [now()](#viewnow)(#viewnow) nor [externalNow()](#viewexternalnow)(#viewexternalnow) advances.
-`\`extrapolatedNow\`` is `\`externalNow\`` plus the local time elapsed since that timestamp was received,
+`extrapolatedNow\`` is `externalNow\`` plus the local time elapsed since that timestamp was received,
 so it always advances.
 
-`\`extrapolatedNow()\`` will always be >= `\`now()\`` and `\`externalNow()\``.
+`extrapolatedNow()\`` will always be >= `now()\`` and `externalNow()\``.
 However, it is only guaranteed to be monotonous in-between time stamps received from the reflector
 (there is no "smoothing" to reconcile local time with reflector time).
 
@@ -794,7 +794,7 @@ However, it is only guaranteed to be monotonous in-between time stamps received 
 *Schedule a message for future execution**
 This method is here for symmetry with [Model.future](#modelfuture)(#modelfuture).
 
-It simply schedules the execution using `\`window.setTimeout\``.
+It simply schedules the execution using `window.setTimeout\``.
 The only advantage to using this over setTimeout() is consistent style.
 
 <RequestExample>
@@ -838,10 +838,10 @@ Publishing an event that has no subscriptions is about as cheap as that test wou
 there is very little overhead.
 
 Example:
-`\`\`\`
+```javascript
 this.publish("input", "keypressed", {key: 'A'});
 this.publish(this.model.id, "move-to", this.pos);
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="scope" type="string">
@@ -857,7 +857,7 @@ can be any value or object (for view-to-model, must be serializable)
 
 #### `random()`
 
-*Answers `\`Math.random()\``**
+*Answers `Math.random()\``**
 
 This method is here purely for symmetry with [Model.random](#modelrandom)(#modelrandom).
 
@@ -865,11 +865,11 @@ This method is here purely for symmetry with [Model.random](#modelrandom)(#model
 
 **Register an event handler for an event published to a scope.**
 
-Both `\`scope\`` and `\`event\`` can be arbitrary strings.
+Both `scope\`` and `event\`` can be arbitrary strings.
 Typically, the scope would select the object (or groups of objects) to respond to the event,
 and the event name would select which operation to perform.
 
-A commonly used scope is `\`this.id\`` (in a model) and `\`model.id\`` (in a view) to establish
+A commonly used scope is `this.id\`` (in a model) and `model.id\`` (in a view) to establish
 a communication channel between a model and its corresponding view.
 
 Unlike in a model's [subscribe](#modelsubscribe)(#modelsubscribe) method, you can specify when the event should be handled:
@@ -880,36 +880,36 @@ Unlike in a model's [subscribe](#modelsubscribe)(#modelsubscribe) method, you ca
   An example would be log entries generated in the model that the view is supposed to print.
   Even if more than one log event is published in one render frame, the view needs to receive each one.
 
-  **`\`{ event: "name", handling: "queued" }\`` is the default.  Simply specify `\`"name"\`` instead.**
+  **`{ event: "name", handling: "queued" }` is the default.  Simply specify `"name"` instead.**
 
 - **Once Per Frame:** The handler will be called only _once_ during the next run of the [main loop](#sessionjoin)(#sessionjoin).
   If [publish](#modelpublish)(#modelpublish) was called multiple times, the handler will only be invoked once,
-  passing the data of only the last `\`publish\`` call.
+  passing the data of only the last `publish\`` call.
 
   For example, a view typically would only be interested in the current position of a model to render it.
-  Since rendering only happens once per frame, it should subscribe using the `\`oncePerFrame\`` option.
+  Since rendering only happens once per frame, it should subscribe using the `oncePerFrame\`` option.
   The event typically would be published only once per frame anyways, however,
   while the model is catching up when joining a session, this would be fired rapidly.
 
-  **`\`{ event: "name", handling: "oncePerFrame" }\`` is the most efficient option, you should use it whenever possible.**
+  **`{ event: "name", handling: "oncePerFrame" }\`` is the most efficient option, you should use it whenever possible.**
 
 - **Immediate:** The handler will be invoked _synchronously_ during the [publish](#modelpublish)(#modelpublish) call.
   This will tie the view code very closely to the model simulation, which in general is undesirable.
   However, if the view needs to know the exact state of the model at the time the event was published,
   before execution in the model proceeds, then this is the facility to allow this without having to copy model state.
 
-  Pass `\`{event: "name", handling: "immediate"}\`` to enforce this behavior.
+  Pass `{event: "name", handling: "immediate"}\`` to enforce this behavior.
 
-The `\`handler\`` can be any callback function.
+The `handler\`` can be any callback function.
 Unlike a model's [handler](#modelsubscribe)(#modelsubscribe) which must be a method of that model,
 a view's handler can be any function, including fat-arrow functions declared in-line.
-Passing a method like in the model is allowed too, it will be bound to `\`this\`` in the subscribe call.
+Passing a method like in the model is allowed too, it will be bound to `this\`` in the subscribe call.
 
 Example:
-`\`\`\`
+```javascript
 this.subscribe("something", "changed", this.update);
 this.subscribe(this.id, {event: "moved", handling: "oncePerFrame"}, pos => this.sceneObject.setPosition(pos.x, pos.y, pos.z));
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="scope" type="string">
@@ -955,9 +955,9 @@ Called on the root view from [main loop](#sessionjoin)(#sessionjoin) once per fr
 Override to add your own view-side input polling, rendering, etc.
 
 If you want this to be called for other views than the root view,
-you will have to call those methods from the root view's `\`update()\``.
+you will have to call those methods from the root view's `update()\``.
 
-The time received is related to the local real-world time. If you need to access the model's time, use [this.now()](#viewnow)(#viewnow).
+The time received is related to the local real-world time. If you need to access the model's time, use [this.now()](#viewnow).
 
 <RequestExample>
 <ParamField path="time" type="number">
@@ -969,13 +969,13 @@ The time received is related to the local real-world time. If you need to access
 
 Access a model that was registered previously using beWellKnownAs().
 
-Note: The instance of your root Model class is automatically made well-known as `\`"modelRoot"\``
+Note: The instance of your root Model class is automatically made well-known as `"modelRoot"\``
 and passed to the [constructor](#viewconstructor)(#viewconstructor) of your root View during [Session.join](#sessionjoin)(#sessionjoin).
 
 Example:
-`\`\`\`
+```javascript
 const topModel = this.wellKnownModel("modelRoot");
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="name" type="string">

@@ -1,0 +1,245 @@
+---
+title: 'Multisynq Client'
+description: 'Complete API reference for @multisynq/client'
+icon: 'code'
+---
+
+## Imports
+
+<CodeGroup>
+```jsx
+import classes_MultisynqWarning from './components/classes/MultisynqWarning.mdx'
+import classes_FakeVM from './components/classes/FakeVM.mdx'
+import classes_View from './components/classes/View.mdx'
+import classes_Session from './components/classes/Session.mdx'
+import classes_Model from './components/classes/Model.mdx'
+import classes_Domain from './components/classes/Domain.mdx'
+import classes_Data from './components/classes/Data.mdx'
+import functions_patchBrowser from './components/functions/patchBrowser.mdx'
+import functions_inSequence from './components/functions/inSequence.mdx'
+import functions_currentRealm from './components/functions/currentRealm.mdx'
+import functions_hashBuffer from './components/functions/hashBuffer.mdx'
+import functions_hashString from './components/functions/hashString.mdx'
+import functions_hashNameAndOptions from './components/functions/hashNameAndOptions.mdx'
+```
+</CodeGroup>
+
+<Note>
+This documentation is auto-generated from the source code.
+Last updated: 2025-07-26T03:59:29.268Z
+</Note>
+
+# Multisynq Client
+
+Welcome to the comprehensive API reference for @multisynq/client. This documentation covers all core classes, methods, properties, and events available in the Multisynq Client.
+
+## API Reference
+
+<Tabs>
+  <Tab title="Classes">
+    ### Classes
+
+    <CardGroup cols={2}>
+      <Card title="MultisynqWarning" icon="cube" href="#multisynqwarning">
+        Jump to MultisynqWarning documentation
+      </Card>
+      <Card title="FakeVM" icon="cube" href="#fakevm">
+        Jump to FakeVM documentation
+      </Card>
+      <Card title="View" icon="cube" href="#view">
+        Jump to View documentation
+      </Card>
+      <Card title="Session" icon="cube" href="#session">
+        Jump to Session documentation
+      </Card>
+      <Card title="Model" icon="cube" href="#model">
+        Jump to Model documentation
+      </Card>
+      <Card title="Domain" icon="cube" href="#domain">
+        Jump to Domain documentation
+      </Card>
+      <Card title="Data" icon="cube" href="#data">
+        Jump to Data documentation
+      </Card>
+    </CardGroup>
+
+    <div id="multisynqwarning">
+      <classes_MultisynqWarning />
+    </div>
+
+    <div id="fakevm">
+      <classes_FakeVM />
+    </div>
+
+    <div id="view">
+      <classes_View />
+    </div>
+
+    <div id="session">
+      <classes_Session />
+    </div>
+
+    <div id="model">
+      <classes_Model />
+    </div>
+
+    <div id="domain">
+      <classes_Domain />
+    </div>
+
+    <div id="data">
+      <classes_Data />
+    </div>
+
+  </Tab>
+  <Tab title="Functions">
+    ### Functions
+
+    <CardGroup cols={2}>
+      <Card title="patchBrowser" icon="function" href="#patchbrowser">
+        Jump to patchBrowser documentation
+      </Card>
+      <Card title="inSequence" icon="function" href="#insequence">
+        Jump to inSequence documentation
+      </Card>
+      <Card title="currentRealm" icon="function" href="#currentrealm">
+        Jump to currentRealm documentation
+      </Card>
+      <Card title="hashBuffer" icon="function" href="#hashbuffer">
+        Jump to hashBuffer documentation
+      </Card>
+      <Card title="hashString" icon="function" href="#hashstring">
+        Jump to hashString documentation
+      </Card>
+      <Card title="hashNameAndOptions" icon="function" href="#hashnameandoptions">
+        Jump to hashNameAndOptions documentation
+      </Card>
+    </CardGroup>
+
+    <div id="patchbrowser">
+      <functions_patchBrowser />
+    </div>
+
+    <div id="insequence">
+      <functions_inSequence />
+    </div>
+
+    <div id="currentrealm">
+      <functions_currentRealm />
+    </div>
+
+    <div id="hashbuffer">
+      <functions_hashBuffer />
+    </div>
+
+    <div id="hashstring">
+      <functions_hashString />
+    </div>
+
+    <div id="hashnameandoptions">
+      <functions_hashNameAndOptions />
+    </div>
+
+  </Tab>
+</Tabs>
+
+## Architecture Overview
+
+<Steps>
+  <Step title="Model Layer">
+    Synchronized objects that maintain state across all connected clients. Models handle the core business logic and state management.
+  </Step>
+  <Step title="View Layer">
+    Local, non-synchronized components that handle UI rendering and user interactions. Views subscribe to model events and publish user actions.
+  </Step>
+  <Step title="Session Management">
+    Handles connection, synchronization, and encryption. Sessions manage the lifecycle of a Multisynq application instance.
+  </Step>
+  <Step title="Data Storage">
+    Secure bulk data storage with encryption. The Data API handles file uploads, downloads, and caching.
+  </Step>
+</Steps>
+
+## Common Patterns
+
+<Tabs>
+  <Tab title="Creating Models">
+    Never use `new` to create models. Always use the static `create()` method:
+    
+    ```javascript
+    // ❌ Wrong
+    const model = new MyModel();
+    
+    // ✅ Correct
+    const model = MyModel.create({ 
+        property: 'value' 
+    });
+    ```
+  </Tab>
+  <Tab title="Event System">
+    Multisynq uses a powerful publish/subscribe system for communication:
+    
+    ```javascript
+    // In View - publish user actions
+    this.publish('user', 'click', { x: 100, y: 200 });
+    
+    // In Model - subscribe to user actions
+    this.subscribe('user', 'click', (data) => {
+        this.handleClick(data.x, data.y);
+    });
+    
+    // Model publishes state changes
+    this.publish(this.id, 'position-changed', this.position);
+    
+    // View subscribes to model changes
+    this.subscribe(model.id, 'position-changed', (pos) => {
+        this.updateDisplay(pos);
+    });
+    ```
+  </Tab>
+  <Tab title="Session Lifecycle">
+    Join and manage sessions with proper configuration:
+    
+    ```javascript
+    const session = await Multisynq.Session.join({
+        apiKey: 'your-api-key',
+        appId: 'com.example.app',
+        name: Multisynq.App.autoSession(),
+        password: Multisynq.App.autoPassword(),
+        model: RootModel,
+        view: RootView,
+        tps: 20,
+        options: { /* model options */ },
+        debug: ['session', 'messages']
+    });
+    
+    // Manual stepping (e.g., for WebXR)
+    function animate(time) {
+        session.step(time);
+        // ... render ...
+        requestAnimationFrame(animate);
+    }
+    ```
+  </Tab>
+  <Tab title="Data Storage">
+    Store and retrieve encrypted bulk data:
+    
+    ```javascript
+    // In View - store data
+    const file = await fetch('asset.glb');
+    const buffer = await file.arrayBuffer();
+    const handle = await this.session.data.store(buffer, {
+        shareable: true // allows sharing outside session
+    });
+    
+    // Publish handle to model
+    this.publish('assets', 'uploaded', handle);
+    
+    // In another View - fetch data
+    this.subscribe('assets', 'uploaded', async (handle) => {
+        const data = await this.session.data.fetch(handle);
+        // Use the data...
+    });
+    ```
+  </Tab>
+</Tabs>

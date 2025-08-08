@@ -1,0 +1,18 @@
+export default function Model_Component() {
+  return (
+    <div className="api-class-component">
+      <h2 id="model">Model</h2>
+      <div className="description">
+        <p>Models are synchronized objects in Multisynq. They are automatically kept in sync for each user in the same [session]<a href="#sessionjoin">Session.join</a>. Models receive input by [subscribing]<a href="#modelsubscribe">Model#subscribe</a> to events published in a <a href="#view">View</a>. Their output is handled by views subscribing to events [published]<a href="#modelpublish">Model#publish</a> by a model. Models advance time by sending messages into their [future]<a href="#modelfuture">Model#future</a>.</p>
+        <h2>Instance Creation and Initialization</h2>
+        <h3>Do <strong>NOT</strong> create a <a href="#model">Model</a> instance using <code>new</code> and<br />do <strong>NOT</strong> override the <code>constructor</code>!</h3>
+        <p>To <strong>create</strong> a new instance, use [create()]<a href="#modelcreate">Model.create</a>, for example: <strong>CODEBLOCK0</strong> To <strong>initialize</strong> an instance, override [init()]<a href="#modelinit">Model#init</a>, for example: <strong>CODEBLOCK1</strong> The <strong>reason</strong> for this is that Models are only initialized by calling <code>init()</code> the first time the object comes into existence in the session. After that, when joining a session, the models are deserialized from the snapshot, which restores all properties automatically without calling <code>init()</code>. A constructor would be called all the time, not just when starting a session.</p>
+      </div>
+      <Note>
+        This class should not be instantiated directly using <code>new</code>.
+      </Note>
+      <Tabs>
+      </Tabs>
+    </div>
+  );
+}

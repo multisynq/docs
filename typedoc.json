@@ -5,7 +5,7 @@
         "../multisynq-client/client/types.d.ts"
     ],
     "json": "./api-reference-temp/output.json",
-    "entryPointStrategy": "expand",
+  "entryPointStrategy": "expand",
     "blockTags": [
         "@tutorial"
     ],

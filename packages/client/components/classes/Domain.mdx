@@ -1,0 +1,94 @@
+export default function Domain_Component() {
+  return (
+    <div className="api-class-component">
+      <h2 id="domain">Domain</h2>
+      <div className="description">
+        <p>A domain manages subscriptions</p>
+      </div>
+      <Tabs>
+        <Tab title="Methods">
+          <h4>Instance Methods</h4>
+          <AccordionGroup>
+            <Accordion title="addSubscription">
+              ```typescript
+              addSubscription(scope, event, subscriberId, callback, handling): void
+              ```
+              <div className="method-description">
+                <p>Add a subscription</p>
+              </div>
+              <h5>Parameters</h5>
+        <ParamField path="scope" type="String" required={true}>
+          <p>a string that publishers and subscribers agree on</p>
+        </ParamField>
+        <ParamField path="event" type="String" required={true}>
+          <p>a name for the event</p>
+        </ParamField>
+        <ParamField path="subscriberId" type="String" required={true}>
+          <p>the owner of this subscription</p>
+        </ParamField>
+        <ParamField path="callback" type="Function" required={true}>
+          <p>a function called when event is published in scope</p>
+        </ParamField>
+        <ParamField path="handling" type="&quot;immediate&quot;|&quot;queued&quot;|&quot;oncePerFrame&quot;|&quot;oncePerFrameWhileSynced&quot;|&quot;vote&quot;" required={true}>
+          <p>when to invoke the handler</p>
+        </ParamField>
+            </Accordion>
+            <Accordion title="removeSubscription">
+              ```typescript
+              removeSubscription(scope, event, subscriberId, callback): void
+              ```
+              <div className="method-description">
+                <p>Remove a subscription</p>
+              </div>
+              <h5>Parameters</h5>
+        <ParamField path="scope" type="String" required={true}>
+          <p>a string that publishers and subscribers agree on</p>
+        </ParamField>
+        <ParamField path="event" type="String" required={true}>
+          <p>a name for the event</p>
+        </ParamField>
+        <ParamField path="subscriberId" type="String" required={true}>
+          <p>the owner of this subscription</p>
+        </ParamField>
+        <ParamField path="callback" type="Function" required={true}>
+          <p>the callback function to remove, or null to remove all callbacks for this topic</p>
+        </ParamField>
+            </Accordion>
+            <Accordion title="removeAllSubscriptionsFor">
+              ```typescript
+              removeAllSubscriptionsFor(subscriberId): void
+              ```
+              <div className="method-description">
+                <p>Remove all subscriptions</p>
+              </div>
+              <h5>Parameters</h5>
+        <ParamField path="subscriberId" type="String" required={true}>
+          
+        </ParamField>
+            </Accordion>
+            <Accordion title="handleEvent">
+              ```typescript
+              handleEvent(): void
+              ```
+              <div className="method-description">
+                <p>An event was published. Invoke its immediate handlers now, and/or queue it for later execution in processFrameEvents()</p>
+              </div>
+            </Accordion>
+            <Accordion title="processFrameEvents">
+              ```typescript
+              processFrameEvents(): Number
+              ```
+              <div className="method-description">
+                <p>Process all queued and oncePerFrame events that were generated since the last invocation</p>
+              </div>
+              <h5>Returns</h5>
+              <ResponseField type="Number">
+                <p>number of processed events</p>
+              </ResponseField>
+            </Accordion>
+          </AccordionGroup>
+        </Tab>
+      </Tabs>
+    </div>
+  );
+}

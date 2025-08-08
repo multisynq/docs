@@ -1,0 +1,695 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+        <title>Multisynq Multiblaster</title>
+        <style>
+            body {
+                font-family: sans-serif;
+                margin: 0;
+                padding: 0;
+            }
+            h1 {
+                background: #333;
+                color: #fff;
+                margin: 0;
+                padding: 1em;
+            }
+            #lobby {
+                display: none;
+            }
+            .in-lobby > #lobby {
+                display: block;
+            }
+            #sessions {
+                list-style: decimal inside;
+                margin: 0;
+                padding: 0;
+            }
+            #sessions > li {
+                background: #dfd;
+                border-bottom: 1px solid #ccc;
+                cursor: pointer;
+                padding: 1em;
+                margin: 10px;
+                border-radius: 5px;
+            }
+            #sessions > li:hover {
+                background: #ada;
+            }
+            p {
+                padding: 0 1em;
+            }
+            #app {
+                position: fixed;
+                top: 0;
+                left: 0;
+                border: none;
+                height: 100vh;
+                width: 100vw;
+                display: block;
+            }
+            .in-lobby > #app {
+                display: none;
+            }
+
+            p#users{
+                text-align: center;
+                margin-top: 0px;
+                color: rgb(78, 78, 78);
+            }
+
+            #no-games{
+                font-family: 'Courier New', monospace;
+                font-weight: 700;
+                font-size: 1.1rem;
+                color: #D65;
+                display: flex;
+                min-height: 300px;
+                margin: auto;
+                border-radius: 10px;
+                align-items: center;
+                justify-content: center;
+            }
+            #no-games.hidden {
+                display: none;
+            }
+
+            /* Host New Game Button */
+            #host-new {
+                color: #fff;
+                background-color: #D65;
+                border-color: #D65;
+                display: block;
+                margin: 1em auto;
+                font-family: sans-serif;
+                font-weight: 700;
+                font-size: 1.1rem;
+                line-height: 1.5;
+                text-align: center;
+                white-space: nowrap;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                border: 1px solid transparent;
+                padding: 0.375rem 0.75rem;
+                border-radius: 0.25rem;
+                cursor: pointer;
+            }
+
+            #host-new:active {
+                background-color: #9c1b12;
+            }
+
+            /* Dialog Styles */
+            #host-dialog {
+                border-radius: 15px;
+                pointer-events: auto;
+                background-color: #fff;
+                background-clip: padding-box;
+                border: 1px solid rgba(0,0,0,.2);
+                border-radius: 0.3rem;
+                outline: 0;
+                -webkit-box-orient: vertical;
+                -webkit-box-direction: normal;
+                -ms-flex-direction: column;
+                flex-direction: column;
+            }
+
+            #host-contents {
+                padding: 40px;
+            }
+
+            .modal-header {
+                display: -webkit-box;
+                display: -ms-flexbox;
+                display: flex;
+                -webkit-box-align: start;
+                -ms-flex-align: start;
+                align-items: flex-start;
+                -webkit-box-pack: justify;
+                -ms-flex-pack: justify;
+                justify-content: space-between;
+                padding: 1rem;
+                border-bottom: 1px solid #e9ecef;
+                border-top-left-radius: 0.3rem;
+                border-top-right-radius: 0.3rem;
+            }
+
+            dialog::backdrop {
+                background-color: rgba(0,0,0,0.4);
+            }
+
+            .host-new-title {
+                text-align: center;
+                font-size: 2rem;
+            }
+
+            .modal-footer {
+                display: -webkit-box;
+                display: -ms-flexbox;
+                display: flex;
+                -webkit-box-align: center;
+                -ms-flex-align: center;
+                align-items: center;
+                -webkit-box-pack: end;
+                -ms-flex-pack: end;
+                justify-content: flex-end;
+                padding: 1rem;
+                border-top: 1px solid #e9ecef;
+            }
+
+            .close:not(:disabled):not(.disabled) {
+                cursor: pointer;
+            }
+            .modal-header .close {
+                padding: 1rem;
+                margin: -1rem -1rem -1rem auto;
+            }
+            button.close {
+                padding: 0;
+                background-color: transparent;
+                border: 0;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                appearance: none;
+            }
+
+            .close {
+                float: right;
+                font-size: 1.5rem;
+                font-weight: 700;
+                line-height: 1;
+                color: #000;
+                text-shadow: 0 1px 0 #fff;
+                opacity: .5;
+            }
+
+            .modal-title {
+                margin: 0;
+                line-height: 1.5;
+            }
+            .h5, h5 {
+                font-size: 1.25rem;
+            }
+
+            .modal-footer>:not(:last-child) {
+                margin-right: 0.25rem;
+            }
+
+            .btn-secondary {
+                color: #fff;
+                background-color: #6c757d;
+                border-color: #6c757d;
+            }
+            .btn {
+                display: inline-block;
+                font-weight: 400;
+                text-align: center;
+                white-space: nowrap;
+                vertical-align: middle;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                border: 1px solid transparent;
+                padding: 0.375rem 0.75rem;
+                font-size: 1rem;
+                line-height: 1.5;
+                border-radius: 0.25rem;
+                transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+            }
+
+            .btn-primary {
+                color: #fff;
+                background-color: #28a745;
+                border-color: #28a745;
+            }
+
+            input {
+                width: 150px;
+                border-radius: 5px;
+                height: 36px;
+                margin-left: 10px;
+                font-size: 20px;
+            }
+
+            #game-name {
+                font-size: 20px;
+            }
+        </style>
+        <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@1.0.4/bundled/multisynq-client.min.js"></script>
+    </head>
+    <body class="in-lobby">
+        <div id="lobby">
+            <h1>Multiblaster</h1>
+            <button id="host-new">Host New Game</button>
+            <p id="users"></p>
+            <dialog id="host-dialog">
+                <form>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Host New Game</h5>
+                        <button type="button" class="close" aria-label="Close">
+                            <span aria-hidden="true" class="host-dialog-cancel">×</span>
+                        </button>
+                    </div>
+                    <div id="host-contents">
+                        <label for="host-dialog-name" id="game-name">Game name:</label>
+                        <input type="text" id="host-dialog-name" name="game-name" placeholder="My Game" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" value="cancel" class="btn btn-secondary host-dialog-cancel">Cancel</button>
+                        <button type="submit" value="default" id="host-dialog-submit" class="btn btn-primary">Enter Game</button>
+                    </div>
+                </form>
+            </dialog>
+            <p id="no-games">No games found</p>
+            <ul id="sessions"></ul>
+        </div>
+        <iframe id="app" src="about:blank"></iframe>
+        <script>
+
+// TODO
+// [x] list sessions
+// [x] new session button
+// [ ] single view as relay
+// [ ] hierarchical lobby sessions
+// [ ] unlisted sessions (join directly by name)
+
+// preserve original title (without " - session name")
+const APPNAME = document.title.split(" - ")[0];
+
+const BaseUrl = window.location.href.replace(/[^/?#]+([?#].*)?$/, "");
+Multisynq.Constants.AppUrl = BaseUrl + "game.html";
+
+let appSessionName = window.location.hash.slice(1);
+try { appSessionName = decodeURIComponent(appSessionName); } catch (e) { }
+
+const SESSION_TIMEOUT = 5; // expire after 5 seconds (game pings lobby every 2 seconds)
+
+/*
+    This is the model for the lobby session.
+    It maintains a list of sessions, and a list of views.
+
+    Each view is either in an app session (acting as a relay), or in the lobby (view.session === null).
+    [in game.html, the app session elects one of its views to act as a relay, and sends messages to the lobby]
+*/
+class LobbyModel extends Multisynq.Model {
+
+    init() {
+        this.sessions = new Map();
+        this.views = new Map();
+        this.subscribe(this.sessionId, "view-join", this.viewJoined);
+        this.subscribe(this.sessionId, "view-exit", this.viewExited);
+        this.subscribe(this.id, "in-app-session", this.inAppSession);
+        this.subscribe(this.id, "in-lobby", this.inLobby);
+    }
+
+    ensureSession(name, since) {
+        let session = this.sessions.get(name);
+        if (!session) {
+            session = {
+                name,
+                details: null,
+                views: new Set(),
+                relay: null,
+                since,
+                lastActive: 0,
+                timeout: null,
+            };
+            this.sessions.set(name, session);
+            console.log("LobbyModel", this.now(), `created session '${name}', sessions:`, this.sessions);
+        }
+        return session;
+    }
+
+    printLocation(location) {
+        if (location?.country) {
+            let printed = location.country;
+            if (location.region) printed = `${location.region}, ${printed}`;
+            if (location.city) printed = `${location.city.name} (${printed})`;
+            return printed;
+        }
+        return "";
+    }
+
+    viewJoined({ viewId, location }) {
+        this.views.set(viewId, {
+            viewId,
+            location: this.printLocation(location),
+            session: null,
+        });
+        console.log("LobbyModel", this.now(), "view joined", viewId, "views:",
+            [...this.views.values()].map(v => `${v.viewId} ${v.session ? v.session.name : "in lobby"}`));
+    }
+
+    viewExited({viewId}) {
+        let view = this.views.get(viewId);
+        this.views.delete(viewId);
+        let session = view.session;
+        if (session) {
+            session.views.delete(view);
+            if (session.details?.users > 1) {
+                if (session.relay === view) {
+                    session.relay = null;
+                    // renew the session timeout, hope another relay appears
+                    this.sessionActive(session);
+                }
+            } else {
+                // last user in session, expire it right away
+                this.sessionExpired(session);
+            }
+        }
+        console.log("LobbyModel", this.now(), "view exited", viewId, "views:",
+            [...this.views.values()].map(v => `${v.viewId} ${v.session ? v.session.name : "in lobby"}`));
+    }
+
+    // this is published by the lobby view when it receives a message from the app's lobby relay
+    inAppSession({ viewId, name, now, details }) {
+        let view = this.views.get(viewId);
+        if (view.session && view.session.name !== name) {
+            console.warn("LobbyModel", this.now(), "view changed session", viewId, view.session.name, name);
+            view.session.views.delete(view);
+        }
+        let session = this.ensureSession(name, now); // now is current Date.now() sent by the view
+        session.lastActive = this.now();
+        session.details = details;
+        if (!session.views.has(view)) {
+            session.views.add(view);
+            view.session = session;
+        }
+        // new view is taking over as relay
+        if (session.relay !== view) {
+            session.relay = view;
+            this.publish(this.id, "relay-changed", { name, viewId });
+            console.log("LobbyModel", this.now(), `relay for '${name}' is ${viewId}`, "views:",
+                [...this.views.values()].map(v => `${v.viewId} ${v.session ? v.session.name : "in lobby"}`));
+        }
+        this.sessionActive(session);
+        this.publish(this.id, "session-changed", name);
+        // console.log("LobbyModel", this.now(), "in app session", session.name, users, [...session.views].map(v => v.viewId));
+    }
+
+    // this is published by the lobby view when it exited the app session
+    inLobby({ viewId }) {
+        console.log("LobbyModel", this.now(), `view ${viewId} exited to lobby`);
+        const view = this.views.get(viewId);
+        if (view?.session) {
+            const session = view.session;
+            session.views.delete(view);
+            view.session = null;
+            if (session.details?.users > 1) {
+                this.sessionActive(session);
+            } else {
+                this.sessionExpired(session);
+            }
+        }
+    }
+
+    // expire session after SESSION_TIMEOUT seconds unless this is called again
+    sessionActive(session) {
+        if (session.timeout) this.cancelFuture(session.timeout);
+        session.timeout = this.future(SESSION_TIMEOUT * 1000).sessionExpired(session);
+    }
+
+    sessionExpired(session) {
+        for (const view of session.views) {
+            console.log("LobbyModel", this.now(), `view ${view.viewId} session '${session.name}' expired, returning to lobby`);
+            view.session = null;
+        }
+        if (session.timeout) this.cancelFuture(session.timeout);
+        this.sessions.delete(session.name);
+        this.publish(this.id, "session-changed", session.name);
+        console.log("LobbyModel", this.now(), `session '${session.name}' expired`, "views:",
+            [...this.views.values()].map(v => `${v.viewId} ${v.session ? v.session.name : "in lobby"}`));
+    }
+}
+LobbyModel.register("LobbyModel");
+
+/*
+    This is the view for the lobby session.
+    It displays the list of sessions, and the list of views in the lobby.
+    When the user joins an app session, the app is loaded in an iframe, and this view is hidden.
+    It might still act as a relay for the app (in which case it stays in the lobby session).
+    If another of the app's users was elected as relay, this view will leave the lobby session.
+    This ensures that only one user per app session is also in the lobby session.
+*/
+class LobbyView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.model = model;
+        console.log("LobbyView", this.viewId, "created");
+        this.subscribe(this.model.id, "relay-changed", this.relayChanged);
+        this.subscribe(this.model.id, "session-changed", this.showSessions);
+        this.interval = setInterval(() => this.showSessions(), 1000);
+        this.showSessions();
+
+        // Bind the "Host New Game" button
+        // note that we use onclick instead of addEventListener so we don't have to remove handlers in detach()
+        const newGameButton = document.getElementById('host-new');
+        newGameButton.onclick = () => {
+            const dialog = document.getElementById('host-dialog');
+            const nameInput = document.getElementById('host-dialog-name');
+            const okButton = document.getElementById('host-dialog-submit');
+            const cancelButtons = document.querySelectorAll('.host-dialog-cancel');
+            okButton.onclick = e => {
+                e.preventDefault();
+                const name = nameInput.value.trim();
+                if (name) dialog.close(name);
+            };
+
+            for (const cancelButton of cancelButtons) {
+                cancelButton.onclick = e => {
+                    // in Chrome, pressing return in the name field triggers a click on the first cancel button?!
+                    if (!e.clientX) okButton.onclick(e);
+                    else dialog.close("");
+                };
+            }
+
+            dialog.onclose = e => {
+                const name = dialog.returnValue;
+                if (name) {
+                    document.activeElement.blur(); // hide the keyboard
+                    this.sessionClicked(name);
+                }
+            };
+
+            dialog.showModal();
+            nameInput.focus();
+        };
+
+        // handle messages from the app session in the iframe
+        window.onmessage = e => {
+            if (e.data && e.data.type === "multisynq-lobby") {
+                const { name, details } = e.data;
+                if (!appSessionName || name !== appSessionName) {
+                    console.log(`LobbyView ${this.viewId}: ignoring message for '${name}' (not me)`);
+                    return;
+                }
+                // console.log(`LobbyView ${this.viewId}: in app session`, name, details);
+                // tell the model that this app session is active
+                this.publish(this.model.id, "in-app-session", { viewId: this.viewId, name, now: Date.now(), details });
+            }
+        }
+    }
+
+    async relayChanged({ name, viewId }) {
+        // ignore messages if we're not in the app session
+        if (!appSessionName || name !== appSessionName) return;
+        console.log(`LobbyView ${this.viewId}: relay for '${name}' is ${viewId} ${viewId === this.viewId ? "(me)" : "(not me)"}`);
+        if (viewId !== this.viewId) {
+            console.log(`LobbyView ${this.viewId}: leaving lobby session`, name);
+            clearInterval(this.interval);
+            await this.session.leave();
+            lobbySessionPromise = null;
+        }
+    }
+
+    showSessions() {
+        if (appSessionName) return; // don't update session list while we're in an app session
+        // list ongoing sessions
+        const sessions = Array.from(this.model.sessions.values());
+        sessions.sort((a, b) => b.since - a.since);
+        const list = document.getElementById("sessions");
+        const items = [...list.querySelectorAll("li")];
+        for (const session of sessions) {
+            // reuse existing list item, or create a new one
+            const index = items.findIndex(i => i.getAttribute("data-session") === session.name);
+            let item = index >= 0 ? items.splice(index, 1)[0] : null;
+            if (!item) {
+                item = document.createElement("li");
+                item.setAttribute("data-session", session.name);
+                item.addEventListener("click", () => this.sessionClicked(session.name)); // remove in detach()
+                list.appendChild(item);
+            }
+            // update the list item
+            const details = session.details; // { users, description } (or more, if the app sends them)
+            const description = details.description;
+            item.innerHTML = `<b>${session.name}</b>: ${description || "starting ..."}`;
+        }
+        // remove any remaining items
+        for (const item of items) {
+            list.removeChild(item);
+        }
+        document.getElementById("no-games").classList.toggle("hidden", sessions.length > 0);
+        // list players in lobby
+        const locations = new Map();
+        let count = 0;
+        let unknown = false;
+        for (const view of this.model.views.values()) {
+            const viewId = view.viewId;
+            if (viewId === this.viewId) continue; // don't count self
+            if (view.session) continue; // don't count in-app users
+            count++;
+            const location = view.location;
+            if (location) {
+                locations.set(location, (locations.get(location) || 0) + 1);
+            } else {
+                unknown = true;
+            }
+        }
+        let users = "<b>Players in Lobby</b>: You";
+        if (count) {
+            users += ` and ${count} user${count === 1 ? "" : "s"}`;
+            if (locations.size > 0) {
+                let sorted = [...locations].sort((a, b) => b[1] - a[1]);
+                if (sorted.length > 3) {
+                    sorted = sorted.slice(0, 3);
+                    unknown = true;
+                }
+                users += ` from ${sorted.map(([location]) => location).join(", ")}`;
+                if (unknown) users += " and elsewhere";
+            }
+        }
+        document.getElementById("users").innerHTML = users;
+    }
+
+    sessionClicked(name) {
+        enterApp(name);
+        clearInterval(this.interval);
+        // possibly leave lobby session
+        let session = this.model.sessions.get(name);
+        if (session) {
+            let relay = session.relay;
+            if (relay.viewId !== this.viewId) {
+                this.relayChanged({ name, viewId: relay.viewId });
+            }
+        }
+    }
+
+    detach() {
+        clearInterval(this.interval);
+        window.onmessage = enterLobbyOnMessage; // in case we become the relay
+        const list = document.getElementById("sessions");
+        list.innerHTML = ""; // discard event listeners attached to this view
+        super.detach();
+        console.log("LobbyView", this.viewId, "detached");
+    }
+}
+
+//////////////////////////////
+
+function setAppSrc(src) {
+    // to avoid getting two history entries, we can't just set iframe.src
+    // but we have to replace the iframe itself
+    const iframe = document.getElementById("app");
+    const parent = iframe.parentNode;
+    const newIframe = iframe.cloneNode();
+    newIframe.src = src;
+    parent.replaceChild(newIframe, iframe);
+    iframe.src = ""; // just in case
+}
+
+function enterApp(name) {
+    console.log(`entering app session '${name}'`);
+    // open app in iframe
+    appSessionName = name;
+    const params = window.location.search.slice(1);
+    setAppSrc(Multisynq.Constants.AppUrl + `?session=${encodeURIComponent(name)}` + (params ? "&" + params : ""));
+    // hide lobby, show app
+    document.body.classList.toggle("in-lobby", false);
+    // update session URL and QR code and title
+    window.onhashchange = null;
+    window.location.hash = "#" + encodeURIComponent(name);
+    setTimeout(() => window.onhashchange = toggleLobbyOnHashChange, 0);
+    Multisynq.App.sessionURL = window.location.href;
+    document.title = APPNAME ? `${APPNAME} - ${name}` : name;
+    return name;
+}
+
+async function exitApp() {
+    console.log(`exiting app session ${appSessionName}`);
+    appSessionName = "";
+    // close app in iframe
+    setAppSrc("");
+    // hide app, show lobby
+    document.body.classList.toggle("in-lobby", true);
+    // update session URL and QR code and title
+    window.onhashchange = null;
+    window.location.hash = "";
+    setTimeout(() => window.onhashchange = toggleLobbyOnHashChange, 0);
+    Multisynq.App.sessionURL = window.location.href;
+    document.title = APPNAME;
+    // if we're in a lobby session, notify the lobby session that we're now back in the lobby
+    if (lobbySessionPromise) {
+        const lobbySession = await lobbySessionPromise;
+        const { view } = lobbySession;
+        if (!view) return;
+        console.log(`LobbyView ${view.viewId}: tell model we're back in the lobby`);
+        view.publish(view.model.id, "in-lobby", { viewId: view.viewId });
+        view.showSessions();
+    }
+}
+
+// in case we become the relay, we'll get a message from the app session in the iframe
+function enterLobbyOnMessage(e) {
+    if (e.data && e.data.type === "multisynq-lobby") {
+        enterLobby();
+    }
+}
+
+// this is called when the hash changes, e.g. when the user clicks the back button
+function toggleLobbyOnHashChange() {
+    appSessionName = window.location.hash.slice(1);
+    if (appSessionName) {
+        enterApp(decodeURIComponent(appSessionName));
+    } else {
+        exitApp();
+        enterLobby();
+    }
+}
+
+let lobbySessionPromise = null;
+
+async function enterLobby() {
+    if (lobbySessionPromise) return; // already in (or joining) lobby session
+    console.log("joining lobby session");
+    lobbySessionPromise = Multisynq.Session.join({
+        apiKey: '234567_Paste_Your_Own_API_Key_Here_7654321', // get your own from multisynq.io/coder
+        appId: "io.multisynq.lobby",
+        name: "lobby",
+        password: "lobby",
+        viewData: {}, // need to pass viewData so location gets passed into view-join
+        location: true,
+        model: LobbyModel,
+        view: LobbyView,
+        autoSleep: false, // fixme – only need to force while game is running and we're the relay?
+        tps: 1,
+    });
+    await lobbySessionPromise;
+}
+
+Multisynq.App.makeWidgetDock(); // shows QR code
+
+window.onhashchange = toggleLobbyOnHashChange; // e.g. back button
+if (appSessionName) {
+    enterApp(appSessionName);
+    window.onmessage = enterLobbyOnMessage; // in case we become the relay
+} else {
+    enterLobby();
+}
+
+        </script>
+    </body>
+</html>

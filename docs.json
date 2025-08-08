@@ -10,61 +10,67 @@
   "favicon": "/favicon.svg",
   "navigation": {
     "tabs": [
-              {
-          "tab": "Guides",
-          "groups": [
-            {
-              "group": "Get Started",
-              "pages": [
-                "index",
-                "quickstart"
-              ]
-            },
-            {
-              "group": "Tutorials",
-              "pages": [
-                "tutorials/hello-world",
-                "tutorials/simple-animation",
-                "tutorials/multiuser-chat",
-                "tutorials/view-smoothing",
-                "tutorials/3d-animation",
-                "tutorials/multiblaster-game"
-              ]
-            },
-            {
-              "group": "Conceptual",
-              "pages": [
-                "tutorials/model-view-synchronizer",
-                "tutorials/events-pub-sub",
-                "tutorials/snapshots",
-                "tutorials/persistence",
-                "tutorials/sim-time-future",
-                "tutorials/writing-multisynq-model",
-                "tutorials/writing-multisynq-view",
-                "tutorials/writing-multisynq-app",
-                "tutorials/random",
-                "tutorials/data-api"
-              ]
-            },
-            {
-              "group": "Essentials",
-              "pages": [
-                "essentials/sync",
-                "essentials/collaboration",
-                "essentials/chat",
-                "essentials/whiteboard",
-                "essentials/conflicts",
-                "essentials/scaling"
-              ]
-            },
-            {
-              "group": "AI Development",
-              "pages": [
-                "essentials/vibe-coding"
-              ]
-            }
-          ]
-        },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "index",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Tutorials",
+            "pages": [
+              "tutorials/hello-world",
+              "tutorials/simple-animation",
+              "tutorials/multiuser-chat",
+              "tutorials/view-smoothing",
+              "tutorials/3d-animation",
+              "tutorials/multiblaster-game"
+            ]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "examples/index"
+            ]
+          },
+          {
+            "group": "Conceptual",
+            "pages": [
+              "tutorials/model-view-synchronizer",
+              "tutorials/events-pub-sub",
+              "tutorials/snapshots",
+              "tutorials/persistence",
+              "tutorials/sim-time-future",
+              "tutorials/writing-multisynq-model",
+              "tutorials/writing-multisynq-view",
+              "tutorials/writing-multisynq-app",
+              "tutorials/random",
+              "tutorials/data-api"
+            ]
+          },
+          {
+            "group": "Essentials",
+            "pages": [
+              "essentials/sync",
+              "essentials/collaboration",
+              "essentials/chat",
+              "essentials/whiteboard",
+              "essentials/conflicts",
+              "essentials/scaling"
+            ]
+          },
+          {
+            "group": "AI Development",
+            "pages": [
+              "essentials/vibe-coding"
+            ]
+          }
+        ]
+      },
       {
         "tab": "React Together",
         "groups": [
@@ -144,6 +150,17 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Packages",
+        "groups": [
+          {
+            "group": "Multisynq Client",
+            "pages": [
+              "packages/client/index"
+            ]
+          }
+        ]
       }
     ],
     "global": {
@@ -191,14 +208,38 @@
     }
   },
   "redirects": [
-    { "source": "/api-reference/introduction", "destination": "/api-reference" },
-    { "source": "/api-reference/model", "destination": "/api-reference#multisynq-model" },
-    { "source": "/api-reference/view", "destination": "/api-reference#multisynq-view" },
-    { "source": "/api-reference/session", "destination": "/api-reference#multisynq-session" },
-    { "source": "/Model.html", "destination": "/api-reference#multisynq-model" },
-    { "source": "/View.html", "destination": "/api-reference#multisynq-view" },
-    { "source": "/Session.html", "destination": "/api-reference#multisynq-session" },
-    { "source": "/Data.html", "destination": "/api-reference#multisynq-data" }
+    {
+      "source": "/api-reference/introduction",
+      "destination": "/api-reference"
+    },
+    {
+      "source": "/api-reference/model",
+      "destination": "/api-reference#multisynq-model"
+    },
+    {
+      "source": "/api-reference/view",
+      "destination": "/api-reference#multisynq-view"
+    },
+    {
+      "source": "/api-reference/session",
+      "destination": "/api-reference#multisynq-session"
+    },
+    {
+      "source": "/Model.html",
+      "destination": "/api-reference#multisynq-model"
+    },
+    {
+      "source": "/View.html",
+      "destination": "/api-reference#multisynq-view"
+    },
+    {
+      "source": "/Session.html",
+      "destination": "/api-reference#multisynq-session"
+    },
+    {
+      "source": "/Data.html",
+      "destination": "/api-reference#multisynq-data"
+    }
   ],
   "contextual": {
     "options": [
@@ -226,13 +267,13 @@
         "description": "Install the Multisynq MCP server for this project",
         "icon": "stars",
         "href": {
-            "base": "https://docs.multisynq.io/mcp-setup",
-            "query": [
-                {
-                    "key": "cmd",
-                    "value": "npx mint-mcp add multisynq.io"
-                }
-            ]
+          "base": "https://docs.multisynq.io/mcp-setup",
+          "query": [
+            {
+              "key": "cmd",
+              "value": "npx mint-mcp add multisynq.io"
+            }
+          ]
         }
       }
     ]

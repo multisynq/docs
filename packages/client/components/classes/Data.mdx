@@ -1,0 +1,130 @@
+export default function Data_Component() {
+  return (
+    <div className="api-class-component">
+      <h2 id="data">Data</h2>
+      <div className="description">
+        <p><strong>Secure bulk data storage</strong> This Data API allows encrypted bulk data storage. E.g. if a user drops a file into a Multisynq application, the contents of that file can be handed off to the Data API for storage. It will be encrypted and uploaded to a file server. Other participants will download and decrypt the data. The [Data.store()]<a href="#datastore">Data#store</a> method returns a <em>data handle</em> that is to be stored in the model via [view.publish()]<a href="#viewpublish">View#publish</a>, and then other participants fetch the stored data via [Data.fetch()]<a href="#datafetch">Data#fetch</a>, passing the handle from the model. Off-loading the actual bits of data to a file server and keeping only the meta data (including the data handle) in the replicated model meta is a lot more efficient than trying to send that data via [publish]<a href="#viewpublish">View#publish</a>/[subscribe]<a href="#modelsubscribe">Model#subscribe</a>. It also allows caching. <strong>Shareable handles:</strong> By default, data handles are not shareable outside the session. The uploaded data is encrypted with the session password, just like snapshots, messages, etc. If you set the <code>shareable</code> option to <code>true</code>, the data handle will include the decryption key so it can be decrypted by anyone who has the handle, even without the session password. It is not protected by the session's end-to-end encryption. If the handle leaks, anyone can download and decrypt the data. Again: <strong>IF MADE SHAREABLE, THE DATA IS ENCRYPTED INDEPENDENTLY, THE HANDLE INCLUDES THE DECRYPTION KEY</strong> <strong>Note:</strong> The Data API is not available in <code>Model</code> code, only available in <code>View</code> code. Typically, you would access the Data API in a view as <code>this.session.data.store()</code> and <code>this.session.data.fetch()</code>. See this <a href="/tutorials/2_9_data">tutorial</a> for a complete example.</p>
+      </div>
+      <Tabs>
+        <Tab title="Methods">
+          <h4>Static Methods</h4>
+          <AccordionGroup>
+            <Accordion title="hash">
+              ```typescript
+              static hash(data, output): String
+              ```
+              <div className="method-description">
+                <p>Answer a hash for the given data. Strings and binary arrays are hashed directly, other objects use a stable JSON stringification</p>
+              </div>
+              <h5>Parameters</h5>
+        <ParamField path="data" type="ArrayBuffer|String|*" required={true}>
+          <p>the data to be hashed</p>
+        </ParamField>
+        <ParamField path="output" type="&quot;hex&quot;|&quot;base64&quot;|&quot;base64url&quot;" required={true}>
+          <p>hash encoding (default: "base64url")</p>
+        </ParamField>
+              <h5>Returns</h5>
+              <ResponseField type="String">
+                <p>SHA256 hash</p>
+              </ResponseField>
+            </Accordion>
+            <Accordion title="fromId">
+              ```typescript
+              static fromId(id): DataHandle
+              ```
+              <div className="method-description">
+                <p>Create a data handle from a string id.</p>
+              </div>
+              <h5>Parameters</h5>
+        <ParamField path="id" type="String" required={true}>
+          <p>an id created by [Data.toId()]<a href="#datatoid">Data.toId</a></p>
+        </ParamField>
+              <h5>Returns</h5>
+              <ResponseField type="DataHandle">
+                <p>a handle to be used with [Data.fetch()]<a href="#datafetch">Data#fetch</a></p>
+              </ResponseField>
+            </Accordion>
+            <Accordion title="toId">
+              ```typescript
+              static toId(handle): String
+              ```
+              <div className="method-description">
+                <p>Create a string id from a data handle. This base64url-encoded id is a string that includes the data location and decryption key.</p>
+              </div>
+              <h5>Parameters</h5>
+        <ParamField path="handle" type="DataHandle" required={true}>
+          <p>a handle created by [Data.store()]<a href="#datastore">Data#store</a></p>
+        </ParamField>
+              <h5>Returns</h5>
+              <ResponseField type="String">
+                <p>id an id to be used with [Data.fromId()]<a href="#datafromid">Data.fromId</a></p>
+              </ResponseField>
+            </Accordion>
+          </AccordionGroup>
+          <h4>Instance Methods</h4>
+          <AccordionGroup>
+            <Accordion title="store">
+              ```typescript
+              async store(data, [options=null], [options.shareable=false], [options.keep=false]): Promise<DataHandle>
+              ```
+              <div className="method-description">
+                <p>Store data and return an (opaque) handle. If <code>options.shareable</code> is <code>true</code>, the handle will include the decryption key and can be shared (see security/privacy warning above). By default, <code>data</code> will become unusable after this call, because the ArrayBuffer is detached when being [transferred]<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer#transferring_arraybuffers">https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer#transferring_arraybuffers</a> to a web worker for encryption and upload. Set <code>options.keep</code> to <code>true</code> to make a copy instead of moving the data.</p>
+              </div>
+              <h5>Parameters</h5>
+        <ParamField path="data" type="ArrayBuffer" required={true}>
+          <p>the data to be stored</p>
+        </ParamField>
+        <ParamField path="[options=null]" type="Object" required={true}>
+          
+        </ParamField>
+        <ParamField path="[options.shareable=false]" type="Boolean" required={true}>
+          <p>create data handle that can be shared outside this session</p>
+        </ParamField>
+        <ParamField path="[options.keep=false]" type="Boolean" required={true}>
+          <p>if true, keep the data intact (do not detach buffer)</p>
+        </ParamField>
+              <h5>Returns</h5>
+              <ResponseField type="Promise&lt;DataHandle&gt;">
+                <p>return promise for the handle</p>
+              </ResponseField>
+              <h5>Examples</h5>
+              <Tabs>
+                <Tab title="// in a view, perhaps after a file drop event">
+                  ```javascript
+const handle = await this.session.data.store(arrayBuffer);
+this.publish("set-file", handle);
+                  ```
+                </Tab>
+              </Tabs>
+            </Accordion>
+            <Accordion title="fetch">
+              ```typescript
+              async fetch(dataHandle): Promise<ArrayBuffer>
+              ```
+              <div className="method-description">
+                <p>Fetch data for a given data handle</p>
+              </div>
+              <h5>Parameters</h5>
+        <ParamField path="dataHandle" type="DataHandle" required={true}>
+          <p>created by [Data.store()]<a href="#datastore">Data#store</a></p>
+        </ParamField>
+              <h5>Returns</h5>
+              <ResponseField type="Promise&lt;ArrayBuffer&gt;">
+                <p>the data</p>
+              </ResponseField>
+              <h5>Examples</h5>
+              <Tabs>
+                <Tab title="// in a view, perhaps after a &quot;got-file&quot; event from the model">
+                  ```javascript
+const handle = this.model.handle;
+const arrayBuffer = await this.session.data.fetch(handle);
+                  ```
+                </Tab>
+              </Tabs>
+            </Accordion>
+          </AccordionGroup>
+        </Tab>
+      </Tabs>
+    </div>
+  );
+}

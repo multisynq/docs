@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MultiSynq AI Art Gallery</title>
+
+    <!-- MultiSynq Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.min.js"></script>
+
+    <!-- TailwindCSS for styling -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #1a1a1a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        canvas { display: block; }
+        .nametag { color: white; background: rgba(0, 0, 0, 0.6); padding: 2px 8px; border-radius: 4px; font-size: 14px; white-space: nowrap; transform: translate(-50%, -150%); pointer-events: none; text-shadow: 1px 1px 2px black; }
+        .chat-bubble { color: black; background: white; padding: 8px 12px; border-radius: 8px; font-size: 14px; max-width: 200px; transform: translate(-50%, -250%); opacity: 0; transition: opacity 0.3s ease-in-out; pointer-events: none; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        .chat-bubble.visible { opacity: 1; }
+        .mobile-control { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+        #ai-prompt { transition: opacity 0.3s, transform 0.3s; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <div id="container"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-overlay" class="absolute top-0 left-0 w-full h-full p-4 pointer-events-none">
+        <div class="flex flex-col gap-2 items-start">
+            <div class="bg-black/50 p-4 rounded-lg pointer-events-auto max-w-sm backdrop-blur-sm">
+                <h1 class="text-xl font-bold">MultiSynq AI Art Gallery</h1>
+                <p class="text-sm text-gray-300">Use Arrow Keys to move. Click & drag to look.</p>
+                <div class="mt-2 flex gap-2">
+                    <input type="text" id="name-input" placeholder="Enter your name" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm w-full">
+                    <button id="set-name-button" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm shrink-0">Set</button>
+                </div>
+            </div>
+        </div>
+        <div class="absolute bottom-4 left-4 w-full max-w-md pointer-events-auto">
+            <div id="chat-log" class="h-48 overflow-y-auto bg-black/50 p-2 rounded-t-lg text-sm mb-0 backdrop-blur-sm"></div>
+            <form id="chat-form" class="flex">
+                <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off" class="flex-grow bg-gray-700 border border-gray-600 rounded-bl-lg px-3 py-2 text-white focus:outline-none">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-br-lg">Send</button>
+            </form>
+        </div>
+        <div id="ai-prompt" class="absolute bottom-4 right-4 w-full max-w-sm p-4 bg-gray-800/80 rounded-lg backdrop-blur-sm opacity-0 transform translate-y-4 pointer-events-none">
+            <h3 class="font-bold text-lg text-teal-300">Ask the AI Art Historian</h3>
+            <p class="text-sm text-gray-400 mb-2">You are near the AI Kiosk. Ask a question.</p>
+            <form id="ai-form" class="flex gap-2">
+                <input type="text" id="ai-input" placeholder="e.g., Tell me more about that." autocomplete="off" class="flex-grow bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none">
+                <button type="submit" class="bg-teal-600 hover:bg-teal-700 px-4 py-2 rounded">Ask</button>
+                <button type="button" id="ai-reset-button" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">Reset</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mobile Controls -->
+    <div id="mobile-controls" class="md:hidden absolute bottom-24 right-4 flex flex-col gap-2 pointer-events-none">
+        <div class="flex justify-center pointer-events-auto"><button id="mobile-fwd" class="mobile-control bg-white/30 rounded-full w-16 h-16 text-2xl">▲</button></div>
+        <div class="flex gap-2 pointer-events-auto">
+            <button id="mobile-left" class="mobile-control bg-white/30 rounded-full w-16 h-16 text-2xl">◀</button>
+            <button id="mobile-bwd" class="mobile-control bg-white/30 rounded-full w-16 h-16 text-2xl">▼</button>
+            <button id="mobile-right" class="mobile-control bg-white/30 rounded-full w-16 h-16 text-2xl">▶</button>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+import * as THREE from "three";
+import {
+    CSS2DRenderer,
+    CSS2DObject,
+} from "three/addons/renderers/CSS2DRenderer.js";
+
+// === MULTISYNQ MODELS =======================================================
+class GalleryModel extends Multisynq.Model {
+    init() {
+        this.players = new Map();
+        this.artworks = [
+            {
+                pos: { x: -14.5, y: 1.8, z: 0 },
+                rotY: Math.PI / 2,
+                url: "https://picsum.photos/seed/art1/800/600",
+            },
+            {
+                pos: { x: 14.5, y: 1.8, z: 0 },
+                rotY: -Math.PI / 2,
+                url: "https://picsum.photos/seed/art2/600/800",
+            },
+            {
+                pos: { x: 0, y: 1.8, z: -14.5 },
+                rotY: 0,
+                url: "https://picsum.photos/seed/art3/1000/600",
+            },
+            {
+                pos: { x: 0, y: 1.8, z: 14.5 },
+                rotY: Math.PI,
+                url: "https://picsum.photos/seed/art4/800/800",
+            },
+            {
+                pos: { x: -14.5, y: 1.8, z: 8 },
+                rotY: Math.PI / 2,
+                url: "https://picsum.photos/seed/art5/600/600",
+            },
+            {
+                pos: { x: -14.5, y: 1.8, z: -8 },
+                rotY: Math.PI / 2,
+                url: "https://picsum.photos/seed/art6/700/500",
+            },
+            {
+                pos: { x: 14.5, y: 1.8, z: 8 },
+                rotY: -Math.PI / 2,
+                url: "https://picsum.photos/seed/art7/500/700",
+            },
+            {
+                pos: { x: 14.5, y: 1.8, z: -8 },
+                rotY: -Math.PI / 2,
+                url: "https://picsum.photos/seed/art8/800/500",
+            },
+            {
+                pos: { x: 8, y: 1.8, z: -14.5 },
+                rotY: 0,
+                url: "https://picsum.photos/seed/art9/900/600",
+            },
+        ];
+        this.welcomeMessage =
+            "Welcome! Step closer to ask me a question about art history.";
+        this.aiResponse = this.welcomeMessage;
+        this.aiConversationHistory = [];
+        this.subscribe(this.sessionId, "view-join", this.onPlayerJoin);
+        this.subscribe(this.sessionId, "view-exit", this.onPlayerExit);
+        this.subscribe("ai", "ask-question", this.onAskAI);
+        this.subscribe("ai", "reset", this.onResetAI);
+        AIRelayModel.create();
+        this.future(50).tick();
+    }
+    onAskAI(question) {
+        this.aiResponse = `You: ${question}`;
+        this.publish("ai", "response-updated", this.aiResponse);
+        this.future(1000).processAIQuestion(question);
+    }
+    processAIQuestion(question) {
+        this.aiResponse = "ART-E: Thinking...";
+        this.publish("ai", "response-updated", this.aiResponse);
+        this.aiConversationHistory.push({ role: "user", content: question });
+        while (this.aiConversationHistory.length > 20) {
+            this.aiConversationHistory.shift();
+        }
+        const aiRelay = this.wellKnownModel("aiRelay");
+        if (!aiRelay) return;
+        const request = {
+            history: this.aiConversationHistory,
+            resolve: this.createQFunc((response) => {
+                this.aiResponse = `ART-E: ${response.text}`;
+                this.publish("ai", "response-updated", this.aiResponse);
+                this.aiConversationHistory.push({
+                    role: "assistant",
+                    content: response.text,
+                });
+                while (this.aiConversationHistory.length > 20) {
+                    this.aiConversationHistory.shift();
+                }
+            }),
+        };
+        aiRelay.relayRequest(request);
+    }
+    onResetAI() {
+        this.aiConversationHistory = [];
+        this.aiResponse = this.welcomeMessage;
+        this.publish("ai", "response-updated", this.aiResponse);
+    }
+    onPlayerJoin(viewInfo) {
+        const { viewId, viewData } = viewInfo;
+        const player = PlayerModel.create({
+            viewId,
+            name: viewData.name,
+            color: viewData.color,
+        });
+        this.players.set(viewId, player);
+        this.publish(this.sessionId, "player-added", player.id);
+    }
+    onPlayerExit(viewInfo) {
+        const { viewId } = viewInfo;
+        const player = this.players.get(viewId);
+        if (player) {
+            this.players.delete(viewId);
+            this.publish(this.sessionId, "player-removed", player.id);
+            player.destroy();
+        }
+    }
+    tick() {
+        for (const player of this.players.values()) {
+            player.move();
+        }
+        this.future(50).tick();
+    }
+}
+GalleryModel.register("GalleryModel");
+class PlayerModel extends Multisynq.Model {
+    init(options) {
+        this.viewId = options.viewId;
+        this.name = options.name || "Visitor";
+        this.color = options.color || "#ffffff";
+        this.pos = {
+            x: (this.random() - 0.5) * 5,
+            y: 0.5,
+            z: (this.random() - 0.5) * 5,
+        };
+        this.rot = { y: 0 };
+        this.controls = { fwd: false, bwd: false, left: false, right: false };
+        this.chatMessage = "";
+        this.chatTime = 0;
+        this.subscribe(this.id, "update-controls", this.onUpdateControls);
+        this.subscribe(this.id, "set-name", this.onSetName);
+        this.subscribe(this.id, "send-chat", this.onSendChat);
+        this.subscribe(this.id, "update-rotation", this.onUpdateRotation);
+    }
+    onUpdateControls(controls) {
+        this.controls = controls;
+    }
+    onSetName(name) {
+        this.name = name;
+        this.publish(this.id, "name-changed", name);
+    }
+    onSendChat(message) {
+        this.chatMessage = message;
+        this.chatTime = this.now();
+        this.publish(this.id, "chat-received", {
+            name: this.name,
+            message: this.chatMessage,
+        });
+    }
+    onUpdateRotation(rotation) {
+        this.rot.y = rotation.y;
+    }
+    move() {
+        const speed = 0.1;
+        const rotSpeed = 0.05;
+        let dx = 0;
+        let dz = 0;
+        if (this.controls.left) this.rot.y += rotSpeed;
+        if (this.controls.right) this.rot.y -= rotSpeed;
+        if (this.controls.fwd) {
+            dx += Math.sin(this.rot.y) * speed;
+            dz += Math.cos(this.rot.y) * speed;
+        }
+        if (this.controls.bwd) {
+            dx -= Math.sin(this.rot.y) * speed;
+            dz -= Math.cos(this.rot.y) * speed;
+        }
+        this.pos.x += dx;
+        this.pos.z += dz;
+        const boundary = 14.5;
+        if (this.pos.x > boundary) this.pos.x = boundary;
+        if (this.pos.x < -boundary) this.pos.x = -boundary;
+        if (this.pos.z > boundary) this.pos.z = boundary;
+        if (this.pos.z < -boundary) this.pos.z = -boundary;
+    }
+}
+PlayerModel.register("PlayerModel");
+class Elected extends Multisynq.Model {
+    init() {
+        super.init();
+        this.viewIds = new Set();
+        this.electedViewId = "";
+        this.subscribe(this.sessionId, "view-join", this.viewJoined);
+        this.subscribe(this.sessionId, "view-exit", this.viewExited);
+    }
+    viewJoined({ viewId }) {
+        this.viewIds.add(viewId);
+        this.viewsChanged();
+    }
+    viewExited({ viewId }) {
+        this.viewIds.delete(viewId);
+        this.viewsChanged();
+    }
+    viewsChanged() {
+        if (!this.viewIds.has(this.electedViewId)) {
+            this.electedViewId = this.viewIds.values().next().value;
+            this.viewElected(this.electedViewId);
+        }
+    }
+    viewElected(viewId) {
+        this.publish(this.sessionId, "elected-view", viewId);
+    }
+}
+Elected.register("Elected");
+class AIRelayModel extends Elected {
+    init() {
+        super.init();
+        this.beWellKnownAs("aiRelay");
+        this.requestId = 0;
+        this.pendingRequests = new Map();
+        this.subscribe(this.id, "relay-response", this.relayResponse);
+    }
+    viewElected() {
+        if (!this.electedViewId) return;
+        for (const [requestId, request] of this.pendingRequests.entries()) {
+            this.publish(this.id, "relay-request", {
+                electedViewId: this.electedViewId,
+                requestId,
+                request,
+            });
+        }
+    }
+    relayRequest(request) {
+        const requestId = ++this.requestId;
+        this.pendingRequests.set(requestId, request);
+        if (!this.electedViewId) return;
+        this.publish(this.id, "relay-request", {
+            electedViewId: this.electedViewId,
+            requestId,
+            request,
+        });
+    }
+    relayResponse(response) {
+        const request = this.pendingRequests.get(response.requestId);
+        if (request) {
+            this.pendingRequests.delete(response.requestId);
+            request.resolve(response);
+        }
+    }
+}
+AIRelayModel.register("AIRelayModel");
+
+// === KIOSK VIEW CLASS ========================================================
+class Kiosk {
+    constructor() {
+        this.group = new THREE.Group();
+        this.group.position.set(5, 1.6, 14.7);
+        const backplateGeo = new THREE.BoxGeometry(3.2, 2.2, 0.1);
+        const backplateMat = new THREE.MeshStandardMaterial({
+            color: 0x111,
+            metalness: 0.5,
+            roughness: 0.5,
+        });
+        const backplate = new THREE.Mesh(backplateGeo, backplateMat);
+        backplate.rotation.y = Math.PI;
+        this.group.add(backplate);
+        this.canvas = document.createElement("canvas");
+        this.canvas.width = 512;
+        this.canvas.height = 341;
+        this.context = this.canvas.getContext("2d");
+        this.texture = new THREE.CanvasTexture(this.canvas);
+        const screenGeo = new THREE.PlaneGeometry(3, 2);
+        const screenMat = new THREE.MeshStandardMaterial({
+            map: this.texture,
+            emissiveMap: this.texture,
+            emissive: 0xffffff,
+        });
+        this.screen = new THREE.Mesh(screenGeo, screenMat);
+        this.screen.position.z = -0.06;
+        this.screen.rotation.y = Math.PI;
+        this.group.add(this.screen);
+        this.pages = [];
+        this.currentPage = 0;
+        const arrowGeo = new THREE.ConeGeometry(0.1, 0.2, 8);
+        const arrowMat = new THREE.MeshStandardMaterial({ color: 0x7fdbca });
+        this.upButton = new THREE.Mesh(arrowGeo, arrowMat);
+        this.upButton.position.set(-1.7, 0.8, -0.05);
+        this.upButton.name = "kiosk-up";
+        this.upButton.rotation.y = Math.PI;
+        this.group.add(this.upButton);
+        this.downButton = new THREE.Mesh(arrowGeo, arrowMat);
+        this.downButton.position.set(-1.7, -0.8, -0.05);
+        this.downButton.rotation.z = Math.PI;
+        this.downButton.rotation.y = Math.PI;
+        this.downButton.name = "kiosk-down";
+        this.group.add(this.downButton);
+    }
+    getClickableMeshes() {
+        return [this.upButton, this.downButton];
+    }
+    updateText(fullText) {
+        this.context.font = '24px "Courier New", Courier, monospace';
+        const lines = this.wrapText(fullText, 480);
+        this.pages = this.paginate(lines, 12);
+        this.currentPage = 0;
+        this.drawPage();
+    }
+    nextPage() {
+        if (this.currentPage < this.pages.length - 1) {
+            this.currentPage++;
+            this.drawPage();
+        }
+    }
+    prevPage() {
+        if (this.currentPage > 0) {
+            this.currentPage--;
+            this.drawPage();
+        }
+    }
+    drawPage() {
+        const ctx = this.context;
+        ctx.fillStyle = "#0d1a26";
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.font = '24px "Courier New", Courier, monospace';
+        ctx.fillStyle = "#7fdbca";
+        const lines = this.pages[this.currentPage] || [];
+        lines.forEach((line, index) => {
+            ctx.fillText(line, 20, 40 + index * 26);
+        });
+        this.texture.needsUpdate = true;
+        this.upButton.visible = this.currentPage > 0;
+        this.downButton.visible = this.currentPage < this.pages.length - 1;
+    }
+    wrapText(text, maxWidth) {
+        const words = text.split(" ");
+        let lines = [];
+        let currentLine = words[0] || "";
+        for (let i = 1; i < words.length; i++) {
+            const word = words[i];
+            const width = this.context.measureText(currentLine + " " + word).width;
+            if (width < maxWidth) {
+                currentLine += " " + word;
+            } else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+        }
+        lines.push(currentLine);
+        return lines;
+    }
+    paginate(lines, linesPerPage) {
+        const pages = [];
+        for (let i = 0; i < lines.length; i += linesPerPage) {
+            pages.push(lines.slice(i, i + linesPerPage));
+        }
+        return pages;
+    }
+}
+
+// === THREE.JS VIEW ==========================================================
+class GalleryView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.model = model;
+        this.players = new Map();
+        this.myPlayerModelId = null;
+        this.aiRelayView = new AIRelayView(this.wellKnownModel("aiRelay"));
+        this.animationFrameId = null;
+        this.boundHandlers = {
+            onWindowResize: this.onWindowResize.bind(this),
+            onKeyDown: this.onKeyDown.bind(this),
+            onKeyUp: this.onKeyUp.bind(this),
+            onPointerDown: this.onPointerDown.bind(this),
+            onPointerUp: this.onPointerUp.bind(this),
+            onPointerMove: this.onPointerMove.bind(this),
+            onSetName: this.onSetName.bind(this),
+            onChatSubmit: this.onChatSubmit.bind(this),
+            onAISubmit: this.onAISubmit.bind(this),
+            onAIReset: this.onAIReset.bind(this),
+        };
+        this.initScene();
+        this.initUI();
+        this.initControls();
+        for (const player of this.model.players.values()) {
+            this.addPlayer(player.id);
+        }
+        this.subscribe(this.sessionId, "player-added", this.addPlayer.bind(this));
+        this.subscribe(
+            this.sessionId,
+            "player-removed",
+            this.removePlayer.bind(this)
+        );
+        this.subscribe("ai", "response-updated", (text) =>
+            this.kiosk.updateText(text)
+        );
+        this.animate();
+    }
+    initScene() {
+        this.container = document.getElementById("container");
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.container.appendChild(this.renderer.domElement);
+        this.css2dRenderer = new CSS2DRenderer();
+        this.css2dRenderer.setSize(window.innerWidth, window.innerHeight);
+        this.css2dRenderer.domElement.style.position = "absolute";
+        this.css2dRenderer.domElement.style.top = "0px";
+        this.css2dRenderer.domElement.style.pointerEvents = "none";
+        this.container.appendChild(this.css2dRenderer.domElement);
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x101010);
+        this.scene.fog = new THREE.Fog(0x101010, 15, 40);
+        this.camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        this.camera.position.set(0, 1.6, 5);
+        this.cameraTarget = new THREE.Vector3();
+        const ambient = new THREE.AmbientLight(0xffffff, 1.2);
+        this.scene.add(ambient);
+        const spotLight = new THREE.SpotLight(
+            0xffffff,
+            500,
+            50,
+            Math.PI / 4,
+            0.5,
+            1
+        );
+        spotLight.position.set(0, 20, 0);
+        spotLight.castShadow = true;
+        spotLight.shadow.mapSize.width = 1024;
+        spotLight.shadow.mapSize.height = 1024;
+        this.scene.add(spotLight);
+        const floorGeo = new THREE.PlaneGeometry(30, 30);
+        const floorMat = new THREE.MeshStandardMaterial({
+            color: 0x333333,
+            roughness: 0.9,
+        });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        this.scene.add(floor);
+        const wallHeight = 5;
+        const wallGeo = new THREE.BoxGeometry(30, wallHeight, 0.5);
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x181818 });
+        const createWall = (x, z, rotY) => {
+            const wall = new THREE.Mesh(wallGeo, wallMat);
+            wall.position.set(x, wallHeight / 2, z);
+            wall.rotation.y = rotY;
+            wall.receiveShadow = true;
+            this.scene.add(wall);
+        };
+        createWall(0, -15, 0);
+        createWall(0, 15, 0);
+        createWall(-15, 0, Math.PI / 2);
+        createWall(15, 0, Math.PI / 2);
+        const textureLoader = new THREE.TextureLoader();
+        this.model.artworks.forEach((artData) => {
+            const artwork = new THREE.Mesh(
+                new THREE.PlaneGeometry(3, 3),
+                new THREE.MeshStandardMaterial({
+                    map: textureLoader.load(artData.url),
+                    metalness: 0.1,
+                    roughness: 0.5,
+                })
+            );
+            artwork.position.set(artData.pos.x, artData.pos.y, artData.pos.z);
+            artwork.rotation.y = artData.rotY;
+            const frame = new THREE.Mesh(
+                new THREE.BoxGeometry(3.15, 3.15, 0.1),
+                new THREE.MeshStandardMaterial({ color: 0x1a1008 })
+            );
+            frame.position.z = -0.06;
+            frame.castShadow = true;
+            artwork.add(frame);
+            const artLight = new THREE.SpotLight(0xffffff, 200, 10, Math.PI / 6, 0.3);
+            artLight.position.set(artData.pos.x, artData.pos.y + 2, artData.pos.z);
+            artLight.target = artwork;
+            this.scene.add(artwork);
+            this.scene.add(artLight);
+        });
+        this.kiosk = new Kiosk();
+        this.scene.add(this.kiosk.group);
+        this.kiosk.updateText(this.model.aiResponse);
+    }
+    initUI() {
+        this.chatLog = document.getElementById("chat-log");
+        document
+            .getElementById("set-name-button")
+            .addEventListener("click", this.boundHandlers.onSetName);
+        document
+            .getElementById("chat-form")
+            .addEventListener("submit", this.boundHandlers.onChatSubmit);
+        document
+            .getElementById("ai-form")
+            .addEventListener("submit", this.boundHandlers.onAISubmit);
+        document
+            .getElementById("ai-reset-button")
+            .addEventListener("click", this.boundHandlers.onAIReset);
+    }
+    initControls() {
+        this.controls = { fwd: false, bwd: false, left: false, right: false };
+        this.keyMap = {
+            ArrowUp: "fwd",
+            ArrowDown: "bwd",
+            ArrowLeft: "left",
+            ArrowRight: "right",
+        };
+        this.mouse = new THREE.Vector2();
+        this.raycaster = new THREE.Raycaster();
+        window.addEventListener("resize", this.boundHandlers.onWindowResize);
+        document.addEventListener("keydown", this.boundHandlers.onKeyDown);
+        document.addEventListener("keyup", this.boundHandlers.onKeyUp);
+        this.renderer.domElement.addEventListener(
+            "pointerdown",
+            this.boundHandlers.onPointerDown
+        );
+        document.addEventListener("pointerup", this.boundHandlers.onPointerUp);
+        document.addEventListener("pointermove", this.boundHandlers.onPointerMove);
+        const mobileControlsMap = {
+            "mobile-fwd": "fwd",
+            "mobile-bwd": "bwd",
+            "mobile-left": "left",
+            "mobile-right": "right",
+        };
+        for (const [id, key] of Object.entries(mobileControlsMap)) {
+            const btn = document.getElementById(id);
+            btn.addEventListener("pointerdown", () => this.updateControl(key, true));
+            btn.addEventListener("pointerup", () => this.updateControl(key, false));
+            btn.addEventListener("pointerleave", () =>
+                this.updateControl(key, false)
+            );
+        }
+    }
+    onSetName() {
+        const name = document.getElementById("name-input").value;
+        if (name && this.myPlayerModelId) {
+            this.publish(this.myPlayerModelId, "set-name", name);
+        }
+    }
+    onChatSubmit(e) {
+        e.preventDefault();
+        const input = document.getElementById("chat-input");
+        const message = input.value;
+        if (message && this.myPlayerModelId) {
+            this.publish(this.myPlayerModelId, "send-chat", message);
+            input.value = "";
+        }
+    }
+    onAISubmit(e) {
+        e.preventDefault();
+        const input = document.getElementById("ai-input");
+        const question = input.value;
+        if (question) {
+            this.publish("ai", "ask-question", question);
+            input.value = "";
+        }
+    }
+    onAIReset() {
+        this.publish("ai", "reset");
+    }
+    onKeyDown(e) {
+        this.updateControl(e.code, true);
+    }
+    onKeyUp(e) {
+        this.updateControl(e.code, false);
+    }
+    onPointerDown(event) {
+        if (event.pointerType !== "mouse") return;
+        this.isMouseDown = true;
+        this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects(
+            this.kiosk.getClickableMeshes()
+        );
+        if (intersects.length > 0) {
+            this.isMouseDown = false;
+            const name = intersects[0].object.name;
+            if (name === "kiosk-up") this.kiosk.prevPage();
+            if (name === "kiosk-down") this.kiosk.nextPage();
+        }
+    }
+    onPointerUp(e) {
+        if (e.pointerType === "mouse") this.isMouseDown = false;
+    }
+    onPointerMove(e) {
+        if (this.isMouseDown && this.myPlayerModelId) {
+            const playerModel = this.wellKnownModel("modelRoot").getModel(
+                this.myPlayerModelId
+            );
+            if (!playerModel) return;
+            const newRotY = playerModel.rot.y - e.movementX * 0.004;
+            this.publish(this.myPlayerModelId, "update-rotation", { y: newRotY });
+        }
+    }
+    updateControl(code, value) {
+        const key = this.keyMap[code] || code;
+        if (key && this.controls[key] !== undefined) {
+            this.controls[key] = value;
+            if (this.myPlayerModelId) {
+                this.publish(this.myPlayerModelId, "update-controls", this.controls);
+            }
+        }
+    }
+    addPlayer(playerId) {
+        const playerModel = this.wellKnownModel("modelRoot").getModel(playerId);
+        if (!playerModel) return;
+        if (playerModel.viewId === this.viewId) {
+            this.myPlayerModelId = playerId;
+        }
+        const playerGroup = new THREE.Group();
+        const playerGeo = new THREE.CapsuleGeometry(0.25, 0.5, 4, 16);
+        const playerMat = new THREE.MeshStandardMaterial({
+            color: playerModel.color,
+            roughness: 0.7,
+        });
+        const playerMesh = new THREE.Mesh(playerGeo, playerMat);
+        playerMesh.position.y = 0.75;
+        playerMesh.castShadow = true;
+        playerGroup.add(playerMesh);
+        const nameDiv = document.createElement("div");
+        nameDiv.className = "nametag";
+        nameDiv.textContent = playerModel.name;
+        const nameLabel = new CSS2DObject(nameDiv);
+        nameLabel.position.set(0, 1.8, 0);
+        playerGroup.add(nameLabel);
+        const chatDiv = document.createElement("div");
+        chatDiv.className = "chat-bubble";
+        const chatLabel = new CSS2DObject(chatDiv);
+        chatLabel.position.set(0, 2.2, 0);
+        playerGroup.add(chatLabel);
+        playerGroup.userData = {
+            nameLabel,
+            chatLabel,
+            chatTimeout: null,
+            nameSub: this.subscribe(
+                playerId,
+                "name-changed",
+                (name) => (nameLabel.element.textContent = name)
+            ),
+            chatSub: this.subscribe(playerId, "chat-received", (data) =>
+                this.showChatBubble(playerGroup, data)
+            ),
+        };
+        this.scene.add(playerGroup);
+        this.players.set(playerId, playerGroup);
+    }
+
+    // FINAL FIX: More robust player removal logic
+    removePlayer(playerId) {
+        const playerGroup = this.players.get(playerId);
+        if (playerGroup) {
+            this.unsubscribe(playerId, "name-changed");
+            this.unsubscribe(playerId, "chat-received");
+
+            // Explicitly remove children, especially CSS2DObjects which manage DOM elements.
+            while (playerGroup.children.length > 0) {
+                playerGroup.remove(playerGroup.children[0]);
+            }
+
+            this.scene.remove(playerGroup);
+            this.players.delete(playerId);
+        }
+    }
+
+    showChatBubble(playerGroup, { name, message }) {
+        const { chatLabel, chatTimeout } = playerGroup.userData;
+        this.addMessageToLog(name, message);
+        chatLabel.element.textContent = message;
+        chatLabel.element.classList.add("visible");
+        if (chatTimeout) clearTimeout(chatTimeout);
+        playerGroup.userData.chatTimeout = setTimeout(() => {
+            chatLabel.element.classList.remove("visible");
+        }, 5000);
+    }
+    addMessageToLog(name, message) {
+        const messageDiv = document.createElement("div");
+        messageDiv.innerHTML = `<span class="font-bold" style="color: ${this.findPlayerColor(
+            name
+        )}">${name}:</span> ${message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}`;
+        this.chatLog.appendChild(messageDiv);
+        this.chatLog.scrollTop = this.chatLog.scrollHeight;
+    }
+    findPlayerColor(name) {
+        const rootModel = this.wellKnownModel("modelRoot");
+        if (!rootModel) return "#FFFFFF";
+        for (const player of rootModel.players.values()) {
+            if (player.name === name) return player.color;
+        }
+        return "#FFFFFF";
+    }
+    onWindowResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.css2dRenderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    animate() {
+        this.animationFrameId = requestAnimationFrame(this.animate.bind(this));
+        const rootModel = this.wellKnownModel("modelRoot");
+        if (!rootModel) return;
+        for (const [id, playerGroup] of this.players) {
+            const playerModel = rootModel.getModel(id);
+            if (playerModel) {
+                playerGroup.position.lerp(playerModel.pos, 0.2);
+                const targetQuaternion = new THREE.Quaternion().setFromAxisAngle(
+                    new THREE.Vector3(0, 1, 0),
+                    playerModel.rot.y
+                );
+                playerGroup.quaternion.slerp(targetQuaternion, 0.2);
+            }
+        }
+        const myPlayerGroup = this.players.get(this.myPlayerModelId);
+        const myPlayerModel = rootModel.getModel(this.myPlayerModelId);
+        if (myPlayerGroup && myPlayerModel) {
+            const offset = new THREE.Vector3(0, 0, 4);
+            const cameraTargetPosition = myPlayerGroup.position
+                .clone()
+                .add(new THREE.Vector3(0, 1.6, 0));
+            const cameraQuaternion = new THREE.Quaternion().setFromAxisAngle(
+                new THREE.Vector3(0, 1, 0),
+                myPlayerModel.rot.y
+            );
+            offset.applyQuaternion(cameraQuaternion);
+            const cameraPosition = cameraTargetPosition.clone().sub(offset);
+            this.camera.position.lerp(cameraPosition, 0.1);
+            this.camera.lookAt(cameraTargetPosition);
+        }
+        if (myPlayerModel) {
+            const dist = myPlayerGroup.position.distanceTo(this.kiosk.group.position);
+            const aiPrompt = document.getElementById("ai-prompt");
+            if (dist < 5) {
+                aiPrompt.style.opacity = "1";
+                aiPrompt.style.transform = "translateY(0)";
+                aiPrompt.style.pointerEvents = "auto";
+            } else {
+                aiPrompt.style.opacity = "0";
+                aiPrompt.style.transform = "translateY(1rem)";
+                aiPrompt.style.pointerEvents = "none";
+            }
+        }
+        this.renderer.render(this.scene, this.camera);
+        this.css2dRenderer.render(this.scene, this.camera);
+    }
+    detach() {
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+        }
+        this.aiRelayView.detach();
+        window.removeEventListener("resize", this.boundHandlers.onWindowResize);
+        document.removeEventListener("keydown", this.boundHandlers.onKeyDown);
+        document.removeEventListener("keyup", this.boundHandlers.onKeyUp);
+        this.renderer.domElement.removeEventListener(
+            "pointerdown",
+            this.boundHandlers.onPointerDown
+        );
+        document.removeEventListener("pointerup", this.boundHandlers.onPointerUp);
+        document.removeEventListener(
+            "pointermove",
+            this.boundHandlers.onPointerMove
+        );
+        document
+            .getElementById("set-name-button")
+            .removeEventListener("click", this.boundHandlers.onSetName);
+        document
+            .getElementById("chat-form")
+            .removeEventListener("submit", this.boundHandlers.onChatSubmit);
+        document
+            .getElementById("ai-form")
+            .removeEventListener("submit", this.boundHandlers.onAISubmit);
+        document
+            .getElementById("ai-reset-button")
+            .removeEventListener("click", this.boundHandlers.onAIReset);
+        this.renderer.dispose();
+        this.css2dRenderer.domElement.remove();
+        this.container.innerHTML = "";
+        super.detach();
+    }
+}
+
+class AIRelayView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.model = model;
+        this.subscribe(model.id, "relay-request", this.relayRequest);
+    }
+    async relayRequest({ electedViewId, requestId, request }) {
+        if (electedViewId !== this.viewId) return;
+        const text = await this.processAIRequest(request.history);
+        if (this.model.electedViewId !== this.viewId) return;
+        this.publish(this.model.id, "relay-response", { requestId, text });
+    }
+    async processAIRequest(history) {
+        const body = JSON.stringify({
+            run: {
+                model: "@cf/meta/llama-3.1-8b-instruct-fast",
+                options: {
+                    max_tokens: 256,
+                    messages: [
+                        {
+                            role: "system",
+                            content:
+                                "You are ART-E, a friendly and knowledgeable AI art historian in a virtual 3D gallery. Your purpose is to answer visitors' questions about art history, artists, or specific techniques. Be concise, informative, and engaging. Do not use any HTML or markdown formatting.",
+                        },
+                        ...history,
+                    ],
+                },
+            },
+        });
+        try {
+            const response = await fetch("https://ai-worker.synq.workers.dev", {
+                method: "POST",
+                body,
+            });
+            if (!response.ok)
+                throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            if (data.error) throw new Error(`AI error: ${data.error}`);
+            return (
+                data.response || "I'm sorry, I don't have an answer for that right now."
+            );
+        } catch (error) {
+            console.error("Error processing AI request:", error);
+            return "Sorry, I couldn't process that request.";
+        }
+    }
+}
+
+// === SESSION JOIN ==========================================================
+async function start() {
+    const defaultName = `Visitor${Math.floor(Math.random() * 1000)}`;
+    document.getElementById("name-input").value = defaultName;
+    Multisynq.App.makeWidgetDock();
+    await Multisynq.Session.join({
+        apiKey: "234567_Paste_Your_Own_API_Key_Here_7654321",
+        appId: "io.multisynq.example.3d-ai-gallery",
+        model: GalleryModel,
+        view: GalleryView,
+        viewData: {
+            name: defaultName,
+            color: `hsl(${Math.random() * 360}, 80%, 60%)`,
+        },
+    });
+}
+start();
+
+    </script>
+</body>
+</html>

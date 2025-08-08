@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multisynq 3D Physics Fountain</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <style>
+        body { margin: 0; overflow: hidden; background: #87CEEB; color: white; }
+        canvas { display: block; }
+        #userCount {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            z-index: 1000;
+            pointer-events: none;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "@multisynq/client": "https://cdn.jsdelivr.net/npm/@multisynq/client@1.0.4/bundled/multisynq-client.esm.js",
+                "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+                "@dimforge/rapier3d-deterministic-compat": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-deterministic-compat@0.17.3/rapier.es.js"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="userCount">Joining...</div>
+    <script type="module">
+
+// this is the code for the Physics Fountain example.
+// It creates a fountain of rigid bodies that are affected by gravity and collide with the world.
+
+// It uses Multisynq for multiplayer synchronization, Rapier as the physics engine that provides
+// rigid body dynamics and collision detection, and Three.js for rendering the 3D scene.
+
+import * as Multisynq from "@multisynq/client";
+import * as THREE from "three";
+import RAPIER from "@dimforge/rapier3d-deterministic-compat";
+
+// --- RAPIER 3D SERIALIZATION FOR MULTISYNQ ---
+// we add a `_world` property to RAPIER objects to keep track of the world they belong to.
+// This is necessary for Multisynq serialization to work correctly, as it allows us to
+// retrieve the correct instance when deserializing objects from their handles.
+
+class MultisynqRapierWorld extends RAPIER.World {
+
+    // overrides to add `_world` property to rigid bodies and colliders upon creation
+
+    createCollider(desc, parent) {
+        const collider = super.createCollider(desc, parent);
+        collider._world = this;
+        return collider;
+    }
+
+    createRigidBody(desc) {
+        const body = super.createRigidBody(desc);
+        body._world = this;
+        return body;
+    }
+
+    // overrides to add `_world` property to rigid bodies and colliders when restoring from snapshot
+
+    static restoreSnapshot(snapshot) {
+        const world = super.restoreSnapshot(snapshot);
+        Object.setPrototypeOf(world, MultisynqRapierWorld.prototype);
+        world.forEachRigidBody((body) => (body._world = world));
+        world.forEachCollider((collider) => (collider._world = world));
+        return world;
+    }
+
+    // Rapier provides a `takeSnapshot` method that returns a snapshot of the world state,
+    // and a `restoreSnapshot` static method that creates a new world from a snapshot.
+    // These serializer definitions are used in the RootModel's `types()` method to define how
+    // to serialize and deserialize the world, rigid bodies, and colliders.
+
+    static SerializerDefs = {
+        MultisynqRapierWorld: {
+            cls: MultisynqRapierWorld,
+            write: (world) => world.takeSnapshot(),
+            read: (snapshot) => MultisynqRapierWorld.restoreSnapshot(snapshot),
+        },
+        "RAPIER.RigidBody": {
+            cls: RAPIER.RigidBody,
+            write: (body) => [body._world, body.handle],
+            read: ([world, handle]) => world.getRigidBody(handle),
+        },
+        "RAPIER.Collider": {
+            cls: RAPIER.Collider,
+            write: (collider) => [collider._world, collider.handle],
+            read: ([world, handle]) => world.getCollider(handle),
+        },
+    };
+}
+
+// --- SHARED CONSTANTS & HELPERS ---
+const SHAPES = ["cube", "ball", "cylinder", "cone"];
+const COLORS = [
+    0xf2d7d5, 0xd98880, 0xc0392b, 0xf0b27a, 0xe67e22, 0xaf601a, 0xf7dc6f,
+    0xf1c40f, 0xb7950b, 0x7dcea0, 0x27ae60, 0x1e8449, 0x85c1e9, 0x3498db,
+    0x2874a6, 0xc39bd3, 0x9b59b6, 0x76448a, 0xeaeaea, 0x808080, 0x333333,
+];
+
+// any constants used in the model need to be added to the Multisynq.Constants object
+// to ensure they get hashed into  the session ID just like the model classes.
+Multisynq.Constants.SHAPES = SHAPES;
+Multisynq.Constants.COLORS = COLORS;
+
+// --- MODEL (The Shared Simulation) ---
+class RootModel extends Multisynq.Model {
+    // Define the special serializer for Rapier objects.
+    static types() {
+        return MultisynqRapierWorld.SerializerDefs;
+    }
+
+    // Models must be initialized by an init() method, not a constructor.
+    init() {
+        const gravity = { x: 0.0, y: -9.81, z: 0.0 };
+        this.world = new MultisynqRapierWorld(gravity);
+        this.createArena();
+        this.liveObjects = [];
+        this.maxObjects = 250;
+        this.subscribe("input", "shoot", this.onShoot);
+        this.subscribe("input", "reset-camera", this.onResetCamera);
+        this.subscribe(this.sessionId, "view-join", this.onViewJoin);
+        this.subscribe(this.sessionId, "view-exit", this.onViewExit);
+        this.future(1000).spray();
+        this.future(30).step();
+    }
+
+    // the arena is a simple box with walls
+    createArena() {
+        this.world.createCollider(RAPIER.ColliderDesc.cuboid(15, 0.5, 15));
+        this.world.createCollider(
+            RAPIER.ColliderDesc.cuboid(0.5, 2, 15).setTranslation(-14, 0, 0)
+        );
+        this.world.createCollider(
+            RAPIER.ColliderDesc.cuboid(0.5, 2, 15).setTranslation(14, 0, 0)
+        );
+        this.world.createCollider(
+            RAPIER.ColliderDesc.cuboid(15, 2, 0.5).setTranslation(0, 0, -14)
+        );
+        this.world.createCollider(
+            RAPIER.ColliderDesc.cuboid(15, 2, 0.5).setTranslation(0, 0, 14)
+        );
+    }
+
+    spawnObject(options) {
+        // limit the number of live objects to maxObjects
+        // if we reach the limit, remove the oldest object
+        if (this.liveObjects.length >= this.maxObjects) {
+            const oldObject = this.liveObjects.shift();
+            this.world.removeRigidBody(oldObject.body);
+            this.publish(this.id, "object-removed", oldObject.body.handle);
+        }
+        // create a new rigid body and collider based on the options provided
+        const rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(
+            ...options.translation
+        );
+        const body = this.world.createRigidBody(rigidBodyDesc);
+        let colliderDesc;
+        switch (options.shape) {
+            case "cone":
+                colliderDesc = RAPIER.ColliderDesc.cone(0.5, 0.5).setDensity(
+                    4.0
+                );
+                break;
+            case "ball":
+                colliderDesc = RAPIER.ColliderDesc.ball(0.5).setDensity(2.0);
+                break;
+            case "cylinder":
+                colliderDesc = RAPIER.ColliderDesc.cylinder(
+                    0.5,
+                    0.5
+                ).setDensity(1.5);
+                break;
+            default:
+                colliderDesc = RAPIER.ColliderDesc.cuboid(
+                    0.5,
+                    0.5,
+                    0.5
+                ).setDensity(1.0);
+                break;
+        }
+        this.world.createCollider(colliderDesc, body);
+        // store the object in the liveObjects array
+        // and publish an event to notify the view about the new object
+        const newObject = { body, shape: options.shape, color: options.color };
+        this.liveObjects.push(newObject);
+        this.publish(this.id, "object-added", {
+            handle: newObject.body.handle,
+            shape: newObject.shape,
+            color: newObject.color,
+        });
+        // apply impulse and torque to the body to make it move
+        body.applyImpulse(new RAPIER.Vector3(...options.impulse), true);
+        body.applyTorqueImpulse(new RAPIER.Vector3(...options.torque), true);
+    }
+
+    // spray() is called periodically to spawn new objects in the fountain
+    // it randomly chooses a shape and color, and applies an upward impulse
+    // to make the objects shoot up into the air
+    // it also applies a random torque to make the objects spin
+    spray() {
+        const type = this.random();
+        let shape = "cube";
+        if (type > 0.4) shape = "cylinder";
+        if (type > 0.7) shape = "ball";
+        if (type > 0.9) shape = "cone";
+        this.spawnObject({
+            shape,
+            color: COLORS[Math.floor(this.random() * COLORS.length)],
+            translation: [0, 3, 0],
+            impulse: [0, 17.5 + 5 * this.random(), 0],
+            torque: [
+                this.random() - 0.5,
+                this.random() - 0.5,
+                this.random() - 0.5,
+            ],
+        });
+        // schedule the next spray after a short delay
+        // this creates a continuous fountain effect
+        this.future(300).spray();
+    }
+
+    // onShoot() is called when a player shoots an object
+    // it takes the aim direction, origin position, and color from the event data
+    // it randomly chooses a shape and spawns the object with an impulse
+    // in the direction of the aim, and a random torque to make it spin
+    onShoot({ aim, origin, color }) {
+        const type = this.random();
+        let shape = "cube";
+        if (type > 0.4) shape = "cylinder";
+        if (type > 0.7) shape = "ball";
+        if (type > 0.9) shape = "cone";
+        this.spawnObject({
+            shape,
+            color,
+            translation: origin,
+            impulse: aim.map((v) => v * 50), // aim is a normalized vector, scale it for the impulse
+            torque: [
+                this.random() - 0.5,
+                this.random() - 0.5,
+                this.random() - 0.5,
+            ],
+        });
+    }
+
+    // onViewJoin() is called when a new user joins the session
+    // it notifies all participants that the user count has changed
+    onViewJoin() {
+        this.publish(this.id, "user-count-changed");
+    }
+
+    // onViewExit() is called when a user leaves the session
+    // it notifies all participants that the user count has changed
+    onViewExit() {
+        this.publish(this.id, "user-count-changed");
+    }
+
+    // onResetCamera() is called when a player requests a camera reset
+    // it broadcasts the reset event to all participants
+    onResetCamera() {
+        this.publish(this.id, "camera-reset");
+    }
+
+    // step() is called periodically to update the physics world
+    // it steps the world simulation forward and publishes the updated positions and rotations of live objects
+    // this is where the physics simulation happens, and the view gets updated with the new state
+    step() {
+        // advance the physics simulation by one step
+        this.world.step();
+        // collect the updated positions and rotations of live objects
+        const updates = this.liveObjects.map((obj) => ({
+            handle: obj.body.handle,
+            pos: obj.body.translation(),
+            rot: obj.body.rotation(),
+        }));
+        // publish the updates to the view
+        this.publish(this.id, "world-updated", updates);
+        // schedule the next step after a short delay, this creates a continuous simulation loop
+        // the view will apply smoothing to the updates to ensure smooth rendering at 60 fps even
+        // though the physics runs at a lower rate
+        this.future(30).step();
+    }
+}
+RootModel.register("RootModel"); // Register the model class with Multisynq serializer
+
+// --- VIEW (The 3D Rendering and User Interface) ---
+class RootView extends Multisynq.View {
+    constructor(model) {
+        super(model);
+        this.model = model;
+        this.setupScene();
+        this.setupLights();
+        this.createArenaMesh();
+        this.setupInstancedMeshes();
+        this.setupControls();
+        this.meshData = new Map();
+        // for each live object in the model, create an instance in the view
+        this.model.liveObjects.forEach((obj) =>
+            this.onObjectAdded({
+                handle: obj.body.handle,
+                shape: obj.shape,
+                color: obj.color,
+            })
+        );
+        // subscribe to model events to handle object addition/removal and player updates
+        this.subscribe(model.id, "object-added", (data) =>
+            this.onObjectAdded(data)
+        );
+        this.subscribe(model.id, "object-removed", (handle) =>
+            this.onObjectRemoved(handle)
+        );
+        // subscribe to camera reset events
+        this.subscribe(model.id, "camera-reset", () => this.onCameraReset());
+        // subscribe to user count changes
+        this.subscribe(model.id, "user-count-changed", () => this.onUserCountChanged());
+        // since each world update has all the live objects' positions and rotations,
+        // we only need to subscribe to the "world-updated" event once per frame.
+        // this will ignore multiple events arriving in the same frame,
+        // and will only process the latest update for each object.
+        this.subscribe(
+            model.id,
+            { event: "world-updated", handling: "oncePerFrame" },
+            (updates) => this.onWorldUpdate(updates)
+        );
+
+        // Initialize user count display
+        this.onUserCountChanged();
+
+        // Reset camera
+        this.onCameraReset();
+    }
+
+    // when the session is interrupted, the view wil be detached.
+    // it needs to clean up all resources that were created,
+    // since on reconnection the view will be re-created.
+    detach() {
+        this.renderer.dispose();
+        if (this.canvas && this.canvas.parentElement) {
+            this.canvas.parentElement.removeChild(this.canvas);
+        }
+        document.removeEventListener("pointerdown", this.onPointerDown);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("wheel", this.onWheel);
+        document.removeEventListener("keydown", this.onKeyDown);
+        document.removeEventListener("click", this.onClick);
+        window.removeEventListener("resize", this.onWindowResize);
+
+        super.detach();
+    }
+
+    // standard Three.js setup methods
+    setupScene() {
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x87ceeb);
+        this.scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
+        this.camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.canvas = this.renderer.domElement;
+        document.body.appendChild(this.canvas);
+    }
+
+    setupLights() {
+        this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+        sun.position.set(50, 200, 100);
+        sun.castShadow = true;
+        sun.shadow.mapSize.width = 2048;
+        sun.shadow.mapSize.height = 2048;
+        sun.shadow.camera.near = 50;
+        sun.shadow.camera.far = 300;
+        sun.shadow.camera.left = -20;
+        sun.shadow.camera.right = 20;
+        sun.shadow.camera.top = 20;
+        sun.shadow.camera.bottom = -20;
+        sun.shadow.bias = -0.001;
+        this.scene.add(sun);
+    }
+
+    // create the arena mesh that represents the physical arena in the scene
+    // this is a simple box with a nozzle on top
+    // it matches the physical arena created in the model but we don't render the walls
+    createArenaMesh() {
+        const group = new THREE.Group();
+        const base = new THREE.Mesh(
+            new THREE.BoxGeometry(30, 1, 30),
+            new THREE.MeshStandardMaterial({ color: 0x559955 })
+        );
+        base.position.y = -0.25; // slightly below zero so shadows look correct
+        base.receiveShadow = true;
+        group.add(base);
+        const nozzle = new THREE.Mesh(
+            new THREE.CylinderGeometry(1, 0.5, 3, 10),
+            new THREE.MeshStandardMaterial({ color: 0xff00ff })
+        );
+        nozzle.position.y = 1.5;
+        nozzle.castShadow = true;
+        nozzle.receiveShadow = true;
+        group.add(nozzle);
+        this.scene.add(group);
+    }
+
+    // we use instanced meshes to render the physics objects efficiently.
+    // this allows us to render many instances of the same geometry with different colors
+    // without creating separate mesh objects for each instance.
+    setupInstancedMeshes() {
+        this.instancedMeshes = new Map();
+        const geometries = {
+            cube: new THREE.BoxGeometry(1, 1, 1),
+            ball: new THREE.SphereGeometry(0.5, 16, 12),
+            cylinder: new THREE.CylinderGeometry(0.5, 0.5, 1, 16),
+            cone: new THREE.ConeGeometry(0.5, 1, 16),
+        };
+        for (const shape of SHAPES) {
+            const material = new THREE.MeshStandardMaterial();
+            const mesh = new THREE.InstancedMesh(
+                geometries[shape],
+                material,
+                this.model.maxObjects
+            );
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            this.scene.add(mesh);
+            this.instancedMeshes.set(shape, { mesh, freeList: [], nextId: 0 });
+        }
+    }
+
+    // simple orbit controls for the camera
+    // allows the user to drag to rotate the camera around the scene,
+    // and use the mouse wheel to zoom in and out.
+    setupControls() {
+        this.controls = {
+            spherical: new THREE.Spherical(),
+            dragging: false,
+        };
+
+        this.onPointerDown = () => {
+            this.controls.dragging = true;
+        };
+        this.onPointerUp = () => {
+            this.controls.dragging = false;
+        };
+        this.onPointerMove = (e) => {
+            if (!this.controls.dragging) return;
+            this.controls.spherical.theta -= 0.005 * e.movementX;
+            this.controls.spherical.phi -= 0.005 * e.movementY;
+            this.controls.spherical.phi = Math.min(
+                (70 * Math.PI) / 180,
+                this.controls.spherical.phi
+            );
+            this.controls.spherical.makeSafe();
+        };
+        this.onWheel = (e) => {
+            this.controls.spherical.radius = Math.max(
+                15,
+                Math.min(150, this.controls.spherical.radius + e.deltaY / 10)
+            );
+        };
+        // when tapping the space bar or clicking,
+        // we shoot an object from the camera's position towards a target point
+        // right above the fountain's nozzle.
+        this.onShoot = () => {
+            const origin = new THREE.Vector3();
+            this.camera.getWorldPosition(origin);
+            origin.y -= 1; // shoot from slightly below camera
+            const targetPoint = new THREE.Vector3(0, origin.z / 3 + 1, 0); // aim higher when further away
+            const aim = new THREE.Vector3()
+                .subVectors(targetPoint, origin)
+                .normalize();
+            this.publish("input", "shoot", {
+                aim: [aim.x, aim.y, aim.z],
+                origin: [origin.x, origin.y, origin.z],
+                color: 0xffffff,
+            });
+        };
+
+        // when pressing R, we request a camera reset for all participants
+        this.onResetCamera = () => {
+            this.publish("input", "reset-camera");
+        };
+        this.onKeyDown = (e) => {
+            if (e.code === "Space") this.onShoot();
+            if (e.code === "KeyR") this.onResetCamera();
+        };
+        this.onClick = (e) => {
+            if (e.target.tagName !== "A") this.onShoot();
+        };
+        this.onWindowResize = () => {
+            this.camera.aspect = window.innerWidth / window.innerHeight;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+
+        // Add listeners so they can be removed later in detach()
+        document.addEventListener("pointerdown", this.onPointerDown);
+        document.addEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointermove", this.onPointerMove);
+        document.addEventListener("wheel", this.onWheel, { passive: true });
+        document.addEventListener("keydown", this.onKeyDown);
+        document.addEventListener("click", this.onClick);
+        window.addEventListener("resize", this.onWindowResize);
+    }
+
+    // when an object is added to the model, we create an instance in the view
+    // and set its color and shape based on the data provided.
+    onObjectAdded(data) {
+        const { handle, shape, color } = data;
+        const instancer = this.instancedMeshes.get(shape);
+        if (!instancer) return;
+        const instanceId = instancer.freeList.pop() ?? instancer.nextId++;
+        instancer.mesh.setColorAt(instanceId, new THREE.Color(color));
+        instancer.mesh.instanceColor.needsUpdate = true;
+        const newInstanceData = {
+            shape,
+            instanceId,
+            currentPos: new THREE.Vector3(0, -100, 0),
+            currentRot: new THREE.Quaternion(),
+            targetPos: new THREE.Vector3(0, -100, 0),
+            targetRot: new THREE.Quaternion(),
+        };
+        this.meshData.set(handle, newInstanceData);
+    }
+
+    // when an object is removed from the model, we free its instance in the view
+    // and set its matrix to zero scale to effectively hide it.
+    // we also push the instance ID back to the free list
+    // so it can be reused for future objects of the same shape.
+    onObjectRemoved(handle) {
+        const data = this.meshData.get(handle);
+        if (!data) return;
+        const instancer = this.instancedMeshes.get(data.shape);
+        instancer.freeList.push(data.instanceId);
+        const matrix = new THREE.Matrix4().makeScale(0, 0, 0);
+        instancer.mesh.setMatrixAt(data.instanceId, matrix);
+        instancer.mesh.instanceMatrix.needsUpdate = true;
+        this.meshData.delete(handle);
+    }
+
+    // when the model publishes a world update, we update the target positions and rotations.
+    // this does not immediately change the instance positions, but rather sets the target positions
+    // that will be smoothed in the next update cycle.
+    onWorldUpdate(updates) {
+        for (const update of updates) {
+            const data = this.meshData.get(update.handle);
+            if (data) {
+                data.targetPos.set(update.pos.x, update.pos.y, update.pos.z);
+                data.targetRot.set(
+                    update.rot.x,
+                    update.rot.y,
+                    update.rot.z,
+                    update.rot.w
+                );
+            }
+        }
+    }
+
+    // onUserCountChanged() is called when the user count changes
+    // it reads the current count from the model and updates the display
+    onUserCountChanged() {
+        const userCountElement = document.getElementById('userCount');
+        if (userCountElement) {
+            userCountElement.textContent = `Users: ${this.model.viewCount}`;
+        }
+    }
+
+    // onCameraReset() is called when a camera reset event is received
+    // it resets the camera to its initial position
+    onCameraReset() {
+        this.controls.spherical.radius = 50;
+        this.controls.spherical.phi = (70 * Math.PI) / 180;
+        this.controls.spherical.theta = (-30 * Math.PI) / 180;
+        this.controls.spherical.makeSafe();
+    }
+
+    // updateCamera() is called every frame to update the camera position based on the controls.
+    updateCamera() {
+        const newPosition = new THREE.Vector3().setFromSpherical(
+            this.controls.spherical
+        );
+        this.camera.position.copy(newPosition);
+        this.camera.lookAt(0, 0, 0);
+    }
+
+    // updateInstances() is called every frame to update the positions and rotations of the instances.
+    // it lerps the current positions towards the target positions, unless the distance is too large,
+    // in which case it snaps the current position to the target position.
+    // this ensures smooth movement of the instances, even if the physics simulation runs at a lower
+    // rate than the rendering (typically 60 fps).
+    updateInstances() {
+        this.meshData.forEach((data) => {
+            const distance = data.currentPos.distanceTo(data.targetPos);
+            if (distance > 3) {
+                data.currentPos.copy(data.targetPos);
+            } else {
+                data.currentPos.lerp(data.targetPos, 0.2);
+            }
+            data.currentRot.slerp(data.targetRot, 0.2);
+        });
+
+        this.instancedMeshes.forEach(({ mesh }) => {
+            mesh.instanceMatrix.needsUpdate = true;
+        });
+
+        this.meshData.forEach((data, handle) => {
+            const instancer = this.instancedMeshes.get(data.shape);
+            const matrix = new THREE.Matrix4().compose(
+                data.currentPos,
+                data.currentRot,
+                new THREE.Vector3(1, 1, 1)
+            );
+            instancer.mesh.setMatrixAt(data.instanceId, matrix);
+        });
+    }
+
+    // the update() method is called every frame by Multisynq.
+    // it updates the instances and camera, and renders the scene.
+    update(time) {
+        this.updateInstances();
+        this.updateCamera();
+        this.renderer.render(this.scene, this.camera);
+    }
+}
+
+async function start() {
+    await RAPIER.init(); // load web assembly for Rapier
+    Multisynq.App.makeWidgetDock(); // show QR code
+    await Multisynq.Session.join({
+        apiKey: "234567_Paste_Your_Own_API_Key_Here_7654321",
+        appId: "io.multisynq.physics.fountain-rapier",
+        model: RootModel,
+        view: RootView,
+        name: Multisynq.App.autoSession(),  // random session name
+        password: "password",               // no password needed
+    });
+}
+start();
+
+    </script>
+</body>
+</html>
