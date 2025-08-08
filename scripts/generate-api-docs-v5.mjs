@@ -143,7 +143,7 @@ class EnhancedJSDocParser {
                 const enumData = this.parseEnum(node, sourceFile, jsdoc);
                 results.enums.push(enumData);
             } else if (ts.isVariableStatement(node)) {
-                // Check for exported components
+                // Check for exported variables/constants and components
                 const isExport = node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword);
                 if (isExport) {
                     node.declarationList.declarations.forEach(decl => {
@@ -157,6 +157,13 @@ class EnhancedJSDocParser {
                                     type: 'component'
                                 };
                                 results.components.push(componentData);
+                            } else {
+                                const constData = {
+                                    name,
+                                    ...this.parseJSDocComment(jsdoc || ''),
+                                    kind: 'constant'
+                                };
+                                results.constants.push(constData);
                             }
                         }
                     });
@@ -212,6 +219,42 @@ class EnhancedJSDocParser {
                     typeParameters: member.typeParameters?.map(tp => tp.name.getText()) || []
                 };
                 
+                if (method.isStatic) {
+                    classData.staticMethods.push(method);
+                } else {
+                    classData.methods.push(method);
+                }
+            } else if (ts.isGetAccessorDeclaration(member)) {
+                const method = {
+                    name: member.name?.getText() || '',
+                    ...parsed,
+                    isStatic: member.modifiers?.some(m => m.kind === ts.SyntaxKind.StaticKeyword),
+                    isAsync: false,
+                    isPrivate: member.modifiers?.some(m => m.kind === ts.SyntaxKind.PrivateKeyword),
+                    isProtected: member.modifiers?.some(m => m.kind === ts.SyntaxKind.ProtectedKeyword),
+                    parameters: [],
+                    returnType: member.type?.getText() || 'any',
+                    typeParameters: [],
+                    isGetter: true
+                };
+                if (method.isStatic) {
+                    classData.staticMethods.push(method);
+                } else {
+                    classData.methods.push(method);
+                }
+            } else if (ts.isSetAccessorDeclaration(member)) {
+                const method = {
+                    name: member.name?.getText() || '',
+                    ...parsed,
+                    isStatic: member.modifiers?.some(m => m.kind === ts.SyntaxKind.StaticKeyword),
+                    isAsync: false,
+                    isPrivate: member.modifiers?.some(m => m.kind === ts.SyntaxKind.PrivateKeyword),
+                    isProtected: member.modifiers?.some(m => m.kind === ts.SyntaxKind.ProtectedKeyword),
+                    parameters: this.parseParameters(member.parameters),
+                    returnType: 'void',
+                    typeParameters: [],
+                    isSetter: true
+                };
                 if (method.isStatic) {
                     classData.staticMethods.push(method);
                 } else {
@@ -331,19 +374,43 @@ class EnhancedJSDocParser {
     }
 
     async parseJavaScriptFile(filePath, content, results) {
-        // Use the existing parser from v3 but enhanced
-        const parser = new JSDocParser();
-        const parsed = parser.parse(content);
-        
-        // Merge results
-        results.classes.push(...parsed.classes);
-        results.functions.push(...parsed.functions);
-        
-        // Categorize functions as hooks if they start with 'use'
-        const hooks = results.functions.filter(f => f.name.startsWith('use'));
-        const regularFuncs = results.functions.filter(f => !f.name.startsWith('use'));
-        results.hooks.push(...hooks);
-        results.functions = regularFuncs;
+        // Prefer AST walk for JS to capture all class members accurately (including static)
+        try {
+            const sourceFile = ts.createSourceFile(
+                filePath,
+                content,
+                ts.ScriptTarget.ES2020,
+                true,
+                ts.ScriptKind.JS
+            );
+            const visit = (node) => {
+                const jsdoc = this.extractTSDocComment(node, sourceFile);
+                if (ts.isClassDeclaration(node) && node.name) {
+                    const classData = this.parseTypeScriptClass(node, sourceFile, jsdoc);
+                    results.classes.push(classData);
+                } else if (ts.isFunctionDeclaration(node) && node.name) {
+                    const funcData = this.parseTypeScriptFunction(node, sourceFile, jsdoc);
+                    if (funcData.name.startsWith('use')) {
+                        results.hooks.push(funcData);
+                    } else {
+                        results.functions.push(funcData);
+                    }
+                }
+                ts.forEachChild(node, visit);
+            };
+            visit(sourceFile);
+            return;
+        } catch (e) {
+            // Fallback to legacy regex parser
+            const parser = new JSDocParser();
+            const parsed = parser.parse(content);
+            results.classes.push(...parsed.classes);
+            results.functions.push(...parsed.functions);
+            const hooks = results.functions.filter(f => f.name.startsWith('use'));
+            const regularFuncs = results.functions.filter(f => !f.name.startsWith('use'));
+            results.hooks.push(...hooks);
+            results.functions = regularFuncs;
+        }
     }
 
     parseJSDocDefinitions(content, results) {
@@ -995,7 +1062,7 @@ class EnhancedMDXGenerator {
             { name: 'interfaces', items: docs.interfaces, generator: 'generateInterfaceComponent' },
             { name: 'hooks', items: docs.hooks, generator: 'generateHookComponent' },
             { name: 'components', items: docs.components, generator: 'generateReactComponent' },
-            { name: 'functions', items: docs.functions, generator: 'generateFunctionComponent' },
+            // functions handled specially below
             { name: 'types', items: docs.types, generator: 'generateTypeComponent' },
             { name: 'enums', items: docs.enums, generator: 'generateEnumComponent' }
         ];
@@ -1021,6 +1088,17 @@ class EnhancedMDXGenerator {
                 });
             }
         });
+
+        // Functions: aggregate into a single component file instead of per-function files
+        if (docs.functions && docs.functions.length > 0) {
+            const fnDir = path.join(componentDir, 'functions');
+            fs.ensureDirSync(fnDir);
+            const fileName = 'Functions.mdx';
+            const filePath = path.join(fnDir, fileName);
+            const content = this.generateFunctionsAggregateComponent(docs.functions);
+            fs.writeFileSync(filePath, content);
+            this.generatedFiles.push({ category: 'functions', name: 'Functions', path: `components/functions/${fileName}` });
+        }
     }
 
     generateImportBasedIndex(docs) {
@@ -1080,23 +1158,39 @@ Last updated: ${new Date().toISOString()}
             sections.push(`    ### ${categoryTitle}`, '');
             sections.push('    <CardGroup cols={2}>');
             
-            files.forEach(file => {
-                const componentName = `${file.category}_${file.name}`.replace(/[^a-zA-Z0-9_]/g, '_');
-                sections.push(`      <Card title="${file.name}" icon="${this.getCategoryIcon(category)}" href="#${file.name.toLowerCase()}">
+            if (category === 'functions' && docs.functions && docs.functions.length > 0) {
+                docs.functions.forEach(fn => {
+                    sections.push(`      <Card title="${fn.name}" icon="${this.getCategoryIcon(category)}" href="#func-${fn.name}">
+        Jump to ${fn.name} documentation
+      </Card>`);
+                });
+            } else {
+                files.forEach(file => {
+                    sections.push(`      <Card title="${file.name}" icon="${this.getCategoryIcon(category)}" href="#${file.name.toLowerCase()}">
         Jump to ${file.name} documentation
       </Card>`);
-            });
+                });
+            }
             
             sections.push('    </CardGroup>', '');
             
             // Render each component
-            files.forEach(file => {
+            if (category === 'functions' && files.length > 0) {
+                const file = files[0];
                 const componentName = `${file.category}_${file.name}`.replace(/[^a-zA-Z0-9_]/g, '_');
-                sections.push(`    <div id="${file.name.toLowerCase()}">`);
+                sections.push(`    <div id="functions">`);
                 sections.push(`      <${componentName} />`);
                 sections.push('    </div>');
                 sections.push('');
-            });
+            } else {
+                files.forEach(file => {
+                    const componentName = `${file.category}_${file.name}`.replace(/[^a-zA-Z0-9_]/g, '_');
+                    sections.push(`    <div id="${file.name.toLowerCase()}">`);
+                    sections.push(`      <${componentName} />`);
+                    sections.push('    </div>');
+                    sections.push('');
+                });
+            }
             
             sections.push('  </Tab>');
         });
@@ -1144,6 +1238,48 @@ Last updated: ${new Date().toISOString()}
             'enums': 'list'
         };
         return icons[category] || 'code';
+    }
+
+    generateFunctionsAggregateComponent(functions) {
+        const sections = [];
+        sections.push(`## Functions`);
+        sections.push('<a id="functions"></a>');
+        sections.push('<AccordionGroup>');
+        functions.forEach(fn => {
+            sections.push(`<Accordion title="${fn.name}" id="func-${fn.name}">`);
+            // signature
+            const params = fn.params ? fn.params.map(p => `${p.name}${p.optional ? '?' : ''}: ${p.type || 'any'}`).join(', ') : '';
+            const returnType = fn.returns ? fn.returns.type : 'void';
+            sections.push('<CodeGroup>');
+            sections.push('```typescript');
+            sections.push(`${fn.name}(${params}): ${returnType}`);
+            sections.push('```');
+            sections.push('</CodeGroup>');
+            // description
+            if (fn.description) sections.push(this.formatDescriptionForComponent(fn.description));
+            // params
+            if (fn.params && fn.params.length) {
+                sections.push('##### Parameters');
+                fn.params.forEach(p => {
+                    sections.push(this.generateParamFieldComponent(p));
+                });
+            }
+            // returns
+            if (fn.returns) {
+                sections.push('##### Returns');
+                sections.push(`<ResponseField type="${this.escapeHtml(fn.returns.type || 'any')}">`);
+                sections.push(this.formatDescriptionForComponent(fn.returns.description || ''));
+                sections.push('</ResponseField>');
+            }
+            // examples
+            if (fn.examples && fn.examples.length) {
+                sections.push('##### Examples');
+                sections.push(this.generateExamplesComponent(fn.examples, ''));
+            }
+            sections.push('</Accordion>');
+        });
+        sections.push('</AccordionGroup>');
+        return sections.join('\n');
     }
 
     generateClassComponent(classData) {
@@ -1265,6 +1401,47 @@ This class should not be instantiated directly using <code>new</code>.
                 sections.push(`</Card>`);
             }
             
+            sections.push(`</Tab>`);
+        }
+
+        // Known Events for Session (from legacy docs)
+        if (classData.name === 'Session') {
+            sections.push(`<Tab title="Events">`);
+            // synced (view event)
+            sections.push(`#### synced`);
+            sections.push(`<Info>Published when the session backlog crosses a threshold. (see <a href="#viewexternalnow">View#externalNow</a> for backlog)</Info>`);
+            sections.push(`<p>This is a non-synchronized view-only event. If this is the main session, it also indicates that the scene was revealed (if <code>data</code> is true) or hidden behind the overlay (if <code>data</code> is false).</p>`);
+            sections.push(`<h5>Properties</h5>`);
+            sections.push(`<ResponseField>`);
+            sections.push(`<ResponseField name="scope" type="String">this.viewId</ResponseField>`);
+            sections.push(`<ResponseField name="event" type="String">"synced"</ResponseField>`);
+            sections.push(`<ResponseField name="data" type="Boolean">true if in sync, false if backlogged</ResponseField>`);
+            sections.push(`</ResponseField>`);
+            sections.push(`<h5>Example</h5>`);
+            sections.push(`<CodeGroup>\n\`\`\`javascript\nthis.subscribe(this.viewId, "synced", this.handleSynced);\n\`\`\`\n</CodeGroup>`);
+
+            // view-join (model-only)
+            sections.push(`#### view-join`);
+            sections.push(`<Info>Published when a new user enters the session, or re-enters after being temporarily disconnected.</Info>`);
+            sections.push(`<p>This is a model-only event, meaning views can not handle it directly. The event's payload will be the joining view's <code>viewId</code>. However, if <code>viewData</code> was passed to <a href="#sessionjoin">Session.join</a>, the event payload will be an object <code>{viewId, viewData}</code>.</p>`);
+            sections.push(`<h5>Properties</h5>`);
+            sections.push(`<ResponseField>`);
+            sections.push(`<ResponseField name="scope" type="String">this.sessionId</ResponseField>`);
+            sections.push(`<ResponseField name="event" type="String">"view-join"</ResponseField>`);
+            sections.push(`<ResponseField name="viewId" type="String | Object">the joining user's local viewId, or an object {viewId, viewData}</ResponseField>`);
+            sections.push(`</ResponseField>`);
+
+            // view-exit (model-only)
+            sections.push(`#### view-exit`);
+            sections.push(`<Info>Published when a user leaves the session, or is disconnected.</Info>`);
+            sections.push(`<p>This is a model-only event, meaning views can not handle it directly. This event will be published when a view tab is closed, or disconnected due to network interruption or inactivity. If <code>viewData</code> was passed to <a href="#sessionjoin">Session.join</a>, the event payload will be an object <code>{viewId, viewData}</code>.</p>`);
+            sections.push(`<h5>Properties</h5>`);
+            sections.push(`<ResponseField>`);
+            sections.push(`<ResponseField name="scope" type="String">this.sessionId</ResponseField>`);
+            sections.push(`<ResponseField name="event" type="String">"view-exit"</ResponseField>`);
+            sections.push(`<ResponseField name="viewId" type="String | Object">the user's viewId, or an object {viewId, viewData}</ResponseField>`);
+            sections.push(`</ResponseField>`);
+
             sections.push(`</Tab>`);
         }
         
@@ -1928,14 +2105,14 @@ ${this.formatDescriptionForComponent(param.description || '')}
         
         // Handle triple backtick code blocks
         formatted = formatted.replace(/```([\s\S]*?)```/g, (match, code) => {
-            const placeholder = `__CODEBLOCK${codeBlockIndex++}__`;
+            const placeholder = `§§CODEBLOCK${codeBlockIndex++}§§`;
             codeBlocks.push(`<pre><code>${this.escapeHtml(code.trim())}</code></pre>`);
             return placeholder;
         });
         
         // Handle indented code blocks (4 spaces or tab)
         formatted = formatted.replace(/(?:^|\n)((?:    |\t)[^\n]*(?:\n(?:    |\t)[^\n]*)*)/g, (match, code) => {
-            const placeholder = `__CODEBLOCK${codeBlockIndex++}__`;
+            const placeholder = `§§CODEBLOCK${codeBlockIndex++}§§`;
             const cleanCode = code.split('\n').map(line => line.replace(/^(    |\t)/, '')).join('\n');
             codeBlocks.push(`<pre><code>${this.escapeHtml(cleanCode.trim())}</code></pre>`);
             return placeholder;
@@ -1977,7 +2154,7 @@ ${this.formatDescriptionForComponent(param.description || '')}
             return `<a href="#${cleanTarget}">${this.escapeHtml(text)}</a>`;
         });
         
-        // Handle bold before italic to avoid conflicts
+        // Handle bold before italic to avoid conflicts (avoid touching our placeholders)
         formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
         formatted = formatted.replace(/__([^_]+)__/g, '<strong>$1</strong>');
         
@@ -1999,7 +2176,7 @@ ${this.formatDescriptionForComponent(param.description || '')}
         
         // Restore code blocks
         codeBlocks.forEach((block, index) => {
-            formatted = formatted.replace(`__CODEBLOCK${index}__`, block);
+            formatted = formatted.replace(`§§CODEBLOCK${index}§§`, block);
         });
         
         // Handle multi-line formatting - split into paragraphs
@@ -2209,24 +2386,30 @@ class NavigationUpdater {
         const newRedirects = [];
         
         if (packageConfig.name === '@multisynq/client') {
-            // Legacy redirects for core API
+            // Legacy redirects for core API with anchors
             const coreClasses = ['Model', 'View', 'Session', 'Data'];
             coreClasses.forEach(cls => {
-                const htmlSource = `/${cls}.html`;
-                const apiSource = `/api-reference/${cls.toLowerCase()}`;
-                
+                // Base HTML page
+                const htmlSource = `/client/${cls}.html`;
                 if (!existingSources.has(htmlSource)) {
-                    newRedirects.push({
-                        source: htmlSource,
-                        destination: `/${packageConfig.outputPath}/index#${cls.toLowerCase()}`
-                    });
+                    newRedirects.push({ source: htmlSource, destination: `/${packageConfig.outputPath}/index#${cls.toLowerCase()}` });
                 }
-                
-                if (!existingSources.has(apiSource)) {
-                    newRedirects.push({
-                        source: apiSource,
-                        destination: `/${packageConfig.outputPath}/index#${cls.toLowerCase()}`
-                    });
+                // Common anchors
+                const anchors = ['members', 'methods', 'events', 'props', 'properties'];
+                anchors.forEach(a => {
+                    const src = `/client/${cls}.html#${a}`;
+                    if (!existingSources.has(src)) {
+                        // map to an approximate section within our single page
+                        const destAnchor = a === 'members' ? `${cls.toLowerCase()}` : `${cls.toLowerCase()}`;
+                        newRedirects.push({ source: src, destination: `/${packageConfig.outputPath}/index#${destAnchor}` });
+                    }
+                });
+                // Specific anchors we know
+                if (cls === 'View') {
+                    const src = `/client/View.html#viewId`;
+                    if (!existingSources.has(src)) {
+                        newRedirects.push({ source: src, destination: `/${packageConfig.outputPath}/index#view` });
+                    }
                 }
             });
         }

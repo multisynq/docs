@@ -239,6 +239,110 @@
     {
       "source": "/Data.html",
       "destination": "/api-reference#multisynq-data"
+    },
+    {
+      "source": "/client/Model.html",
+      "destination": "/packages/client/index#model"
+    },
+    {
+      "source": "/client/Model.html#members",
+      "destination": "/packages/client/index#model"
+    },
+    {
+      "source": "/client/Model.html#methods",
+      "destination": "/packages/client/index#model"
+    },
+    {
+      "source": "/client/Model.html#events",
+      "destination": "/packages/client/index#model"
+    },
+    {
+      "source": "/client/Model.html#props",
+      "destination": "/packages/client/index#model"
+    },
+    {
+      "source": "/client/Model.html#properties",
+      "destination": "/packages/client/index#model"
+    },
+    {
+      "source": "/client/View.html",
+      "destination": "/packages/client/index#view"
+    },
+    {
+      "source": "/client/View.html#members",
+      "destination": "/packages/client/index#view"
+    },
+    {
+      "source": "/client/View.html#methods",
+      "destination": "/packages/client/index#view"
+    },
+    {
+      "source": "/client/View.html#events",
+      "destination": "/packages/client/index#view"
+    },
+    {
+      "source": "/client/View.html#props",
+      "destination": "/packages/client/index#view"
+    },
+    {
+      "source": "/client/View.html#properties",
+      "destination": "/packages/client/index#view"
+    },
+    {
+      "source": "/client/View.html#viewId",
+      "destination": "/packages/client/index#view"
+    },
+    {
+      "source": "/client/Session.html",
+      "destination": "/packages/client/index#session"
+    },
+    {
+      "source": "/client/Session.html#members",
+      "destination": "/packages/client/index#session"
+    },
+    {
+      "source": "/client/Session.html#methods",
+      "destination": "/packages/client/index#session"
+    },
+    {
+      "source": "/client/Session.html#events",
+      "destination": "/packages/client/index#session"
+    },
+    {
+      "source": "/client/Session.html#props",
+      "destination": "/packages/client/index#session"
+    },
+    {
+      "source": "/client/Session.html#properties",
+      "destination": "/packages/client/index#session"
+    },
+    {
+      "source": "/client/Data.html",
+      "destination": "/packages/client/index#data"
+    },
+    {
+      "source": "/client/Data.html#members",
+      "destination": "/packages/client/index#data"
+    },
+    {
+      "source": "/client/Data.html#methods",
+      "destination": "/packages/client/index#data"
+    },
+    {
+      "source": "/client/Data.html#events",
+      "destination": "/packages/client/index#data"
+    },
+    {
+      "source": "/client/Data.html#props",
+      "destination": "/packages/client/index#data"
+    },
+    {
+      "source": "/client/Data.html#properties",
+      "destination": "/packages/client/index#data"
+    },
+    {
+      "source": "/api-reference/client",
+      "destination": "/packages/client/index"
     }
   ],
   "contextual": {

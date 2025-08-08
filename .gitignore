@@ -1,3 +1,7 @@
+# auto generated files
+packages/**/*.mdx
+docs/packages/*/*.mdx
+
 # Dependencies
 node_modules/
 npm-debug.log*
