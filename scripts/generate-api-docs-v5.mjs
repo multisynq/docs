@@ -36,6 +36,19 @@ const PACKAGE_CONFIGS = {
         includeTypes: true,
         jsdocFile: '../../multisynq-react/docs/react-doc.js'
     }
+    ,
+    'react-together': {
+        name: '@multisynq/react-together',
+        displayName: 'React Together',
+        sourcePaths: ['../../react-together/packages/react-together/src'],
+        outputPath: 'packages/react-together',
+        navigation: {
+            group: 'React Together',
+            icon: 'react'
+        },
+        filePatterns: ['**/*.ts', '**/*.tsx'],
+        includeTypes: true
+    }
 };
 
 // Enhanced JSDoc parser with TypeScript support

@@ -1,18 +1,742 @@
-export default function Model_Component() {
-  return (
-    <div className="api-class-component">
-      <h2 id="model">Model</h2>
-      <div className="description">
-        <p>Models are synchronized objects in Multisynq. They are automatically kept in sync for each user in the same [session]<a href="#sessionjoin">Session.join</a>. Models receive input by [subscribing]<a href="#modelsubscribe">Model#subscribe</a> to events published in a <a href="#view">View</a>. Their output is handled by views subscribing to events [published]<a href="#modelpublish">Model#publish</a> by a model. Models advance time by sending messages into their [future]<a href="#modelfuture">Model#future</a>.</p>
+## Model
+
+<a id="model"></a>
+<p>Models are synchronized objects in Multisynq. They are automatically kept in sync for each user in the same [session]<a href="#sessionjoin">Session.join</a>. Models receive input by [subscribing]<a href="#modelsubscribe">Model#subscribe</a> to events published in a <a href="#view">View</a>. Their output is handled by views subscribing to events [published]<a href="#modelpublish">Model#publish</a> by a model. Models advance time by sending messages into their [future]<a href="#modelfuture">Model#future</a>.</p>
         <h2>Instance Creation and Initialization</h2>
         <h3>Do <strong>NOT</strong> create a <a href="#model">Model</a> instance using <code>new</code> and<br />do <strong>NOT</strong> override the <code>constructor</code>!</h3>
-        <p>To <strong>create</strong> a new instance, use [create()]<a href="#modelcreate">Model.create</a>, for example: <strong>CODEBLOCK0</strong> To <strong>initialize</strong> an instance, override [init()]<a href="#modelinit">Model#init</a>, for example: <strong>CODEBLOCK1</strong> The <strong>reason</strong> for this is that Models are only initialized by calling <code>init()</code> the first time the object comes into existence in the session. After that, when joining a session, the models are deserialized from the snapshot, which restores all properties automatically without calling <code>init()</code>. A constructor would be called all the time, not just when starting a session.</p>
-      </div>
-      <Note>
-        This class should not be instantiated directly using <code>new</code>.
-      </Note>
-      <Tabs>
-      </Tabs>
-    </div>
-  );
+        <p>To <strong>create</strong> a new instance, use [create()]<a href="#modelcreate">Model.create</a>, for example:</p>
+        <pre><code>this.foo = FooModel.create({answer: 123});</code></pre>
+        <p>To <strong>initialize</strong> an instance, override [init()]<a href="#modelinit">Model#init</a>, for example:</p>
+        <pre><code>class FooModel extends Multisynq.Model {
+        <p>init(options={}) { this.answer = options.answer || 42; } }</code></pre> The <strong>reason</strong> for this is that Models are only initialized by calling <code>init()</code> the first time the object comes into existence in the session. After that, when joining a session, the models are deserialized from the snapshot, which restores all properties automatically without calling <code>init()</code>. A constructor would be called all the time, not just when starting a session.</p>
+<Note>
+This class should not be instantiated directly using <code>new</code>.
+</Note>
+<Tabs>
+<Tab title="Methods">
+#### Static Methods
+<AccordionGroup>
+<Accordion title="create">
+<CodeGroup>
+```typescript
+static create(options: any): any
+```
+</CodeGroup>
+<p><strong>Create an instance of a Model subclass.</strong> The instance will be registered for automatical snapshotting, and is assigned an [id]<a href="#modelid">Model#id</a>. Then it will call the user-defined [init()]<a href="#modelinit">Model#init</a> method to initialize the instance, passing the <a href="#options">options</a>. <strong>Note:</strong> When your model instance is no longer needed, you must [destroy]<a href="#modeldestroy">Model#destroy</a> it. Otherwise it will be kept in the snapshot forever. <strong>Warning</strong>: never create a Model instance using <code>new</code>, or override its constructor. See [above]<a href="#model">Model</a>.</p>
+##### Parameters
+<ParamField path="options" type="any" required={true}>
+
+</ParamField>
+##### Examples
+<CodeGroup>
+```javascript
+this.foo = FooModel.create({answer: 123});
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="createNoInit">
+<CodeGroup>
+```typescript
+static createNoInit(id: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="id" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="allowConstructors">
+<CodeGroup>
+```typescript
+static allowConstructors(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="register">
+<CodeGroup>
+```typescript
+static register(classId: any): any
+```
+</CodeGroup>
+<p><strong>Registers this model subclass with Multisynq</strong> It is necessary to register all Model subclasses so the serializer can recreate their instances from a snapshot. Since source code minification can change the actual class name, you have to pass a <code>classId</code> explicitly. Secondly, the [session id]<a href="#sessionjoin">Session.join</a> is derived by hashing the source code of all registered classes. This ensures that only clients running the same source code can be in the same session, so that the synchronized computations are identical for each client. <strong>Important</strong>: for the hashing to work reliably across browsers, be sure to specify <code>charset="utf-8"</code> for your <code><html></code> or all <code><script></code> tags.</p>
+##### Parameters
+<ParamField path="classId" type="any" required={true}>
+
+</ParamField>
+##### Examples
+<CodeGroup>
+```javascript
+class MyModel extends Multisynq.Model {
+  ...
 }
+MyModel.register("MyModel")
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="wellKnownModel">
+<CodeGroup>
+```typescript
+static wellKnownModel(name: any): any
+```
+</CodeGroup>
+<p>Static version of [wellKnownModel()]<a href="#modelwellknownmodel">Model#wellKnownModel</a> for currently executing model. This can be used to emulate static accessors, e.g. for lazy initialization. <strong>WARNING!</strong> Do not store the result in a static variable. Like any global state, that can lead to divergence. Will throw an error if called from outside model code.</p>
+##### Parameters
+<ParamField path="name" type="any" required={true}>
+
+</ParamField>
+##### Returns
+<ResponseField type="Model?">
+<p>the model if found, or <code>undefined</code></p>
+</ResponseField>
+##### Examples
+<CodeGroup>
+```javascript
+static get Default() {
+    let default = this.wellKnownModel("DefaultModel");
+    if (!default) {
+        console.log("Creating default")
+        default = MyModel.create();
+        default.beWellKnownAs("DefaultModel");
+    }
+    return default;
+}
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="evaluate">
+<CodeGroup>
+```typescript
+static evaluate(func: any): any
+```
+</CodeGroup>
+<p>Evaluates func inside of a temporary VM to get bit-identical results, e.g. to init [Constants]<a href="#constants">Constants</a>.</p>
+##### Parameters
+<ParamField path="func" type="any" required={true}>
+
+</ParamField>
+##### Returns
+<ResponseField type="*">
+<p>result of func</p>
+</ResponseField>
+</Accordion>
+<Accordion title="isExecuting">
+<CodeGroup>
+```typescript
+static isExecuting(): any
+```
+</CodeGroup>
+<p><strong>Check if currently executing code is inside a model.</strong></p>
+##### Returns
+<ResponseField type="Boolean">
+<p>true if currently executing code is inside a model</p>
+</ResponseField>
+</Accordion>
+<Accordion title="types">
+<CodeGroup>
+```typescript
+static types(): any
+```
+</CodeGroup>
+<p><strong>Static declaration of how to serialize non-model classes.</strong> The Multisynq snapshot mechanism knows about <a href="#model">Model</a> subclasses, as well as many JS built-in types (see below), it handles circular references, and it works recursively by converting all non-JSON types to JSON. If you want to store instances of non-model classes in your model, override this method. <code>types()</code> needs to return an Object that maps <em>names</em> to <em>class descriptions</em>: - the name can be any string, it just has to be unique within your app - the class description can either be just the class itself (if the serializer should snapshot all its fields, see first example below), or an object with <code>write()</code> and <code>read()</code> methods to convert instances from and to their serializable form (see second example below), and (since v2.0) <code>writeStatic()</code> and <code>readStatic()</code> to serialize and restore static properties. - the serialized form answered by <code>write()</code> should return a simpler representation, but it can still contain references to other objects, which will be resolved by the serializer. E.g. if it answers an Array of objects then the serializer will be called for each of those objects. Conversely, these objects will be deserialized before passing the reconstructed Array to <code>read()</code>. Declaring a type in any class makes that declaration available globally. The types only need to be declared once, even if several different Model subclasses are using them. <strong>NOTE:</strong> This is currently the only way to customize serialization (for example to keep snapshots fast and small). The serialization of Model subclasses themselves can not be customized, except through "dollar properties": <strong>All properties starting with <code>$</code> are ignored, e.g. <code>$foo</code>.</strong> This can be used for caching big objects that should not appear in the snapshot, but care needs to be taken to make sure that the cache is reconstructed whenever used. Serialization types supported: - plain <code>Object</code>, <code>Array</code>, <code>number</code>, <code>string</code>, <code>boolean</code>, <code>null</code>: just like JSON - <code>-0</code>, <code>NaN</code>, <code>Infinity</code>, <code>-Infinity</code> - <code>BigInt</code> (since 1.1.0) - <code>undefined</code> - <code>ArrayBuffer</code>, <code>DataView</code>, <code>Int8Array</code>, <code>Uint8Array</code>, <code>Uint8ClampedArray</code>, <code>Int16Array</code>, <code>Uint16Array</code>, <code>Int32Array</code>, <code>Uint32Array</code>, <code>Float32Array</code>, <code>Float64Array</code> - <code>Set</code>, <code>Map</code> Not supported: - <code>Date</code>: the built-in Date type is dangerous because it implicitly depends on the current timezone which can lead to divergence. - <code>RegExp</code>: this has built-in state that can not be introspected and recreated in JS. - <code>WeakMap</code>, <code>WeakSet</code>: these are not enumerable and can not be serialized. - <code>Symbol</code>: these are unique and can not be serialized. - <code>Function</code>, <code>Promise</code>, <code>Generator</code> etc: there is no generic way to serialize functions because closures can not be introspected in JS. Even just for the source code, browsers differ in how they convert functions to strings. If you need to store functions in the model (e.g. for live coding), either wrap the source and function in a custom type (where <code>read</code> would compile the source saved by <code>write</code>), or store the source in a regular property, the function in a dollar property, and have an accessor that compiles the function lazily when needed.</p>
+##### Examples
+<Tabs>
+  <Tab title="To use the default serializer just declare the class:">
+  ```javascript
+  class MyModel extends Multisynq.Model {
+    static types() {
+      return {
+        "SomeUniqueName": MyNonModelClass,
+        "THREE.Vector3": THREE.Vector3,        // serialized as '{"x":...,"y":...,"z":...}'
+        "THREE.Quaternion": THREE.Quaternion,
+      };
+    }
+  }
+  ```
+  </Tab>
+  <Tab title="To define your own serializer, declare read and write functions:">
+  ```javascript
+  class MyModel extends Multisynq.Model {
+    static types() {
+      return {
+       "SomeUniqueName": {
+           cls: MyNonModelClass,
+           write: obj => obj.serialize(),  // answer a serializable type, see above
+           read: state => MyNonModelClass.deserialize(state), // answer a new instance
+           writeStatic: () => ({foo: MyNonModelClass.foo}),
+           readStatic: state => MyNonModelClass.foo = state.foo,
+        },
+        "THREE.Vector3": {
+          cls: THREE.Vector3,
+          write: v => [v.x, v.y, v.z],        // serialized as '[...,...,...]' which is shorter than the default above
+          read: v => new THREE.Vector3(v[0], v[1], v[2]),
+        },
+        "THREE.Color": {
+          cls: THREE.Color,
+          write: color => '#' + color.getHexString(),
+          read: state => new THREE.Color(state)
+        },
+      }
+    }
+  }
+  ```
+  </Tab>
+</Tabs>
+</Accordion>
+<Accordion title="gatherClassTypes">
+<CodeGroup>
+```typescript
+static gatherClassTypes(dummyObject: any, prefix: any): any
+```
+</CodeGroup>
+<p>Find classes inside an external library This recursivley traverses a dummy object and gathers all object classes found. Returns a mapping that can be returned from a Model's static <code>types()</code> method. This can be used to gather all internal class types of a third party library that otherwise would not be accessible to the serializer @example<caption> If <code>Foo</code> is a class from a third party library that internally create a <code>Bar</code> instance, this would find both classes </caption> class Bar {} // internal class class Foo { constructor() { this.bar = new Bar(); } } static types() { const sample = new Foo(); return this.gatherClassTypes(sample, "MyLib"); // returns { "MyLib.Foo": Foo, "MyLib.Bar": Bar } }</p>
+##### Parameters
+<ParamField path="dummyObject" type="any" required={true}>
+
+</ParamField>
+<ParamField path="prefix" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="eventDebugOptions">
+<CodeGroup>
+```typescript
+static eventDebugOptions(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="eventDebugInit">
+<CodeGroup>
+```typescript
+static eventDebugInit(model: any): any
+```
+</CodeGroup>
+<p>register event logger subscription */</p>
+##### Parameters
+<ParamField path="model" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="okayToIgnore">
+<CodeGroup>
+```typescript
+static okayToIgnore(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="classToID">
+<CodeGroup>
+```typescript
+static classToID(cls: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="cls" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="classFromID">
+<CodeGroup>
+```typescript
+static classFromID(id: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="id" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="allClasses">
+<CodeGroup>
+```typescript
+static allClasses(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="allClassTypes">
+<CodeGroup>
+```typescript
+static allClassTypes(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="instantiateClassID">
+<CodeGroup>
+```typescript
+static instantiateClassID(classId: any, id: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="classId" type="any" required={true}>
+
+</ParamField>
+<ParamField path="id" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+</AccordionGroup>
+#### Instance Methods
+<AccordionGroup>
+<Accordion title="init">
+<CodeGroup>
+```typescript
+init(options: any, persistentData: any): any
+```
+</CodeGroup>
+<p>This is called by [create()]<a href="#modelcreate">Model.create</a> to initialize a model instance. In your Model subclass this is the place to [subscribe]<a href="#modelsubscribe">Model#subscribe</a> to events, or start a [future]<a href="#modelfuture">Model#future</a> message chain. If you pass <code>{options:...}</code> to [Session.join]<a href="#sessionjoin">Session.join</a>, these will be passed to your root model's <code>init()</code>. Note that <code>options</code> affect the session's <code>persistentId</code> – in most cases, using [Multisynq.Constants]<a href="#constants">Constants</a> is a better choice to customize what happens in <code>init()</code>. If you called [persistSession]<a href="#modelpersistsession">Model#persistSession</a> in a previous session (same name, same options, different code base), that data will be passed as <code>persistentData</code> to your root model's <code>init()</code>. Based on that data you should re-create submodels, subscriptions, future messages etc. to start the new session in a state similar to when it was last saved. <strong>Note:</strong> When your model instance is no longer needed, you must [destroy]<a href="#modeldestroy">Model#destroy</a> it.</p>
+##### Parameters
+<ParamField path="options" type="any" required={true}>
+
+</ParamField>
+<ParamField path="persistentData" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="destroy">
+<CodeGroup>
+```typescript
+destroy(): any
+```
+</CodeGroup>
+<p>Unsubscribes all [subscriptions]<a href="#modelsubscribe">Model#subscribe</a> this model has, unschedules all [future]<a href="#modelfuture">Model#future</a> messages, and removes it from future snapshots.</p>
+##### Examples
+<CodeGroup>
+```javascript
+removeChild(child) {
+   const index = this.children.indexOf(child);
+   this.children.splice(index, 1);
+   child.destroy();
+}
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="publish">
+<CodeGroup>
+```typescript
+publish(scope: any, event: any, data: any): any
+```
+</CodeGroup>
+<p><strong>Publish an event to a scope.</strong> Events are the main form of communication between models and views in Multisynq. Both models and views can publish events, and subscribe to each other's events. Model-to-model and view-to-view subscriptions are possible, too. See [Model.subscribe]<a href="#modelsubscribe">Model#subscribe</a>() for a discussion of <strong>scopes</strong> and <strong>event names</strong>. Refer to [View.subscribe]<a href="#viewsubscribe">View#subscribe</a>() for invoking event handlers <em>asynchronously</em> or <em>immediately</em>. Optionally, you can pass some <strong>data</strong> along with the event. For events published by a model, this can be any arbitrary value or object. See View's [publish]<a href="#viewpublish">View#publish</a> method for restrictions in passing data from a view to a model. If you subscribe inside the model to an event that is published by the model, the handler will be called immediately, before the publish method returns. If you want to have it handled asynchronously, you can use a future message:<pre><code>this.future(0).publish(&quot;scope&quot;, &quot;event&quot;, data);</code></pre> Note that there is no way of testing whether subscriptions exist or not (because models can exist independent of views). Publishing an event that has no subscriptions is about as cheap as that test would be, so feel free to always publish, there is very little overhead.</p>
+##### Parameters
+<ParamField path="scope" type="any" required={true}>
+
+</ParamField>
+<ParamField path="event" type="any" required={true}>
+
+</ParamField>
+<ParamField path="data" type="any" required={true}>
+
+</ParamField>
+##### Examples
+<CodeGroup>
+```javascript
+this.publish("something", "changed");
+this.publish(this.id, "moved", this.pos);
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="subscribe">
+<CodeGroup>
+```typescript
+subscribe(scope: any, event: any, methodName: any): any
+```
+</CodeGroup>
+<p><strong>Register an event handler for an event published to a scope.</strong> Both <code>scope</code> and <code>event</code> can be arbitrary strings. Typically, the scope would select the object (or groups of objects) to respond to the event, and the event name would select which operation to perform. A commonly used scope is <code>this.id</code> (in a model) and <code>model.id</code> (in a view) to establish a communication channel between a model and its corresponding view. You can use any literal string as a global scope, or use [<code>this.sessionId</code>]<a href="#modelsessionid">Model#sessionId</a> for a session-global scope (if your application supports multipe sessions at the same time). The predefined [<code>"view-join"</code> event]<a href="#event:view-join">event:view-join</a> and [<code>"view-exit"</code> event]<a href="#event:view-exit">event:view-exit</a> use this session scope. The handler must be a method of <code>this</code>, e.g. <code>subscribe("scope", "event", this.methodName)</code> will schedule the invocation of <code>this["methodName"](data)</code> whenever <code>publish("scope", "event", data)</code> is executed. If <code>data</code> was passed to the [publish]<a href="#modelpublish">Model#publish</a> call, it will be passed as an argument to the handler method. You can have at most one argument. To pass multiple values, pass an Object or Array containing those values. Note that views can only pass serializable data to models, because those events are routed via a reflector server (see [View.publish)<a href="#viewpublish">View#publish</a>).</p>
+##### Parameters
+<ParamField path="scope" type="any" required={true}>
+
+</ParamField>
+<ParamField path="event" type="any" required={true}>
+
+</ParamField>
+<ParamField path="methodName" type="any" required={true}>
+
+</ParamField>
+##### Returns
+<ResponseField type="this">
+
+</ResponseField>
+##### Examples
+<Tabs>
+  <Tab title="Example 1">
+  ```javascript
+  this.subscribe("something", "changed", this.update);
+  this.subscribe(this.id, "moved", this.handleMove);
+  ```
+  </Tab>
+  <Tab title="Example 2">
+  ```javascript
+  class MyModel extends Multisynq.Model {
+    init() {
+      this.subscribe(this.id, "moved", this.handleMove);
+    }
+    handleMove({x,y}) {
+      this.x = x;
+      this.y = y;
+    }
+  }
+  class MyView extends Multisynq.View {
+    constructor(model) {
+      this.modelId = model.id;
+    }
+    onpointermove(evt) {
+       const x = evt.x;
+       const y = evt.y;
+       this.publish(this.modelId, "moved", {x,y});
+    }
+  }
+  ```
+  </Tab>
+</Tabs>
+</Accordion>
+<Accordion title="unsubscribe">
+<CodeGroup>
+```typescript
+unsubscribe(scope: any, event: any, methodName: any): any
+```
+</CodeGroup>
+<p>Unsubscribes this model's handler(s) for the given event in the given scope. To unsubscribe only a specific handler, pass it as the third argument.</p>
+##### Parameters
+<ParamField path="scope" type="any" required={true}>
+
+</ParamField>
+<ParamField path="event" type="any" required={true}>
+
+</ParamField>
+<ParamField path="methodName" type="any" required={true} default="&#39;*&#39;">
+
+</ParamField>
+##### Examples
+<CodeGroup>
+```javascript
+this.unsubscribe("something", "changed");
+this.unsubscribe(this.id, "moved", this.handleMove);
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="unsubscribeAll">
+<CodeGroup>
+```typescript
+unsubscribeAll(): any
+```
+</CodeGroup>
+<p>Unsubscribes all of this model's handlers for any event in any scope.</p>
+</Accordion>
+<Accordion title="activeSubscription">
+<CodeGroup>
+```typescript
+activeSubscription(): any
+```
+</CodeGroup>
+<p>Scope, event, and source of the currently executing subscription handler. The <code>source</code> is either <code>"model"</code> or <code>"view"</code>.</p>
+##### Returns
+<ResponseField type="Object">
+<p><code>{scope, event, source}</code> or <code>undefined</code> if not in a subscription handler.</p>
+</ResponseField>
+##### Examples
+<CodeGroup>
+```javascript
+// this.subscribe("*", "*", this.logEvents)
+logEvents(data: any) {
+    const {scope, event, source} = this.activeSubscription;
+    console.log(`${this.now()} Event in model from ${source} ${scope}:${event} with`, data);
+}
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="__realmError">
+<CodeGroup>
+```typescript
+__realmError(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="future">
+<CodeGroup>
+```typescript
+future(tOffset: any, methodName: any, args: any): any
+```
+</CodeGroup>
+<p><strong>Schedule a message for future execution</strong> Use a future message to automatically advance time in a model, for example for animations. The execution will be scheduled <code>tOffset</code> milliseconds into the future. It will run at precisely <code>this.now() + tOffset</code>. Use the form <code>this.future(100).methodName(args)</code> to schedule the execution of <code>this.methodName(args)</code> at time <code>this.now() + tOffset</code>. <strong>Hint</strong>: This would be an unusual use of <code>future()</code>, but the <code>tOffset</code> given may be <code>0</code>, in which case the execution will happen asynchronously before advancing time. This is the only way for asynchronous execution in the model since you must not use Promises or async functions in model code (because a snapshot may happen at any time and it would not capture those executions). <strong>Note:</strong> the recommended form given above is equivalent to <code>this.future(100, "methodName", arg1, arg2)</code> but makes it more clear that "methodName" is not just a string but the name of a method of this object. Also, this will survive minification. Technically, it answers a [Proxy]<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Proxy">https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Proxy</a> that captures the name and arguments of <code>.methodName(args)</code> for later execution. See this <a href="/tutorials/1_1_hello_world">tutorial</a> for a complete example.</p>
+##### Parameters
+<ParamField path="tOffset" type="any" required={true} default="0">
+
+</ParamField>
+<ParamField path="methodName" type="any" required={true} default="undefined">
+
+</ParamField>
+<ParamField path="args" type="any" required={true}>
+
+</ParamField>
+##### Returns
+<ResponseField type="this">
+
+</ResponseField>
+##### Examples
+<Tabs>
+  <Tab title="single invocation with two arguments">
+  ```javascript
+  this.future(3000).say("hello", "world");
+  ```
+  </Tab>
+  <Tab title="repeated invocation with no arguments">
+  ```javascript
+  tick() {
+      this.n++;
+      this.publish(this.id, "count", {time: this.now(), count: this.n)});
+      this.future(100).tick();
+  }
+  ```
+  </Tab>
+</Tabs>
+</Accordion>
+<Accordion title="cancelFuture">
+<CodeGroup>
+```typescript
+cancelFuture(methodOrMessage: any): any
+```
+</CodeGroup>
+<p><strong>Cancel a previously scheduled future message</strong> This unschedules the invocation of a message that was scheduled with [future]<a href="#modelfuture">Model#future</a>. It is okay to call this method even if the message was already executed or if it was never scheduled. <strong>Note:</strong> as with [future]<a href="#modelfuture">Model#future</a>, the recommended form is to pass the method itself, but you can also pass the name of the method as a string.</p>
+##### Parameters
+<ParamField path="methodOrMessage" type="any" required={true}>
+
+</ParamField>
+##### Returns
+<ResponseField type="Boolean">
+<p>true if the message was found and canceled, false if it was not found</p>
+</ResponseField>
+##### Examples
+<CodeGroup>
+```javascript
+this.future(3000).say("hello", "world");
+...
+this.cancelFuture(this.say);
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="random">
+<CodeGroup>
+```typescript
+random(): any
+```
+</CodeGroup>
+<p><strong>Generate a synchronized pseudo-random number</strong> This returns a floating-point, pseudo-random number in the range 0–1 (inclusive of 0, but not 1) with approximately uniform distribution over that range (just like [Math.random]<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random">https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random</a>). Since the model computation is synchronized for every user on their device, the sequence of random numbers generated must also be exactly the same for everyone. This method provides access to such a random number generator.</p>
+##### Returns
+<ResponseField type="Number">
+
+</ResponseField>
+</Accordion>
+<Accordion title="now">
+<CodeGroup>
+```typescript
+now(): any
+```
+</CodeGroup>
+<p><strong>The model's current time</strong> Time is discreet in Multisynq, meaning it advances in steps. Every user's device performs the exact same computation at the exact same virtual time. This is what allows Multisynq to do perfectly synchronized computation. Every [event handler]<a href="#modelsubscribe">Model#subscribe</a> and [future message]<a href="#modelfuture">Model#future</a> is run at a precisely defined moment in virtual model time, and time stands still while this execution is happening. That means if you were to access <code>this.now()</code> in a loop, it would never answer a different value. The unit of <code>now</code> is milliseconds (1/1000 second) but the value can be fractional, it is a floating-point value.</p>
+##### Returns
+<ResponseField type="Number">
+<p>the model's time in milliseconds since the first user created the session.</p>
+</ResponseField>
+</Accordion>
+<Accordion title="beWellKnownAs">
+<CodeGroup>
+```typescript
+beWellKnownAs(name: any): any
+```
+</CodeGroup>
+<p>Make this model globally accessible under the given name. It can be retrieved from any other model in the same session using [wellKnownModel()]<a href="#modelwellknownmodel">Model#wellKnownModel</a>. Hint: Another way to make a model well-known is to pass a name as second argument to <a href="#modelcreate">Model.create</a>(). Note: The instance of your root Model class is automatically made well-known as <code>"modelRoot"</code> and passed to the [constructor]<a href="#view">View</a> of your root View during <a href="#sessionjoin">Session.join</a>.</p>
+##### Parameters
+<ParamField path="name" type="any" required={true}>
+
+</ParamField>
+##### Examples
+<CodeGroup>
+```javascript
+class FooManager extends Multisynq.Model {
+  init() {
+    this.beWellKnownAs("UberFoo");
+  }
+}
+class Underlings extends Multisynq.Model {
+  reportToManager(something) {
+    this.wellKnownModel("UberFoo").report(something);
+  }
+}
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="getModel">
+<CodeGroup>
+```typescript
+getModel(id: any): any
+```
+</CodeGroup>
+<p>Look up a model in the current session given its <code>id</code></p>
+##### Parameters
+<ParamField path="id" type="any" required={true}>
+
+</ParamField>
+##### Returns
+<ResponseField type="Model">
+<p>the model if found, or <code>undefined</code></p>
+</ResponseField>
+##### Examples
+<CodeGroup>
+```javascript
+const otherModel = this.getModel(otherId);
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="wellKnownModel">
+<CodeGroup>
+```typescript
+wellKnownModel(name: any): any
+```
+</CodeGroup>
+<p>Access a model that was registered previously using  [beWellKnownAs()]<a href="#modelbewellknownas">Model#beWellKnownAs</a>. Note: The instance of your root Model class is automatically made well-known as <code>"modelRoot"</code> and passed to the [constructor]<a href="#view">View</a> of your root View during <a href="#sessionjoin">Session.join</a>.</p>
+##### Parameters
+<ParamField path="name" type="any" required={true}>
+
+</ParamField>
+##### Returns
+<ResponseField type="Model?">
+<p>the model if found, or <code>undefined</code></p>
+</ResponseField>
+##### Examples
+<CodeGroup>
+```javascript
+const topModel = this.wellKnownModel("modelRoot");
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="modelOnly">
+<CodeGroup>
+```typescript
+modelOnly(msg: any): any
+```
+</CodeGroup>
+<p>This methods checks if it is being called from a model, and throws an Error otherwise. Use this to protect some model code against accidentally being called from a view.</p>
+##### Parameters
+<ParamField path="msg" type="any" required={true}>
+
+</ParamField>
+##### Returns
+<ResponseField type="Boolean">
+<p>true (otherwise, throws Error)</p>
+</ResponseField>
+<Warning>
+<strong>Throws:</strong>
+<br/>• <strong>Error</strong>: Error if called from view
+</Warning>
+##### Examples
+<CodeGroup>
+```javascript
+get foo() { return this._foo; }
+set foo(value) { this.modelOnly(); this._foo = value; }
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="sessionId">
+<CodeGroup>
+```typescript
+sessionId(): any
+```
+</CodeGroup>
+<p><strong>Identifies the shared session of all users</strong><br /> (as opposed to the [viewId]<a href="#viewviewid">View#viewId</a> which identifies the non-shared views of each user). The session id is used as "global" scope for events like the [<code>"view-join"</code> event]<a href="#event:view-join">event:view-join</a>. See <a href="#sessionjoin">Session.join</a> for how the session id is generated. If your app has several sessions at the same time, each session id will be different.</p>
+##### Examples
+<CodeGroup>
+```javascript
+this.subscribe(this.sessionId, "view-join", this.addUser);
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="viewCount">
+<CodeGroup>
+```typescript
+viewCount(): any
+```
+</CodeGroup>
+<p><strong>The number of users currently in this session.</strong> All users in a session share the same Model (meaning all model objects) but each user has a different View (meaning all the non-model state). This is the number of views currently sharing this model. It is increased by 1 before every [<code>"view-join"</code> event]<a href="#event:view-join">event:view-join</a> and decreased by 1 before every [<code>"view-exit"</code> event]<a href="#event:view-exit">event:view-exit</a> handler is executed.</p>
+##### Examples
+<CodeGroup>
+```javascript
+this.subscribe(this.sessionId, "view-join", this.showUsers);
+this.subscribe(this.sessionId, "view-exit", this.showUsers);
+showUsers() { this.publish(this.sessionId, "view-count", this.viewCount); }
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="createQFunc">
+<CodeGroup>
+```typescript
+createQFunc(env: any, func: any): any
+```
+</CodeGroup>
+<p><strong>Create a serializable function that can be stored in the model.</strong> Plain functions can not be serialized because they may contain closures that can not be introspected by the snapshot mechanism. This method creates a serializable "QFunc" from a regular function. It can be stored in the model and called like the original function. The function can only access global references (like classes), *all local references must be passed in the <code>env</code> object*. They are captured as constants at the time the QFunc is created. Since they are constants, re-assignments will throw an error. In a fat-arrow function, <code>this</code> is bound to the model that called <code>createQFunc</code>, even in a different lexical scope. It is okay to call a model's <code>createQFunc</code> from anywhere, e.g. from a view. QFuncs can be passed from view to model as arguments in <code>publish()</code> (provided their environment is serializable). <strong>Warning:</strong> Minification can change the names of local variables and functions, but the env will still use the unminified names. You need to disable minification for source code that creates QFuncs with env. Alternatively, you can pass the function's source code as a string, which will not be minified. Behind the scenes, the function is stored as a string and compiled when needed. The env needs to be constant because the serializer would not able to capture the values if they were allowed to change.</p>
+##### Parameters
+<ParamField path="env" type="any" required={true}>
+
+</ParamField>
+<ParamField path="func" type="any" required={true}>
+
+</ParamField>
+##### Returns
+<ResponseField type="Function">
+<p>a serializable function bound to the given environment</p>
+</ResponseField>
+##### Examples
+<CodeGroup>
+```javascript
+const template = { greeting: "Hi there," };
+this.greet = this.createQFunc({template}, (name) => console.log(template.greeting, name));
+this.greet(this, "friend"); // logs "Hi there, friend"
+template.greeting = "Bye now,";
+this.greet(this, "friend"); // logs "Bye now, friend"
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="persistSession">
+<CodeGroup>
+```typescript
+persistSession(collectDataFunc: any): any
+```
+</CodeGroup>
+<p>Store an application-defined JSON representation of this session to be loaded into future sessions. This will be passed into the root model's [init]<a href="#modelinit">Model#init</a> method if resuming a session that is not currently ongoing (e.g. due to changes in the model code). <strong>Note:</strong> You should design the JSON in a way to be loadable in newer versions of your app. To help migrating incompatible data, you may want to include a version identifier so a future version of your [init]<a href="#modelinit">Model#init</a> can decide what to do. <strong>Warning</strong> Do NOT use <code>JSON.stringify</code> because the result is not guaranteed to have the same ordering of keys everywhere. Instead, store the JSON data directly and let Multisynq apply its stable stringification. Also you must only call persistSession() from your [root model]<a href="#modelwellknownmodel">Model#wellKnownModel</a>. If there are submodels, your collectDataFunc should collect data from all submodels. Similarly, only your root model's <code>init</code> will receive that persisted data. It should recreate submodels as necessary. Multisynq will not interpret this data in any way (e.g. not even the <code>version</code> property in the example below). It is stringified, encrypted, and stored.</p>
+##### Parameters
+<ParamField path="collectDataFunc" type="any" required={true}>
+
+</ParamField>
+##### Examples
+<CodeGroup>
+```javascript
+class SimpleAppRootModel {
+    init(options, persisted) {
+        ...                         // regular setup
+        if (persisted) {
+            if (persisted.version === 1) {
+                ...                 // init from persisted data
+            }
+        }
+    }
+    save() {
+        this.persistSession(() => {
+            const data = {
+               version: 1,         // for future migrations
+               ...                 // data to persist
+            };
+            return data;
+        });
+    }
+}
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="[Symbol.toPrimitive]">
+<CodeGroup>
+```typescript
+[Symbol.toPrimitive](): any
+```
+</CodeGroup>
+</Accordion>
+</AccordionGroup>
+</Tab>
+</Tabs>

@@ -1,298 +1,342 @@
-export default function View_Component() {
-  return (
-    <div className="api-class-component">
-      <h2 id="view">View</h2>
-      <div className="description">
-        <p>Views are the local, non-synchronized part of a Multisynq Application. Each device and browser window creates its own independent local view. The view [subscribes]<a href="#viewsubscribe">View#subscribe</a> to events [published]<a href="#modelpublish">Model#publish</a> by the synchronized model, so it stays up to date in real time. What the view is showing, however, is completely up to the application developer. The view can adapt to the device it's running on and show very different things. <strong>Multisynq makes no assumptions about the UI framework you use</strong> - be it plain HTML or Three.js or React or whatever. Multisynq only provides the publish/subscribe mechanism to hook into the synchronized model simulation. It's possible for a single view instance to handle all the events, you don't event have to subclass Multisynq.View for that. That being said, a common pattern is to make a hierarchy of <code>Multisynq.View</code> subclasses to mimic your hierarchy of <a href="#model">Model</a> subclasses.</p>
-      </div>
-      <h3>Constructor</h3>
-              ```typescript
-              constructor(model, viewOptions)
-              ```
-              <div className="method-description">
-                <p>A View instance is created in <a href="#sessionjoin">Session.join</a>, and the root model is passed into its constructor. This inherited constructor does not use the model in any way. Your constructor should recreate the view state to exactly match what is in the model. It should also [subscribe]<a href="#viewsubscribe">View#subscribe</a> to any changes published by the model. Typically, a view would also subscribe to the browser's or framework's input events, and in response [publish]<a href="#viewpublish">View#publish</a> events for the model to consume. The constructor will, however, register the view and assign it an [id]<a href="#viewid">View#id</a>. <strong>Note:</strong> When your view instance is no longer needed, you must [detach]<a href="#viewdetach">View#detach</a> it. Otherwise it will be kept in memory forever.</p>
-              </div>
-              <h5>Parameters</h5>
-        <ParamField path="model" type="Model" required={true}>
-          <p>the view's model</p>
-        </ParamField>
-        <ParamField path="viewOptions" type="Object?" required={true}>
-          <p>if <code>viewOptions</code> where given in <a href="#sessionjoin">Session.join</a></p>
-        </ParamField>
-      <Tabs>
-        <Tab title="Methods">
-          <h4>Instance Methods</h4>
-          <AccordionGroup>
-            <Accordion title="detach">
-              ```typescript
-              detach(): void
-              ```
-              <div className="method-description">
-                <p><strong>Unsubscribes all [subscriptions]<a href="#viewsubscribe">View#subscribe</a> this view has, and removes it from the list of views</strong> This needs to be called when a view is no longer needed, to prevent memory leaks. A session's root view is automatically sent <code>detach</code> when the session becomes inactive (for example, going dormant because its browser tab is hidden). A root view should therefore override <code>detach</code> (remembering to call <code>super.detach()</code>) to detach any subsidiary views that it has created.</p>
-              </div>
-              <h5>Examples</h5>
-              <CodeGroup>
-                ```javascript
+## View
+
+<a id="view"></a>
+<p>Views are the local, non-synchronized part of a Multisynq Application. Each device and browser window creates its own independent local view. The view [subscribes]<a href="#viewsubscribe">View#subscribe</a> to events [published]<a href="#modelpublish">Model#publish</a> by the synchronized model, so it stays up to date in real time. What the view is showing, however, is completely up to the application developer. The view can adapt to the device it's running on and show very different things. <strong>Multisynq makes no assumptions about the UI framework you use</strong> - be it plain HTML or Three.js or React or whatever. Multisynq only provides the publish/subscribe mechanism to hook into the synchronized model simulation. It's possible for a single view instance to handle all the events, you don't event have to subclass Multisynq.View for that. That being said, a common pattern is to make a hierarchy of <code>Multisynq.View</code> subclasses to mimic your hierarchy of <a href="#model">Model</a> subclasses.</p>
+### Constructor
+<CodeGroup>
+```typescript
+constructor(model: any)
+```
+</CodeGroup>
+<p>A View instance is created in <a href="#sessionjoin">Session.join</a>, and the root model is passed into its constructor. This inherited constructor does not use the model in any way. Your constructor should recreate the view state to exactly match what is in the model. It should also [subscribe]<a href="#viewsubscribe">View#subscribe</a> to any changes published by the model. Typically, a view would also subscribe to the browser's or framework's input events, and in response [publish]<a href="#viewpublish">View#publish</a> events for the model to consume. The constructor will, however, register the view and assign it an [id]<a href="#viewid">View#id</a>. <strong>Note:</strong> When your view instance is no longer needed, you must [detach]<a href="#viewdetach">View#detach</a> it. Otherwise it will be kept in memory forever.</p>
+##### Parameters
+<ParamField path="model" type="any" required={true}>
+
+</ParamField>
+<Tabs>
+<Tab title="Methods">
+#### Static Methods
+<AccordionGroup>
+<Accordion title="displayStatus">
+<CodeGroup>
+```typescript
+static displayStatus(msg: any, options: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="msg" type="any" required={true}>
+
+</ParamField>
+<ParamField path="options" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="displayWarning">
+<CodeGroup>
+```typescript
+static displayWarning(msg: any, options: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="msg" type="any" required={true}>
+
+</ParamField>
+<ParamField path="options" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="displayError">
+<CodeGroup>
+```typescript
+static displayError(msg: any, options: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="msg" type="any" required={true}>
+
+</ParamField>
+<ParamField path="options" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+</AccordionGroup>
+#### Instance Methods
+<AccordionGroup>
+<Accordion title="detach">
+<CodeGroup>
+```typescript
+detach(): any
+```
+</CodeGroup>
+<p><strong>Unsubscribes all [subscriptions]<a href="#viewsubscribe">View#subscribe</a> this view has, and removes it from the list of views</strong> This needs to be called when a view is no longer needed, to prevent memory leaks. A session's root view is automatically sent <code>detach</code> when the session becomes inactive (for example, going dormant because its browser tab is hidden). A root view should therefore override <code>detach</code> (remembering to call <code>super.detach()</code>) to detach any subsidiary views that it has created.</p>
+##### Examples
+<CodeGroup>
+```javascript
 removeChild(child) {
    const index = this.children.indexOf(child);
    this.children.splice(index, 1);
    child.detach();
 }
-                ```
-              </CodeGroup>
-            </Accordion>
-            <Accordion title="publish">
-              ```typescript
-              publish(scope, event, data): void
-              ```
-              <div className="method-description">
-                <p><strong>Publish an event to a scope.</strong> Events are the main form of communication between models and views in Multisynq. Both models and views can publish events, and subscribe to each other's events. Model-to-model and view-to-view subscriptions are possible, too. See [Model.subscribe]<a href="#modelsubscribe">Model#subscribe</a> for a discussion of <strong>scopes</strong> and <strong>event names</strong>. Optionally, you can pass some <strong>data</strong> along with the event. For events published by a view and received by a model, the data needs to be serializable, because it will be sent via the reflector to all users. For view-to-view events it can be any value or object. Note that there is no way of testing whether subscriptions exist or not (because models can exist independent of views). Publishing an event that has no subscriptions is about as cheap as that test would be, so feel free to always publish, there is very little overhead.</p>
-              </div>
-              <h5>Parameters</h5>
-        <ParamField path="scope" type="String" required={true}>
-          <p>see [subscribe]<a href="#modelsubscribe">Model#subscribe</a>()</p>
-        </ParamField>
-        <ParamField path="event" type="String" required={true}>
-          <p>see [subscribe]<a href="#modelsubscribe">Model#subscribe</a>()</p>
-        </ParamField>
-        <ParamField path="data" type="*=" required={true}>
-          <p>can be any value or object (for view-to-model, must be serializable)</p>
-        </ParamField>
-              <h5>Examples</h5>
-              <CodeGroup>
-                ```javascript
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="reattach">
+<CodeGroup>
+```typescript
+reattach(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="publish">
+<CodeGroup>
+```typescript
+publish(scope: any, event: any, data: any): any
+```
+</CodeGroup>
+<p><strong>Publish an event to a scope.</strong> Events are the main form of communication between models and views in Multisynq. Both models and views can publish events, and subscribe to each other's events. Model-to-model and view-to-view subscriptions are possible, too. See [Model.subscribe]<a href="#modelsubscribe">Model#subscribe</a> for a discussion of <strong>scopes</strong> and <strong>event names</strong>. Optionally, you can pass some <strong>data</strong> along with the event. For events published by a view and received by a model, the data needs to be serializable, because it will be sent via the reflector to all users. For view-to-view events it can be any value or object. Note that there is no way of testing whether subscriptions exist or not (because models can exist independent of views). Publishing an event that has no subscriptions is about as cheap as that test would be, so feel free to always publish, there is very little overhead.</p>
+##### Parameters
+<ParamField path="scope" type="any" required={true}>
+
+</ParamField>
+<ParamField path="event" type="any" required={true}>
+
+</ParamField>
+<ParamField path="data" type="any" required={true}>
+
+</ParamField>
+##### Examples
+<CodeGroup>
+```javascript
 this.publish("input", "keypressed", {key: 'A'});
 this.publish(this.model.id, "move-to", this.pos);
-                ```
-              </CodeGroup>
-            </Accordion>
-            <Accordion title="subscribe">
-              ```typescript
-              subscribe(scope, eventSpec, eventSpec.event, eventSpec.handling, handler): this
-              ```
-              <div className="method-description">
-                <p><strong>Register an event handler for an event published to a scope.</strong> Both <code>scope</code> and <code>event</code> can be arbitrary strings. Typically, the scope would select the object (or groups of objects) to respond to the event, and the event name would select which operation to perform. A commonly used scope is <code>this.id</code> (in a model) and <code>model.id</code> (in a view) to establish a communication channel between a model and its corresponding view. Unlike in a model's [subscribe]<a href="#modelsubscribe">Model#subscribe</a> method, you can specify when the event should be handled: - <strong>Queued:</strong> The handler will be called on the next run of the [main loop]<a href="#sessionjoin">Session.join</a>, the same number of times this event was published. This is useful if you need each piece of data that was passed in each [publish]<a href="#modelpublish">Model#publish</a> call. An example would be log entries generated in the model that the view is supposed to print. Even if more than one log event is published in one render frame, the view needs to receive each one. <strong><code>{ event: "name", handling: "queued" }</code> is the default.  Simply specify <code>"name"</code> instead.</strong> - <strong>Once Per Frame:</strong> The handler will be called only <em>once</em> during the next run of the [main loop]<a href="#sessionjoin">Session.join</a>. If [publish]<a href="#modelpublish">Model#publish</a> was called multiple times, the handler will only be invoked once, passing the data of only the last <code>publish</code> call. For example, a view typically would only be interested in the current position of a model to render it. Since rendering only happens once per frame, it should subscribe using the <code>oncePerFrame</code> option. The event typically would be published only once per frame anyways, however, while the model is catching up when joining a session, this would be fired rapidly. <strong><code>{ event: "name", handling: "oncePerFrame" }</code> is the most efficient option, you should use it whenever possible.</strong> - <strong>Immediate:</strong> The handler will be invoked <em>synchronously</em> during the [publish]<a href="#modelpublish">Model#publish</a> call. This will tie the view code very closely to the model simulation, which in general is undesirable. However, if the event handler needs to set up another subscription, immediate execution ensures that a subsequent publish will be properly handled (especially when rapidly replaying events for a new user). Similarly, if the view needs to know the exact state of the model at the time the event was published, before execution in the model proceeds, then this is the facility to allow this without having to copy model state. Pass <code>{event: "name", handling: "immediate"}</code> to enforce this behavior. The <code>handler</code> can be any callback function. Unlike a model's [handler]<a href="#modelsubscribe">Model#subscribe</a> which must be a method of that model, a view's handler can be any function, including fat-arrow functions declared in-line. Passing a method like in the model is allowed too, it will be bound to <code>this</code> in the subscribe call.</p>
-              </div>
-              <h5>Parameters</h5>
-        <ParamField path="scope" type="String" required={true}>
-          <p>the event scope (to distinguish between events of the same name used by different objects)</p>
-        </ParamField>
-        <ParamField path="eventSpec" type="String|Object" required={true}>
-          <p>the event name (user-defined or system-defined), or an event handling spec object</p>
-        </ParamField>
-        <ParamField path="eventSpec.event" type="String" required={true}>
-          <p>the event name (user-defined or system-defined)</p>
-        </ParamField>
-        <ParamField path="eventSpec.handling" type="String" required={true}>
-          <p><code>"queued"</code> (default), <code>"oncePerFrame"</code>, or <code>"immediate"</code></p>
-        </ParamField>
-        <ParamField path="handler" type="Function" required={true}>
-          <p>the event handler (can be any function)</p>
-        </ParamField>
-              <h5>Returns</h5>
-              <ResponseField type="this">
-                
-              </ResponseField>
-              <h5>Examples</h5>
-              <CodeGroup>
-                ```javascript
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="subscribe">
+<CodeGroup>
+```typescript
+subscribe(scope: any, eventSpec: any, callback: any): any
+```
+</CodeGroup>
+<p><strong>Register an event handler for an event published to a scope.</strong> Both <code>scope</code> and <code>event</code> can be arbitrary strings. Typically, the scope would select the object (or groups of objects) to respond to the event, and the event name would select which operation to perform. A commonly used scope is <code>this.id</code> (in a model) and <code>model.id</code> (in a view) to establish a communication channel between a model and its corresponding view. Unlike in a model's [subscribe]<a href="#modelsubscribe">Model#subscribe</a> method, you can specify when the event should be handled: - <strong>Queued:</strong> The handler will be called on the next run of the [main loop]<a href="#sessionjoin">Session.join</a>, the same number of times this event was published. This is useful if you need each piece of data that was passed in each [publish]<a href="#modelpublish">Model#publish</a> call. An example would be log entries generated in the model that the view is supposed to print. Even if more than one log event is published in one render frame, the view needs to receive each one. <strong><code>{ event: "name", handling: "queued" }</code> is the default.  Simply specify <code>"name"</code> instead.</strong> - <strong>Once Per Frame:</strong> The handler will be called only <em>once</em> during the next run of the [main loop]<a href="#sessionjoin">Session.join</a>. If [publish]<a href="#modelpublish">Model#publish</a> was called multiple times, the handler will only be invoked once, passing the data of only the last <code>publish</code> call. For example, a view typically would only be interested in the current position of a model to render it. Since rendering only happens once per frame, it should subscribe using the <code>oncePerFrame</code> option. The event typically would be published only once per frame anyways, however, while the model is catching up when joining a session, this would be fired rapidly. <strong><code>{ event: "name", handling: "oncePerFrame" }</code> is the most efficient option, you should use it whenever possible.</strong> - <strong>Immediate:</strong> The handler will be invoked <em>synchronously</em> during the [publish]<a href="#modelpublish">Model#publish</a> call. This will tie the view code very closely to the model simulation, which in general is undesirable. However, if the event handler needs to set up another subscription, immediate execution ensures that a subsequent publish will be properly handled (especially when rapidly replaying events for a new user). Similarly, if the view needs to know the exact state of the model at the time the event was published, before execution in the model proceeds, then this is the facility to allow this without having to copy model state. Pass <code>{event: "name", handling: "immediate"}</code> to enforce this behavior. The <code>handler</code> can be any callback function. Unlike a model's [handler]<a href="#modelsubscribe">Model#subscribe</a> which must be a method of that model, a view's handler can be any function, including fat-arrow functions declared in-line. Passing a method like in the model is allowed too, it will be bound to <code>this</code> in the subscribe call.</p>
+##### Parameters
+<ParamField path="scope" type="any" required={true}>
+
+</ParamField>
+<ParamField path="eventSpec" type="any" required={true}>
+
+</ParamField>
+<ParamField path="callback" type="any" required={true}>
+
+</ParamField>
+##### Returns
+<ResponseField type="this">
+
+</ResponseField>
+##### Examples
+<CodeGroup>
+```javascript
 this.subscribe("something", "changed", this.update); // "queued" handling implied
 this.subscribe(this.id, {event: "moved", handling: "oncePerFrame"}, pos => this.sceneObject.setPosition(pos.x, pos.y, pos.z));
-                ```
-              </CodeGroup>
-            </Accordion>
-            <Accordion title="unsubscribe">
-              ```typescript
-              unsubscribe(scope, event, handler): void
-              ```
-              <div className="method-description">
-                <p>Unsubscribes this view's handler(s) for the given event in the given scope. To unsubscribe only a specific handler, pass it as the third argument.</p>
-              </div>
-              <h5>Parameters</h5>
-        <ParamField path="scope" type="String" required={true}>
-          <p>see [subscribe]<a href="#viewsubscribe">View#subscribe</a></p>
-        </ParamField>
-        <ParamField path="event" type="String" required={true}>
-          <p>see [subscribe]<a href="#viewsubscribe">View#subscribe</a></p>
-        </ParamField>
-        <ParamField path="handler" type="Function?" required={true}>
-          <p>(optional) the handler to unsubscribe (added in 1.1)</p>
-        </ParamField>
-              <h5>Examples</h5>
-              <CodeGroup>
-                ```javascript
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="unsubscribe">
+<CodeGroup>
+```typescript
+unsubscribe(scope: any, event: any, callback: any): any
+```
+</CodeGroup>
+<p>Unsubscribes this view's handler(s) for the given event in the given scope. To unsubscribe only a specific handler, pass it as the third argument.</p>
+##### Parameters
+<ParamField path="scope" type="any" required={true}>
+
+</ParamField>
+<ParamField path="event" type="any" required={true}>
+
+</ParamField>
+<ParamField path="callback" type="any" required={true} default="null">
+
+</ParamField>
+##### Examples
+<CodeGroup>
+```javascript
 this.unsubscribe("something", "changed");
 this.unsubscribe("something", "changed", this.handleMove);
-                ```
-              </CodeGroup>
-            </Accordion>
-            <Accordion title="unsubscribeAll">
-              ```typescript
-              unsubscribeAll(): void
-              ```
-              <div className="method-description">
-                <p>Unsubscribes all of this view's handlers for any event in any scope.</p>
-              </div>
-            </Accordion>
-            <Accordion title="activeSubscription">
-              ```typescript
-              activeSubscription(): Object
-              ```
-              <div className="method-description">
-                <p>Scope, event, and source of the currently executing subscription handler.</p>
-              </div>
-              <h5>Returns</h5>
-              <ResponseField type="Object">
-                <p><code>{scope, event, source}</code> or <code>undefined</code> if not in a subscription handler.</p>
-              </ResponseField>
-              <h5>Examples</h5>
-              <CodeGroup>
-                ```javascript
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="unsubscribeAll">
+<CodeGroup>
+```typescript
+unsubscribeAll(): any
+```
+</CodeGroup>
+<p>Unsubscribes all of this view's handlers for any event in any scope.</p>
+</Accordion>
+<Accordion title="activeSubscription">
+<CodeGroup>
+```typescript
+activeSubscription(): any
+```
+</CodeGroup>
+<p>Scope, event, and source of the currently executing subscription handler.</p>
+##### Returns
+<ResponseField type="Object">
+<p><code>{scope, event, source}</code> or <code>undefined</code> if not in a subscription handler.</p>
+</ResponseField>
+##### Examples
+<CodeGroup>
+```javascript
 // this.subscribe("*", "*", this.logEvents)
 logEvents(data) {
     const {scope, event, source} = this.activeSubscription;
     console.log(`Event in view from ${source} ${scope}:${event} with`, data);
 }
-                ```
-              </CodeGroup>
-            </Accordion>
-            <Accordion title="future">
-              ```typescript
-              future(tOffset): this
-              ```
-              <div className="method-description">
-                <p><strong>Schedule a message for future execution</strong> This method is here for symmetry with [Model.future]<a href="#modelfuture">Model#future</a>. It simply schedules the execution using [globalThis.setTimeout]<a href="https://developer.mozilla.org/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout">https://developer.mozilla.org/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout</a>. The only advantage to using this over setTimeout() is consistent style.</p>
-              </div>
-              <h5>Parameters</h5>
-        <ParamField path="tOffset" type="Number" required={true}>
-          <p>time offset in milliseconds</p>
-        </ParamField>
-              <h5>Returns</h5>
-              <ResponseField type="this">
-                
-              </ResponseField>
-            </Accordion>
-            <Accordion title="random">
-              ```typescript
-              random(): Number
-              ```
-              <div className="method-description">
-                <p><strong>Answers [Math.random()]<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random">https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random</a></strong> This method is here purely for symmetry with [Model.random]<a href="#modelrandom">Model#random</a>.</p>
-              </div>
-              <h5>Returns</h5>
-              <ResponseField type="Number">
-                <p>[Math.random()]<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random">https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random</a></p>
-              </ResponseField>
-            </Accordion>
-            <Accordion title="now">
-              ```typescript
-              now(): Number
-              ```
-              <div className="method-description">
-                <p><strong>The model's current time</strong> This is the time of how far the model has been simulated. Normally this corresponds roughly to real-world time, since the reflector is generating time stamps based on real-world time. If there is [backlog]<a href="#viewexternalnow">View#externalNow</a> however (e.g while a newly joined user is catching up), this time will advance much faster than real time. The unit is milliseconds (1/1000 second) but the value can be fractional, it is a floating-point value.</p>
-              </div>
-              <h5>Returns</h5>
-              <ResponseField type="Number">
-                <p>the model's time in milliseconds since the first user created the session.</p>
-              </ResponseField>
-            </Accordion>
-            <Accordion title="externalNow">
-              ```typescript
-              externalNow(): number
-              ```
-              <div className="method-description">
-                <p><strong>The latest timestamp received from reflector</strong> Timestamps are received asynchronously from the reflector at the specified tick rate. [Model time]<a href="#viewnow">View#now</a> however only advances synchronously on every iteration of the [main loop]<a href="#sessionjoin">Session.join</a>. Usually <code>now == externalNow</code>, but if the model has not caught up yet, then <code>now < externalNow</code>. We call the difference "backlog". If the backlog is too large, Multisynq will put an overlay on the scene, and remove it once the model simulation has caught up. The [<code>"synced"</code> event]<a href="#event:synced">event:synced</a> is sent when that happens. The <code>externalNow</code> value is rarely used by apps but may be useful if you need to synchronize views to real-time (but note that [extrapolatedNow()]<a href="#viewextrapolatednow">View#extrapolatedNow</a> is usually more useful for that).</p>
-              </div>
-              <h5>Returns</h5>
-              <ResponseField type="number">
-                <p>the latest timestamp in milliseconds received from the reflector</p>
-              </ResponseField>
-              <h5>Examples</h5>
-              <CodeGroup>
-                ```javascript
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="future">
+<CodeGroup>
+```typescript
+future(tOffset: any): any
+```
+</CodeGroup>
+<p><strong>Schedule a message for future execution</strong> This method is here for symmetry with [Model.future]<a href="#modelfuture">Model#future</a>. It simply schedules the execution using [globalThis.setTimeout]<a href="https://developer.mozilla.org/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout">https://developer.mozilla.org/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout</a>. The only advantage to using this over setTimeout() is consistent style.</p>
+##### Parameters
+<ParamField path="tOffset" type="any" required={true} default="0">
+
+</ParamField>
+##### Returns
+<ResponseField type="this">
+
+</ResponseField>
+</Accordion>
+<Accordion title="random">
+<CodeGroup>
+```typescript
+random(): any
+```
+</CodeGroup>
+<p><strong>Answers [Math.random()]<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random">https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random</a></strong> This method is here purely for symmetry with [Model.random]<a href="#modelrandom">Model#random</a>.</p>
+##### Returns
+<ResponseField type="Number">
+<p>[Math.random()]<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random">https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random</a></p>
+</ResponseField>
+</Accordion>
+<Accordion title="now">
+<CodeGroup>
+```typescript
+now(): any
+```
+</CodeGroup>
+<p><strong>The model's current time</strong> This is the time of how far the model has been simulated. Normally this corresponds roughly to real-world time, since the reflector is generating time stamps based on real-world time. If there is [backlog]<a href="#viewexternalnow">View#externalNow</a> however (e.g while a newly joined user is catching up), this time will advance much faster than real time. The unit is milliseconds (1/1000 second) but the value can be fractional, it is a floating-point value.</p>
+##### Returns
+<ResponseField type="Number">
+<p>the model's time in milliseconds since the first user created the session.</p>
+</ResponseField>
+</Accordion>
+<Accordion title="externalNow">
+<CodeGroup>
+```typescript
+externalNow(): any
+```
+</CodeGroup>
+<p><strong>The latest timestamp received from reflector</strong> Timestamps are received asynchronously from the reflector at the specified tick rate. [Model time]<a href="#viewnow">View#now</a> however only advances synchronously on every iteration of the [main loop]<a href="#sessionjoin">Session.join</a>. Usually <code>now == externalNow</code>, but if the model has not caught up yet, then <code>now < externalNow</code>. We call the difference "backlog". If the backlog is too large, Multisynq will put an overlay on the scene, and remove it once the model simulation has caught up. The [<code>"synced"</code> event]<a href="#event:synced">event:synced</a> is sent when that happens. The <code>externalNow</code> value is rarely used by apps but may be useful if you need to synchronize views to real-time (but note that [extrapolatedNow()]<a href="#viewextrapolatednow">View#extrapolatedNow</a> is usually more useful for that).</p>
+##### Returns
+<ResponseField type="number">
+<p>the latest timestamp in milliseconds received from the reflector</p>
+</ResponseField>
+##### Examples
+<CodeGroup>
+```javascript
 const backlog = this.externalNow() - this.now();
-                ```
-              </CodeGroup>
-            </Accordion>
-            <Accordion title="extrapolatedNow">
-              ```typescript
-              extrapolatedNow(): number
-              ```
-              <div className="method-description">
-                <p><strong>The model time extrapolated beyond latest timestamp received from reflector</strong> Timestamps are received asynchronously from the reflector at the specified tick rate. In-between ticks or messages, neither [now()]<a href="#viewnow">View#now</a> nor [externalNow()]<a href="#viewexternalnow">View#externalNow</a> advances. <code>extrapolatedNow</code> is <code>externalNow</code> plus the local time elapsed since that timestamp was received, so it always advances. <code>extrapolatedNow()</code> will always be >= <code>now()</code> and <code>externalNow()</code>. However, it is only guaranteed to be monotonous in-between time stamps received from the reflector (there is no "smoothing" to reconcile local time with reflector time).</p>
-              </div>
-              <h5>Returns</h5>
-              <ResponseField type="number">
-                <p>milliseconds based on local <code>Date.now()</code> but same epoch as model time</p>
-              </ResponseField>
-            </Accordion>
-            <Accordion title="update">
-              ```typescript
-              update({Number}): void
-              ```
-              <div className="method-description">
-                <p>Called on the root view from [main loop]<a href="#sessionjoin">Session.join</a> once per frame. Default implementation does nothing. Override to add your own view-side input polling, rendering, etc. If you want this to be called for other views than the root view, you will have to call those methods from the root view's <code>update()</code>. The <code>time</code> received is related to the local real-world time. If you need to access the model's time, use [<code>this.now()</code>]<a href="#viewnow">View#now</a>.</p>
-              </div>
-              <h5>Parameters</h5>
-        <ParamField path="{Number}" type="any" required={true}>
-          <p>{Number} time - this frame's time stamp in milliseconds, as received by<strong>CODEBLOCK0</strong></p>
-        </ParamField>
-            </Accordion>
-            <Accordion title="wellKnownModel">
-              ```typescript
-              wellKnownModel(name): Model
-              ```
-              <div className="method-description">
-                <p>Access a model that was registered previously using  [beWellKnownAs()]<a href="#modelbewellknownas">Model#beWellKnownAs</a>. Note: The instance of your root Model class is automatically made well-known as <code>"modelRoot"</code> and passed to the [constructor]<a href="#view">View</a> of your root View during <a href="#sessionjoin">Session.join</a>.</p>
-              </div>
-              <h5>Parameters</h5>
-        <ParamField path="name" type="String" required={true}>
-          <p>the name given in [beWellKnownAs()]<a href="#modelbewellknownas">Model#beWellKnownAs</a></p>
-        </ParamField>
-              <h5>Returns</h5>
-              <ResponseField type="Model">
-                <p>the model if found, or <code>undefined</code></p>
-              </ResponseField>
-              <h5>Examples</h5>
-              <CodeGroup>
-                ```javascript
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="extrapolatedNow">
+<CodeGroup>
+```typescript
+extrapolatedNow(): any
+```
+</CodeGroup>
+<p><strong>The model time extrapolated beyond latest timestamp received from reflector</strong> Timestamps are received asynchronously from the reflector at the specified tick rate. In-between ticks or messages, neither [now()]<a href="#viewnow">View#now</a> nor [externalNow()]<a href="#viewexternalnow">View#externalNow</a> advances. <code>extrapolatedNow</code> is <code>externalNow</code> plus the local time elapsed since that timestamp was received, so it always advances. <code>extrapolatedNow()</code> will always be >= <code>now()</code> and <code>externalNow()</code>. However, it is only guaranteed to be monotonous in-between time stamps received from the reflector (there is no "smoothing" to reconcile local time with reflector time).</p>
+##### Returns
+<ResponseField type="number">
+<p>milliseconds based on local <code>Date.now()</code> but same epoch as model time</p>
+</ResponseField>
+</Accordion>
+<Accordion title="update">
+<CodeGroup>
+```typescript
+update(_time: any): any
+```
+</CodeGroup>
+<p>Called on the root view from [main loop]<a href="#sessionjoin">Session.join</a> once per frame. Default implementation does nothing. Override to add your own view-side input polling, rendering, etc. If you want this to be called for other views than the root view, you will have to call those methods from the root view's <code>update()</code>. The <code>time</code> received is related to the local real-world time. If you need to access the model's time, use [<code>this.now()</code>]<a href="#viewnow">View#now</a>.</p>
+##### Parameters
+<ParamField path="_time" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="wellKnownModel">
+<CodeGroup>
+```typescript
+wellKnownModel(name: any): any
+```
+</CodeGroup>
+<p>Access a model that was registered previously using  [beWellKnownAs()]<a href="#modelbewellknownas">Model#beWellKnownAs</a>. Note: The instance of your root Model class is automatically made well-known as <code>"modelRoot"</code> and passed to the [constructor]<a href="#view">View</a> of your root View during <a href="#sessionjoin">Session.join</a>.</p>
+##### Parameters
+<ParamField path="name" type="any" required={true}>
+
+</ParamField>
+##### Returns
+<ResponseField type="Model">
+<p>the model if found, or <code>undefined</code></p>
+</ResponseField>
+##### Examples
+<CodeGroup>
+```javascript
 const topModel = this.wellKnownModel("modelRoot");
-                ```
-              </CodeGroup>
-            </Accordion>
-            <Accordion title="sessionId">
-              ```typescript
-              sessionId(): void
-              ```
-              <div className="method-description">
-                <p><strong>Identifies the shared session.</strong> The session id is used as "global" scope for events like the model-only [<code>"view-join"</code> event]<a href="#event:view-join">event:view-join</a> and [<code>"view-exit"</code> event]<a href="#event:view-exit">event:view-exit</a>. See <a href="#sessionjoin">Session.join</a> for how the session id is generated. If your app has several sessions at the same time, each session id will be different.</p>
-              </div>
-            </Accordion>
-            <Accordion title="session">
-              ```typescript
-              session(): void
-              ```
-              <div className="method-description">
-                <p><strong>The session object</strong> Same as returned by <a href="#sessionjoin">Session.join</a>. WILL BE UNDEFINED WHEN DISCONNECTED! In callbacks that can still be executed after a disconnect, you should check <code>if (!this.session) return</code> to avoid errors.</p>
-              </div>
-            </Accordion>
-            <Accordion title="viewId">
-              ```typescript
-              viewId(): void
-              ```
-              <div className="method-description">
-                <p><strong>Identifies the View of the current user.</strong> All users in a session share the same Model (meaning all model objects) but each user has a different View (meaning all the non-model state). The <code>viewId</code> identifies each user's view, or more specifically, their connection to the server. It is sent as argument in the model-only [<code>"view-join"</code> event]<a href="#event:view-join">event:view-join</a> and [<code>"view-exit"</code> event]<a href="#event:view-exit">event:view-exit</a>. The <code>viewId</code> is also used as a scope for local events, for example the [<code>"synced"</code> event]<a href="#event:synced">event:synced</a>. <strong>Note:</strong> <code>this.viewId</code> is different from [<code>this.id</code>]<a href="#viewid">View#id</a> which identifies each individual view object (if you create multiple views in your code). <code>this.viewId</code> identifies the local user, so it will be the same in each individual view object. See [<code>"view-join"</code> event]<a href="#event:view-join">event:view-join</a>.</p>
-              </div>
-              <h5>Examples</h5>
-              <CodeGroup>
-                ```javascript
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="sessionId">
+<CodeGroup>
+```typescript
+sessionId(): any
+```
+</CodeGroup>
+<p><strong>Identifies the shared session.</strong> The session id is used as "global" scope for events like the model-only [<code>"view-join"</code> event]<a href="#event:view-join">event:view-join</a> and [<code>"view-exit"</code> event]<a href="#event:view-exit">event:view-exit</a>. See <a href="#sessionjoin">Session.join</a> for how the session id is generated. If your app has several sessions at the same time, each session id will be different.</p>
+</Accordion>
+<Accordion title="session">
+<CodeGroup>
+```typescript
+session(): any
+```
+</CodeGroup>
+<p><strong>The session object</strong> Same as returned by <a href="#sessionjoin">Session.join</a>. WILL BE UNDEFINED WHEN DISCONNECTED! In callbacks that can still be executed after a disconnect, you should check <code>if (!this.session) return</code> to avoid errors.</p>
+</Accordion>
+<Accordion title="viewId">
+<CodeGroup>
+```typescript
+viewId(): any
+```
+</CodeGroup>
+<p><strong>Identifies the View of the current user.</strong> All users in a session share the same Model (meaning all model objects) but each user has a different View (meaning all the non-model state). The <code>viewId</code> identifies each user's view, or more specifically, their connection to the server. It is sent as argument in the model-only [<code>"view-join"</code> event]<a href="#event:view-join">event:view-join</a> and [<code>"view-exit"</code> event]<a href="#event:view-exit">event:view-exit</a>. The <code>viewId</code> is also used as a scope for local events, for example the [<code>"synced"</code> event]<a href="#event:synced">event:synced</a>. <strong>Note:</strong> <code>this.viewId</code> is different from [<code>this.id</code>]<a href="#viewid">View#id</a> which identifies each individual view object (if you create multiple views in your code). <code>this.viewId</code> identifies the local user, so it will be the same in each individual view object. See [<code>"view-join"</code> event]<a href="#event:view-join">event:view-join</a>.</p>
+##### Examples
+<CodeGroup>
+```javascript
 this.subscribe(this.viewId, "synced", this.handleSynced);
-                ```
-              </CodeGroup>
-            </Accordion>
-          </AccordionGroup>
-        </Tab>
-      </Tabs>
-    </div>
-  );
-}
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="[Symbol.toPrimitive]">
+<CodeGroup>
+```typescript
+[Symbol.toPrimitive](): any
+```
+</CodeGroup>
+</Accordion>
+</AccordionGroup>
+</Tab>
+</Tabs>

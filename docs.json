@@ -159,6 +159,18 @@
             "pages": [
               "packages/client/index"
             ]
+          },
+          {
+            "group": "Multisynq React",
+            "pages": [
+              "packages/react/index"
+            ]
+          },
+          {
+            "group": "React Together",
+            "pages": [
+              "packages/react-together/index"
+            ]
           }
         ]
       }
@@ -343,6 +355,14 @@
     {
       "source": "/api-reference/client",
       "destination": "/packages/client/index"
+    },
+    {
+      "source": "/api-reference/react",
+      "destination": "/packages/react/index"
+    },
+    {
+      "source": "/api-reference/react-together",
+      "destination": "/packages/react-together/index"
     }
   ],
   "contextual": {

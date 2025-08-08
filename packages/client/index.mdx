@@ -4,29 +4,39 @@ description: 'Complete API reference for @multisynq/client'
 icon: 'code'
 ---
 
-## Imports
+import classes_MultisynqWebRTCConnection from './components/classes/MultisynqWebRTCConnection.mdx';
+import classes_MultisynqWarning from './components/classes/MultisynqWarning.mdx';
+import classes_QFunc from './components/classes/QFunc.mdx';
+import classes_FakeVM from './components/classes/FakeVM.mdx';
+import classes_VirtualMachine from './components/classes/VirtualMachine.mdx';
+import classes_Message from './components/classes/Message.mdx';
+import classes_VMHasher from './components/classes/VMHasher.mdx';
+import classes_VMWriter from './components/classes/VMWriter.mdx';
+import classes_VMReader from './components/classes/VMReader.mdx';
+import classes_MessageArgumentEncoder from './components/classes/MessageArgumentEncoder.mdx';
+import classes_MessageArgumentDecoder from './components/classes/MessageArgumentDecoder.mdx';
+import classes_View from './components/classes/View.mdx';
+import classes_UrlOptions from './components/classes/UrlOptions.mdx';
+import classes_Session from './components/classes/Session.mdx';
+import classes_ModelRealm from './components/classes/ModelRealm.mdx';
+import classes_ViewRealm from './components/classes/ViewRealm.mdx';
+import classes_PriorityQueue from './components/classes/PriorityQueue.mdx';
+import classes_OfflineSocket from './components/classes/OfflineSocket.mdx';
+import classes_UrlOptions from './components/classes/UrlOptions.mdx';
+import classes_M from './components/classes/M.mdx';
+import classes_Model from './components/classes/Model.mdx';
+import classes_M from './components/classes/M.mdx';
+import classes_Domain from './components/classes/Domain.mdx';
+import classes_Data from './components/classes/Data.mdx';
+import classes_DataHandle from './components/classes/DataHandle.mdx';
+import classes_Controller from './components/classes/Controller.mdx';
+import classes_Connection from './components/classes/Connection.mdx';
+import functions_Functions from './components/functions/Functions.mdx';
 
-<CodeGroup>
-```jsx
-import classes_MultisynqWarning from './components/classes/MultisynqWarning.mdx'
-import classes_FakeVM from './components/classes/FakeVM.mdx'
-import classes_View from './components/classes/View.mdx'
-import classes_Session from './components/classes/Session.mdx'
-import classes_Model from './components/classes/Model.mdx'
-import classes_Domain from './components/classes/Domain.mdx'
-import classes_Data from './components/classes/Data.mdx'
-import functions_patchBrowser from './components/functions/patchBrowser.mdx'
-import functions_inSequence from './components/functions/inSequence.mdx'
-import functions_currentRealm from './components/functions/currentRealm.mdx'
-import functions_hashBuffer from './components/functions/hashBuffer.mdx'
-import functions_hashString from './components/functions/hashString.mdx'
-import functions_hashNameAndOptions from './components/functions/hashNameAndOptions.mdx'
-```
-</CodeGroup>
 
 <Note>
 This documentation is auto-generated from the source code.
-Last updated: 2025-07-26T03:59:29.268Z
+Last updated: 2025-08-08T06:00:21.759Z
 </Note>
 
 # Multisynq Client
@@ -40,20 +50,71 @@ Welcome to the comprehensive API reference for @multisynq/client. This documenta
     ### Classes
 
     <CardGroup cols={2}>
+      <Card title="MultisynqWebRTCConnection" icon="cube" href="#multisynqwebrtcconnection">
+        Jump to MultisynqWebRTCConnection documentation
+      </Card>
       <Card title="MultisynqWarning" icon="cube" href="#multisynqwarning">
         Jump to MultisynqWarning documentation
+      </Card>
+      <Card title="QFunc" icon="cube" href="#qfunc">
+        Jump to QFunc documentation
       </Card>
       <Card title="FakeVM" icon="cube" href="#fakevm">
         Jump to FakeVM documentation
       </Card>
+      <Card title="VirtualMachine" icon="cube" href="#virtualmachine">
+        Jump to VirtualMachine documentation
+      </Card>
+      <Card title="Message" icon="cube" href="#message">
+        Jump to Message documentation
+      </Card>
+      <Card title="VMHasher" icon="cube" href="#vmhasher">
+        Jump to VMHasher documentation
+      </Card>
+      <Card title="VMWriter" icon="cube" href="#vmwriter">
+        Jump to VMWriter documentation
+      </Card>
+      <Card title="VMReader" icon="cube" href="#vmreader">
+        Jump to VMReader documentation
+      </Card>
+      <Card title="MessageArgumentEncoder" icon="cube" href="#messageargumentencoder">
+        Jump to MessageArgumentEncoder documentation
+      </Card>
+      <Card title="MessageArgumentDecoder" icon="cube" href="#messageargumentdecoder">
+        Jump to MessageArgumentDecoder documentation
+      </Card>
       <Card title="View" icon="cube" href="#view">
         Jump to View documentation
+      </Card>
+      <Card title="UrlOptions" icon="cube" href="#urloptions">
+        Jump to UrlOptions documentation
       </Card>
       <Card title="Session" icon="cube" href="#session">
         Jump to Session documentation
       </Card>
+      <Card title="ModelRealm" icon="cube" href="#modelrealm">
+        Jump to ModelRealm documentation
+      </Card>
+      <Card title="ViewRealm" icon="cube" href="#viewrealm">
+        Jump to ViewRealm documentation
+      </Card>
+      <Card title="PriorityQueue" icon="cube" href="#priorityqueue">
+        Jump to PriorityQueue documentation
+      </Card>
+      <Card title="OfflineSocket" icon="cube" href="#offlinesocket">
+        Jump to OfflineSocket documentation
+      </Card>
+      <Card title="UrlOptions" icon="cube" href="#urloptions">
+        Jump to UrlOptions documentation
+      </Card>
+      <Card title="M" icon="cube" href="#m">
+        Jump to M documentation
+      </Card>
       <Card title="Model" icon="cube" href="#model">
         Jump to Model documentation
+      </Card>
+      <Card title="M" icon="cube" href="#m">
+        Jump to M documentation
       </Card>
       <Card title="Domain" icon="cube" href="#domain">
         Jump to Domain documentation
@@ -61,26 +122,103 @@ Welcome to the comprehensive API reference for @multisynq/client. This documenta
       <Card title="Data" icon="cube" href="#data">
         Jump to Data documentation
       </Card>
+      <Card title="DataHandle" icon="cube" href="#datahandle">
+        Jump to DataHandle documentation
+      </Card>
+      <Card title="Controller" icon="cube" href="#controller">
+        Jump to Controller documentation
+      </Card>
+      <Card title="Connection" icon="cube" href="#connection">
+        Jump to Connection documentation
+      </Card>
     </CardGroup>
+
+    <div id="multisynqwebrtcconnection">
+      <classes_MultisynqWebRTCConnection />
+    </div>
 
     <div id="multisynqwarning">
       <classes_MultisynqWarning />
+    </div>
+
+    <div id="qfunc">
+      <classes_QFunc />
     </div>
 
     <div id="fakevm">
       <classes_FakeVM />
     </div>
 
+    <div id="virtualmachine">
+      <classes_VirtualMachine />
+    </div>
+
+    <div id="message">
+      <classes_Message />
+    </div>
+
+    <div id="vmhasher">
+      <classes_VMHasher />
+    </div>
+
+    <div id="vmwriter">
+      <classes_VMWriter />
+    </div>
+
+    <div id="vmreader">
+      <classes_VMReader />
+    </div>
+
+    <div id="messageargumentencoder">
+      <classes_MessageArgumentEncoder />
+    </div>
+
+    <div id="messageargumentdecoder">
+      <classes_MessageArgumentDecoder />
+    </div>
+
     <div id="view">
       <classes_View />
+    </div>
+
+    <div id="urloptions">
+      <classes_UrlOptions />
     </div>
 
     <div id="session">
       <classes_Session />
     </div>
 
+    <div id="modelrealm">
+      <classes_ModelRealm />
+    </div>
+
+    <div id="viewrealm">
+      <classes_ViewRealm />
+    </div>
+
+    <div id="priorityqueue">
+      <classes_PriorityQueue />
+    </div>
+
+    <div id="offlinesocket">
+      <classes_OfflineSocket />
+    </div>
+
+    <div id="urloptions">
+      <classes_UrlOptions />
+    </div>
+
+    <div id="m">
+      <classes_M />
+    </div>
+
     <div id="model">
       <classes_Model />
+    </div>
+
+    <div id="m">
+      <classes_M />
     </div>
 
     <div id="domain">
@@ -91,53 +229,399 @@ Welcome to the comprehensive API reference for @multisynq/client. This documenta
       <classes_Data />
     </div>
 
+    <div id="datahandle">
+      <classes_DataHandle />
+    </div>
+
+    <div id="controller">
+      <classes_Controller />
+    </div>
+
+    <div id="connection">
+      <classes_Connection />
+    </div>
+
   </Tab>
   <Tab title="Functions">
     ### Functions
 
     <CardGroup cols={2}>
-      <Card title="patchBrowser" icon="function" href="#patchbrowser">
+      <Card title="getRandomString" icon="function" href="#func-getRandomString">
+        Jump to getRandomString documentation
+      </Card>
+      <Card title="initDEBUG" icon="function" href="#func-initDEBUG">
+        Jump to initDEBUG documentation
+      </Card>
+      <Card title="propertyAccessor" icon="function" href="#func-propertyAccessor">
+        Jump to propertyAccessor documentation
+      </Card>
+      <Card title="patchBrowser" icon="function" href="#func-patchBrowser">
         Jump to patchBrowser documentation
       </Card>
-      <Card title="inSequence" icon="function" href="#insequence">
+      <Card title="modelDateWarning" icon="function" href="#func-modelDateWarning">
+        Jump to modelDateWarning documentation
+      </Card>
+      <Card title="MultisynqDate" icon="function" href="#func-MultisynqDate">
+        Jump to MultisynqDate documentation
+      </Card>
+      <Card title="createQFunc" icon="function" href="#func-createQFunc">
+        Jump to createQFunc documentation
+      </Card>
+      <Card title="compileQFunc" icon="function" href="#func-compileQFunc">
+        Jump to compileQFunc documentation
+      </Card>
+      <Card title="asQFuncMethodPrefix" icon="function" href="#func-asQFuncMethodPrefix">
+        Jump to asQFuncMethodPrefix documentation
+      </Card>
+      <Card title="shouldRegisterQFuncMethod" icon="function" href="#func-shouldRegisterQFuncMethod">
+        Jump to shouldRegisterQFuncMethod documentation
+      </Card>
+      <Card title="isQFuncFuture" icon="function" href="#func-isQFuncFuture">
+        Jump to isQFuncFuture documentation
+      </Card>
+      <Card title="handlesFuture" icon="function" href="#func-handlesFuture">
+        Jump to handlesFuture documentation
+      </Card>
+      <Card title="asQFuncSubscription" icon="function" href="#func-asQFuncSubscription">
+        Jump to asQFuncSubscription documentation
+      </Card>
+      <Card title="isRegisteredQFuncSubscription" icon="function" href="#func-isRegisteredQFuncSubscription">
+        Jump to isRegisteredQFuncSubscription documentation
+      </Card>
+      <Card title="execInVM" icon="function" href="#func-execInVM">
+        Jump to execInVM documentation
+      </Card>
+      <Card title="execOutsideVM" icon="function" href="#func-execOutsideVM">
+        Jump to execOutsideVM documentation
+      </Card>
+      <Card title="setPersistenceCache" icon="function" href="#func-setPersistenceCache">
+        Jump to setPersistenceCache documentation
+      </Card>
+      <Card title="getPersistenceCache" icon="function" href="#func-getPersistenceCache">
+        Jump to getPersistenceCache documentation
+      </Card>
+      <Card title="clearPersistenceCache" icon="function" href="#func-clearPersistenceCache">
+        Jump to clearPersistenceCache documentation
+      </Card>
+      <Card title="writeError" icon="function" href="#func-writeError">
+        Jump to writeError documentation
+      </Card>
+      <Card title="encode" icon="function" href="#func-encode">
+        Jump to encode documentation
+      </Card>
+      <Card title="decode" icon="function" href="#func-decode">
+        Jump to decode documentation
+      </Card>
+      <Card title="inSequence" icon="function" href="#func-inSequence">
         Jump to inSequence documentation
       </Card>
-      <Card title="currentRealm" icon="function" href="#currentrealm">
+      <Card title="resetReadersAndWriters" icon="function" href="#func-resetReadersAndWriters">
+        Jump to resetReadersAndWriters documentation
+      </Card>
+      <Card title="gatherClassTypes" icon="function" href="#func-gatherClassTypes">
+        Jump to gatherClassTypes documentation
+      </Card>
+      <Card title="warnMultipleSessionsStatic" icon="function" href="#func-warnMultipleSessionsStatic">
+        Jump to warnMultipleSessionsStatic documentation
+      </Card>
+      <Card title="arrayBufferToBase64" icon="function" href="#func-arrayBufferToBase64">
+        Jump to arrayBufferToBase64 documentation
+      </Card>
+      <Card title="base64ToArrayBuffer" icon="function" href="#func-base64ToArrayBuffer">
+        Jump to base64ToArrayBuffer documentation
+      </Card>
+      <Card title="initDEBUG" icon="function" href="#func-initDEBUG">
+        Jump to initDEBUG documentation
+      </Card>
+      <Card title="parseUrlOptionString" icon="function" href="#func-parseUrlOptionString">
+        Jump to parseUrlOptionString documentation
+      </Card>
+      <Card title="handleMessage" icon="function" href="#func-handleMessage">
+        Jump to handleMessage documentation
+      </Card>
+      <Card title="encrypt" icon="function" href="#func-encrypt">
+        Jump to encrypt documentation
+      </Card>
+      <Card title="compress" icon="function" href="#func-compress">
+        Jump to compress documentation
+      </Card>
+      <Card title="hash" icon="function" href="#func-hash">
+        Jump to hash documentation
+      </Card>
+      <Card title="getUploadUrl" icon="function" href="#func-getUploadUrl">
+        Jump to getUploadUrl documentation
+      </Card>
+      <Card title="uploadEncrypted" icon="function" href="#func-uploadEncrypted">
+        Jump to uploadEncrypted documentation
+      </Card>
+      <Card title="offlineStore" icon="function" href="#func-offlineStore">
+        Jump to offlineStore documentation
+      </Card>
+      <Card title="getOfflineFile" icon="function" href="#func-getOfflineFile">
+        Jump to getOfflineFile documentation
+      </Card>
+      <Card title="makeStats" icon="function" href="#func-makeStats">
+        Jump to makeStats documentation
+      </Card>
+      <Card title="map" icon="function" href="#func-map">
+        Jump to map documentation
+      </Card>
+      <Card title="makeOverlayCanvas" icon="function" href="#func-makeOverlayCanvas">
+        Jump to makeOverlayCanvas documentation
+      </Card>
+      <Card title="makeHorizCanvas" icon="function" href="#func-makeHorizCanvas">
+        Jump to makeHorizCanvas documentation
+      </Card>
+      <Card title="makeBacklogCanvas" icon="function" href="#func-makeBacklogCanvas">
+        Jump to makeBacklogCanvas documentation
+      </Card>
+      <Card title="cleanupOverlayCanvases" icon="function" href="#func-cleanupOverlayCanvases">
+        Jump to cleanupOverlayCanvases documentation
+      </Card>
+      <Card title="drawTextStats" icon="function" href="#func-drawTextStats">
+        Jump to drawTextStats documentation
+      </Card>
+      <Card title="newFrame" icon="function" href="#func-newFrame">
+        Jump to newFrame documentation
+      </Card>
+      <Card title="endCurrentFrame" icon="function" href="#func-endCurrentFrame">
+        Jump to endCurrentFrame documentation
+      </Card>
+      <Card title="deprecatedStartSession" icon="function" href="#func-deprecatedStartSession">
+        Jump to deprecatedStartSession documentation
+      </Card>
+      <Card title="inherits" icon="function" href="#func-inherits">
+        Jump to inherits documentation
+      </Card>
+      <Card title="asArray" icon="function" href="#func-asArray">
+        Jump to asArray documentation
+      </Card>
+      <Card title="rebootModelView" icon="function" href="#func-rebootModelView">
+        Jump to rebootModelView documentation
+      </Card>
+      <Card title="clear" icon="function" href="#func-clear">
+        Jump to clear documentation
+      </Card>
+      <Card title="deepFreeze" icon="function" href="#func-deepFreeze">
+        Jump to deepFreeze documentation
+      </Card>
+      <Card title="freezeAndHashConstants" icon="function" href="#func-freezeAndHashConstants">
+        Jump to freezeAndHashConstants documentation
+      </Card>
+      <Card title="currentRealm" icon="function" href="#func-currentRealm">
         Jump to currentRealm documentation
       </Card>
-      <Card title="hashBuffer" icon="function" href="#hashbuffer">
+      <Card title="inModelRealm" icon="function" href="#func-inModelRealm">
+        Jump to inModelRealm documentation
+      </Card>
+      <Card title="inViewRealm" icon="function" href="#func-inViewRealm">
+        Jump to inViewRealm documentation
+      </Card>
+      <Card title="parseOptions" icon="function" href="#func-parseOptions">
+        Jump to parseOptions documentation
+      </Card>
+      <Card title="newFrame" icon="function" href="#func-newFrame">
+        Jump to newFrame documentation
+      </Card>
+      <Card title="endCurrentFrame" icon="function" href="#func-endCurrentFrame">
+        Jump to endCurrentFrame documentation
+      </Card>
+      <Card title="showMessageInConsole" icon="function" href="#func-showMessageInConsole">
+        Jump to showMessageInConsole documentation
+      </Card>
+      <Card title="displayError" icon="function" href="#func-displayError">
+        Jump to displayError documentation
+      </Card>
+      <Card title="displayWarning" icon="function" href="#func-displayWarning">
+        Jump to displayWarning documentation
+      </Card>
+      <Card title="displayStatus" icon="function" href="#func-displayStatus">
+        Jump to displayStatus documentation
+      </Card>
+      <Card title="displayAppError" icon="function" href="#func-displayAppError">
+        Jump to displayAppError documentation
+      </Card>
+      <Card title="initDEBUG" icon="function" href="#func-initDEBUG">
+        Jump to initDEBUG documentation
+      </Card>
+      <Card title="allClasses" icon="function" href="#func-allClasses">
+        Jump to allClasses documentation
+      </Card>
+      <Card title="allClassTypes" icon="function" href="#func-allClassTypes">
+        Jump to allClassTypes documentation
+      </Card>
+      <Card title="hasID" icon="function" href="#func-hasID">
+        Jump to hasID documentation
+      </Card>
+      <Card title="classToID" icon="function" href="#func-classToID">
+        Jump to classToID documentation
+      </Card>
+      <Card title="classFromID" icon="function" href="#func-classFromID">
+        Jump to classFromID documentation
+      </Card>
+      <Card title="registerClass" icon="function" href="#func-registerClass">
+        Jump to registerClass documentation
+      </Card>
+      <Card title="addWidgetStyle" icon="function" href="#func-addWidgetStyle">
+        Jump to addWidgetStyle documentation
+      </Card>
+      <Card title="addSpinnerStyle" icon="function" href="#func-addSpinnerStyle">
+        Jump to addSpinnerStyle documentation
+      </Card>
+      <Card title="addToastifyStyle" icon="function" href="#func-addToastifyStyle">
+        Jump to addToastifyStyle documentation
+      </Card>
+      <Card title="showMessageAsToast" icon="function" href="#func-showMessageAsToast">
+        Jump to showMessageAsToast documentation
+      </Card>
+      <Card title="displayError" icon="function" href="#func-displayError">
+        Jump to displayError documentation
+      </Card>
+      <Card title="displayWarning" icon="function" href="#func-displayWarning">
+        Jump to displayWarning documentation
+      </Card>
+      <Card title="displayStatus" icon="function" href="#func-displayStatus">
+        Jump to displayStatus documentation
+      </Card>
+      <Card title="displayAppError" icon="function" href="#func-displayAppError">
+        Jump to displayAppError documentation
+      </Card>
+      <Card title="displayToast" icon="function" href="#func-displayToast">
+        Jump to displayToast documentation
+      </Card>
+      <Card title="monikerForId" icon="function" href="#func-monikerForId">
+        Jump to monikerForId documentation
+      </Card>
+      <Card title="colorsForId" icon="function" href="#func-colorsForId">
+        Jump to colorsForId documentation
+      </Card>
+      <Card title="clearSessionMoniker" icon="function" href="#func-clearSessionMoniker">
+        Jump to clearSessionMoniker documentation
+      </Card>
+      <Card title="makeWidgetDock" icon="function" href="#func-makeWidgetDock">
+        Jump to makeWidgetDock documentation
+      </Card>
+      <Card title="shiftPage" icon="function" href="#func-shiftPage">
+        Jump to shiftPage documentation
+      </Card>
+      <Card title="makeButton" icon="function" href="#func-makeButton">
+        Jump to makeButton documentation
+      </Card>
+      <Card title="makeBadge" icon="function" href="#func-makeBadge">
+        Jump to makeBadge documentation
+      </Card>
+      <Card title="makeQRCode" icon="function" href="#func-makeQRCode">
+        Jump to makeQRCode documentation
+      </Card>
+      <Card title="displayBadgeIfNeeded" icon="function" href="#func-displayBadgeIfNeeded">
+        Jump to displayBadgeIfNeeded documentation
+      </Card>
+      <Card title="toggleDebug" icon="function" href="#func-toggleDebug">
+        Jump to toggleDebug documentation
+      </Card>
+      <Card title="displayQRCodeIfNeeded" icon="function" href="#func-displayQRCodeIfNeeded">
+        Jump to displayQRCodeIfNeeded documentation
+      </Card>
+      <Card title="displayStatsIfNeeded" icon="function" href="#func-displayStatsIfNeeded">
+        Jump to displayStatsIfNeeded documentation
+      </Card>
+      <Card title="makeSessionWidgets" icon="function" href="#func-makeSessionWidgets">
+        Jump to makeSessionWidgets documentation
+      </Card>
+      <Card title="displaySpinner" icon="function" href="#func-displaySpinner">
+        Jump to displaySpinner documentation
+      </Card>
+      <Card title="makeSpinner" icon="function" href="#func-makeSpinner">
+        Jump to makeSpinner documentation
+      </Card>
+      <Card title="findElement" icon="function" href="#func-findElement">
+        Jump to findElement documentation
+      </Card>
+      <Card title="defaultSessionURL" icon="function" href="#func-defaultSessionURL">
+        Jump to defaultSessionURL documentation
+      </Card>
+      <Card title="secureRandomString" icon="function" href="#func-secureRandomString">
+        Jump to secureRandomString documentation
+      </Card>
+      <Card title="cryptoJsWordArrayToUint8Array" icon="function" href="#func-cryptoJsWordArrayToUint8Array">
+        Jump to cryptoJsWordArrayToUint8Array documentation
+      </Card>
+      <Card title="funcSrc" icon="function" href="#func-funcSrc">
+        Jump to funcSrc documentation
+      </Card>
+      <Card title="cleanup" icon="function" href="#func-cleanup">
+        Jump to cleanup documentation
+      </Card>
+      <Card title="fromBase64url" icon="function" href="#func-fromBase64url">
+        Jump to fromBase64url documentation
+      </Card>
+      <Card title="toBase64url" icon="function" href="#func-toBase64url">
+        Jump to toBase64url documentation
+      </Card>
+      <Card title="hashBuffer" icon="function" href="#func-hashBuffer">
         Jump to hashBuffer documentation
       </Card>
-      <Card title="hashString" icon="function" href="#hashstring">
+      <Card title="debugHashing" icon="function" href="#func-debugHashing">
+        Jump to debugHashing documentation
+      </Card>
+      <Card title="hashString" icon="function" href="#func-hashString">
         Jump to hashString documentation
       </Card>
-      <Card title="hashNameAndOptions" icon="function" href="#hashnameandoptions">
+      <Card title="addClassHash" icon="function" href="#func-addClassHash">
+        Jump to addClassHash documentation
+      </Card>
+      <Card title="addConstantsHash" icon="function" href="#func-addConstantsHash">
+        Jump to addConstantsHash documentation
+      </Card>
+      <Card title="hashNameAndOptions" icon="function" href="#func-hashNameAndOptions">
         Jump to hashNameAndOptions documentation
+      </Card>
+      <Card title="hashSessionAndCode" icon="function" href="#func-hashSessionAndCode">
+        Jump to hashSessionAndCode documentation
+      </Card>
+      <Card title="removeHandlers" icon="function" href="#func-removeHandlers">
+        Jump to removeHandlers documentation
+      </Card>
+      <Card title="debug" icon="function" href="#func-debug">
+        Jump to debug documentation
+      </Card>
+      <Card title="hashFromUrl" icon="function" href="#func-hashFromUrl">
+        Jump to hashFromUrl documentation
+      </Card>
+      <Card title="toBase64Url" icon="function" href="#func-toBase64Url">
+        Jump to toBase64Url documentation
+      </Card>
+      <Card title="fromBase64Url" icon="function" href="#func-fromBase64Url">
+        Jump to fromBase64Url documentation
+      </Card>
+      <Card title="scramble" icon="function" href="#func-scramble">
+        Jump to scramble documentation
+      </Card>
+      <Card title="initOptions" icon="function" href="#func-initOptions">
+        Jump to initOptions documentation
+      </Card>
+      <Card title="setDebug" icon="function" href="#func-setDebug">
+        Jump to setDebug documentation
+      </Card>
+      <Card title="initDEPIN" icon="function" href="#func-initDEPIN">
+        Jump to initDEPIN documentation
+      </Card>
+      <Card title="randomString" icon="function" href="#func-randomString">
+        Jump to randomString documentation
+      </Card>
+      <Card title="sessionProps" icon="function" href="#func-sessionProps">
+        Jump to sessionProps documentation
+      </Card>
+      <Card title="sessionController" icon="function" href="#func-sessionController">
+        Jump to sessionController documentation
+      </Card>
+      <Card title="diffJSON" icon="function" href="#func-diffJSON">
+        Jump to diffJSON documentation
       </Card>
     </CardGroup>
 
-    <div id="patchbrowser">
-      <functions_patchBrowser />
-    </div>
-
-    <div id="insequence">
-      <functions_inSequence />
-    </div>
-
-    <div id="currentrealm">
-      <functions_currentRealm />
-    </div>
-
-    <div id="hashbuffer">
-      <functions_hashBuffer />
-    </div>
-
-    <div id="hashstring">
-      <functions_hashString />
-    </div>
-
-    <div id="hashnameandoptions">
-      <functions_hashNameAndOptions />
+    <div id="functions">
+      <functions_Functions />
     </div>
 
   </Tab>
