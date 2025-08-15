@@ -341,16 +341,29 @@ class EnhancedJSDocParser {
         const classRegex = /(?:\/\*\*([\s\S]*?)\*\/\s*)?(?:export\s+)?class\s+(\w+)(?:\s+extends\s+(\w+))?\s*\{([\s\S]*?)(?=\n(?:export\s+)?class|\n\/\*\*|\nexport\s+default|\Z)/g;
         const functionRegex = /(?:\/\*\*([\s\S]*?)\*\/\s*)?(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\((.*?)\)\s*\{/g;
         const arrowFunctionRegex = /(?:\/\*\*([\s\S]*?)\*\/\s*)?(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\((.*?)\)\s*=>/g;
-        const constRegex = /(?:\/\*\*([\s\S]*?)\*\/\s*)?(?:export\s+)?const\s+([A-Z_]+)\s*=\s*(.+?)(?:;|\n)/g;
+        const constRegex = /(?:\/\*\*([\s\S]*?)\*\/\s*)?export\s+const\s+([A-Z_]+)\s*=\s*([^;]+);/g;
         const exportDefaultRegex = /export\s+default\s+(\w+);?/g;
         
         // Parse classes
         let match;
         while ((match = classRegex.exec(content)) !== null) {
             const [fullMatch, jsDoc = '', className, extendsClass, classBody] = match;
+            // Only use JSDoc comments that start with /** (not single-line comments)
+            let description = jsDoc.startsWith('*') ? this.extractDescription(jsDoc) : '';
+            
+            // Special case: if this class extends another class and has no JSDoc,
+            // look for the parent class's JSDoc in the same file
+            if (!description && extendsClass) {
+                const parentClassRegex = new RegExp(`\\/\\*\\*([\\s\\S]*?)\\*\\/\\s*class\\s+${extendsClass}\\s*\\{`, 'g');
+                const parentMatch = parentClassRegex.exec(content);
+                if (parentMatch && parentMatch[1]) {
+                    description = this.extractDescription(parentMatch[1]);
+                }
+            }
+            
             const classInfo = {
                 name: className,
-                description: this.extractDescription(jsDoc),
+                description: description,
                 extends: extendsClass,
                 methods: [],
                 properties: [],
@@ -360,12 +373,13 @@ class EnhancedJSDocParser {
             };
 
             // Extract methods from class body
-            // Exclude common control flow keywords
-            const methodRegex = /(?:\/\*\*([\s\S]*?)\*\/\s*)?(?:static\s+)?(?:async\s+)?(?!if|for|while|switch|catch|with)(\w+)\s*\((.*?)\)\s*\{/g;
+            const methodRegex = /(?:\/\*\*([\s\S]*?)\*\/\s*)?(?:static\s+)?(?:async\s+)?(\w+)\s*\((.*?)\)\s*\{/g;
             let methodMatch;
             while ((methodMatch = methodRegex.exec(classBody)) !== null) {
                 const [, methodJsDoc = '', methodName, params] = methodMatch;
-                if (methodName !== 'constructor') {
+                // Skip control flow keywords
+                if (methodName !== 'constructor' && 
+                    !['if', 'for', 'while', 'switch', 'catch', 'with', 'try'].includes(methodName)) {
                     classInfo.methods.push({
                         name: methodName,
                         description: this.extractDescription(methodJsDoc),
@@ -456,10 +470,16 @@ class EnhancedJSDocParser {
         while ((match = constRegex.exec(content)) !== null) {
             const [, jsDoc = '', constName, value] = match;
             if (constName === constName.toUpperCase() && constName.includes('_')) {
+                // Limit value to first line to avoid capturing entire code blocks
+                let trimmedValue = value.trim();
+                const firstNewline = trimmedValue.indexOf('\n');
+                if (firstNewline > 0) {
+                    trimmedValue = trimmedValue.substring(0, firstNewline).trim();
+                }
                 this.constants.push({
                     name: constName,
                     description: this.extractDescription(jsDoc),
-                    value: value.trim(),
+                    value: trimmedValue,
                     fileName: path.basename(filePath)
                 });
             }
@@ -721,11 +741,39 @@ class EnhancedMDXGenerator {
     formatDescription(desc) {
         if (!desc) return '';
         
-        // Handle {@link} tags
-        desc = desc.replace(/\{@link\s+([^}]+)\}/g, (match, target) => {
-            const [ref, text] = target.split(/\s+/);
-            return text ? `[${text}](#${ref.toLowerCase()})` : `[${ref}](#${ref.toLowerCase()})`;
+        // Handle [text]{@link target} format first
+        desc = desc.replace(/\[([^\]]+)\]\{@link\s+([^}]+)\}/g, (match, text, target) => {
+            // Handle external URLs
+            if (target.startsWith('http')) {
+                return `[${text}](${target})`;
+            }
+            const cleanTarget = target.replace('#', '').toLowerCase();
+            return `[${text}](#${cleanTarget})`;
         });
+        
+        // Then handle regular {@link target} format
+        desc = desc.replace(/\{@link\s+([^}]+)\}/g, (match, target) => {
+            // Handle external URLs
+            if (target.startsWith('http')) {
+                return `[${target}](${target})`;
+            }
+            const parts = target.split(/\s+/);
+            const ref = parts[0];
+            const text = parts.slice(1).join(' ') || ref;
+            const cleanRef = ref.replace('#', '').toLowerCase();
+            return `[${text}](#${cleanRef})`;
+        });
+        
+        // Handle {@tutorial} tags
+        desc = desc.replace(/\[([^\]]+)\]\{@tutorial\s+([^}]+)\}/g, (match, text, tutorial) => {
+            return `[${text}](/tutorials/${tutorial})`;
+        });
+        desc = desc.replace(/\{@tutorial\s+([^}]+)\}/g, (match, tutorial) => {
+            return `[tutorial](/tutorials/${tutorial})`;
+        });
+        
+        // Handle <br> tags - convert to newlines
+        desc = desc.replace(/<br\s*\/?>/g, '\n\n');
         
         // Handle inline code
         desc = desc.replace(/`([^`]+)`/g, '`$1`');
@@ -909,7 +957,8 @@ description: '${this.formatDescription(cls.description).split('.')[0] || `API re
             sections.push('## Properties\n');
             publicProps.forEach(prop => {
                 sections.push(`### \`${prop.name}\`\n`);
-                sections.push(`**Type:** \`${prop.type}\`\n`);
+                const escapedType = prop.type.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                sections.push(`**Type:** \`${escapedType}\`\n`);
                 if (prop.description) {
                     sections.push(`${this.formatDescription(prop.description)}\n`);
                 }
@@ -977,13 +1026,15 @@ description: '${this.formatDescription(cls.description).split('.')[0] || `API re
             method.params.forEach(param => {
                 // Escape the type for MDX
                 const escapedType = param.type.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                sections.push(`- \`${param.name}\` (\`${escapedType}\`)${param.optional ? ' _(optional)_' : ''} - ${param.description || ''}`);
+                const formattedDesc = param.description ? this.formatDescription(param.description) : '';
+                sections.push(`- \`${param.name}\` (\`${escapedType}\`)${param.optional ? ' _(optional)_' : ''} - ${formattedDesc}`);
             });
             sections.push('');
         }
 
         if (method.returns) {
-            sections.push(`**Returns:** \`${method.returns.type}\`${method.returns.description ? ` - ${method.returns.description}` : ''}\n`);
+            const escapedReturnType = method.returns.type.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            sections.push(`**Returns:** \`${escapedReturnType}\`${method.returns.description ? ` - ${method.returns.description}` : ''}\n`);
         }
 
         if (method.examples && method.examples.length > 0) {

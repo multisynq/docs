@@ -57,24 +57,6 @@ limit the methods that can be triggered directly via reflector
 - `model` (`any`) - 
 - `methodOrMessage` (`any`) - 
 
-#### `if(typeof methodOrMessage.time)`
-
-**Parameters:**
-
-- `typeof methodOrMessage.time` (`any`) - 
-
-#### `if(methodOrMessage)`
-
-**Parameters:**
-
-- `methodOrMessage` (`any`) - 
-
-#### `if(isQFuncFuture(methodName))`
-
-**Parameters:**
-
-- `isQFuncFuture(methodName)` (`any`) - 
-
 #### `futureRepeat(tOffset, receiverID, selector, args)`
 
 **Parameters:**
@@ -93,24 +75,6 @@ limit the methods that can be triggered directly via reflector
 - `selector` (`any`) - 
 - `args` (`any`) - 
 
-#### `if(typeof model[selector])`
-
-**Parameters:**
-
-- `typeof model[selector]` (`any`) - 
-
-#### `catch(error)`
-
-**Parameters:**
-
-- `error` (`any`) - 
-
-#### `catch(error)`
-
-**Parameters:**
-
-- `error` (`any`) - 
-
 #### `future(model, tOffset, methodNameOrCallback, methodArgs)`
 
 **Parameters:**
@@ -119,12 +83,6 @@ limit the methods that can be triggered directly via reflector
 - `tOffset` (`any`) - 
 - `methodNameOrCallback` (`any`) - 
 - `methodArgs` (`any`) - 
-
-#### `if(methodNameOrCallback)`
-
-**Parameters:**
-
-- `methodNameOrCallback` (`any`) - 
 
 #### `get(_target, property)`
 
@@ -144,18 +102,6 @@ Process pending messages for this vm and advance simulation time. Must only be s
 
 **Returns:** `Boolean` - true if finished simulation before deadline
 
-#### `while((message)`
-
-**Parameters:**
-
-- `(message` (`any`) - 
-
-#### `if(seq & 1)`
-
-**Parameters:**
-
-- `seq & 1` (`any`) - 
-
 #### `asMethodName(model, func, what, topic)`
 
 **Parameters:**
@@ -164,49 +110,6 @@ Process pending messages for this vm and advance simulation time. Must only be s
 - `func` (`any`) - 
 - `what` (`any`) - 
 - `topic` (`any`) - 
-
-#### `if(typeof func)`
-
-**Parameters:**
-
-- `typeof func` (`any`) - 
-
-#### `if(func[QFUNC] && topic)`
-
-**Parameters:**
-
-- `func[QFUNC] && topic` (`any`) - 
-
-#### `while(obj !)`
-
-**Parameters:**
-
-- `obj !` (`any`) - 
-
-#### `for(const [name, desc] of Object.entries(Object.getOwnPropertyDescriptors(obj)))`
-
-**Parameters:**
-
-- `const [name` (`any`) - 
-- `desc] of Object.entries(Object.getOwnPropertyDescriptors(obj))` (`any`) - 
-
-#### `if(desc.value)`
-
-**Parameters:**
-
-- `desc.value` (`any`) - 
-
-#### `if(obj)`
-
-**Parameters:**
-
-- `obj` (`any`) - 
-
-#### `if(!shouldRegisterQFuncMethod(what))`
-
-**Parameters:**
-
-- `!shouldRegisterQFuncMethod(what)` (`any`) - 
 
 #### `asFuncString(fn)`
 
@@ -221,12 +124,6 @@ Process pending messages for this vm and advance simulation time. Must only be s
 - `str` (`any`) - 
 - `model` (`any`) - 
 
-#### `if(!fn)`
-
-**Parameters:**
-
-- `!fn` (`any`) - 
-
 #### `addSubscription(model, scope, event, methodNameOrCallback)`
 
 **Parameters:**
@@ -236,30 +133,6 @@ Process pending messages for this vm and advance simulation time. Must only be s
 - `event` (`any`) - 
 - `methodNameOrCallback` (`any`) - 
 
-#### `if(typeof methodName !)`
-
-**Parameters:**
-
-- `typeof methodName !` (`any`) - 
-
-#### `if(methodName.indexOf('.') < 0 && typeof model[methodName] !)`
-
-**Parameters:**
-
-- `methodName.indexOf('.') < 0 && typeof model[methodName] !` (`any`) - 
-
-#### `if(scope)`
-
-**Parameters:**
-
-- `scope` (`any`) - 
-
-#### `if(this.subscriptions[topic].indexOf(handler) !)`
-
-**Parameters:**
-
-- `this.subscriptions[topic].indexOf(handler) !` (`any`) - 
-
 #### `removeSubscription(model, scope, event, methodName)`
 
 **Parameters:**
@@ -268,54 +141,6 @@ Process pending messages for this vm and advance simulation time. Must only be s
 - `scope` (`any`) - 
 - `event` (`any`) - 
 - `methodName` (`any`) - 
-
-#### `if(scope)`
-
-**Parameters:**
-
-- `scope` (`any`) - 
-
-#### `if(handlers)`
-
-**Parameters:**
-
-- `handlers` (`any`) - 
-
-#### `if(methodName)`
-
-**Parameters:**
-
-- `methodName` (`any`) - 
-
-#### `for(let i)`
-
-**Parameters:**
-
-- `let i` (`any`) - 
-
-#### `if(handlers[i].startsWith(handlerPrefix))`
-
-**Parameters:**
-
-- `handlers[i].startsWith(handlerPrefix)` (`any`) - 
-
-#### `if(typeof nameString !)`
-
-**Parameters:**
-
-- `typeof nameString !` (`any`) - 
-
-#### `if(indexToRemove !)`
-
-**Parameters:**
-
-- `indexToRemove !` (`any`) - 
-
-#### `if(handlers.find(h)`
-
-**Parameters:**
-
-- `handlers.find(h` (`any`) - 
 
 #### `addGenericSubscription(topic, handler)`
 
@@ -333,53 +158,11 @@ Process pending messages for this vm and advance simulation time. Must only be s
 - `event` (`any`) - 
 - `methodName` (`any`) - 
 
-#### `for(let i)`
-
-**Parameters:**
-
-- `let i` (`any`) - 
-
-#### `if(subscription.topic)`
-
-**Parameters:**
-
-- `subscription.topic` (`any`) - 
-
-#### `if(methodName)`
-
-**Parameters:**
-
-- `methodName` (`any`) - 
-
 #### `removeAllSubscriptionsFor(model)`
 
 **Parameters:**
 
 - `model` (`any`) - 
-
-#### `if(topics)`
-
-**Parameters:**
-
-- `topics` (`any`) - 
-
-#### `for(const topic of topics)`
-
-**Parameters:**
-
-- `const topic of topics` (`any`) - 
-
-#### `for(let i)`
-
-**Parameters:**
-
-- `let i` (`any`) - 
-
-#### `if(handlers[i].startsWith(handlerPrefix))`
-
-**Parameters:**
-
-- `handlers[i].startsWith(handlerPrefix)` (`any`) - 
 
 #### `publishFromModel(scope, event, data)`
 
@@ -411,12 +194,6 @@ Process pending messages for this vm and advance simulation time. Must only be s
 
 - `events` (`any`) - 
 
-#### `for(const msgState of events)`
-
-**Parameters:**
-
-- `const msgState of events` (`any`) - 
-
 #### `handleModelEventInModel(topic, data, reflect)`
 
 **Parameters:**
@@ -424,24 +201,6 @@ Process pending messages for this vm and advance simulation time. Must only be s
 - `topic` (`any`) - 
 - `data` (`any`) - 
 - `reflect` (`any`) - 
-
-#### `if(reflect)`
-
-**Parameters:**
-
-- `reflect` (`any`) - 
-
-#### `if(this.genericSubscriptions.length > 0)`
-
-**Parameters:**
-
-- `this.genericSubscriptions.length > 0` (`any`) - 
-
-#### `if(this.subscriptions[topic])`
-
-**Parameters:**
-
-- `this.subscriptions[topic]` (`any`) - 
 
 #### `invokeHandlers(liveHandlers, topic, data)`
 
@@ -451,30 +210,12 @@ Process pending messages for this vm and advance simulation time. Must only be s
 - `topic` (`any`) - 
 - `data` (`any`) - 
 
-#### `for(let i)`
-
-**Parameters:**
-
-- `let i` (`any`) - 
-
-#### `if(handler !)`
-
-**Parameters:**
-
-- `handler !` (`any`) - 
-
 #### `invokeGenericHandlers(topic, data)`
 
 **Parameters:**
 
 - `topic` (`any`) - 
 - `data` (`any`) - 
-
-#### `for(const subscription of this.genericSubscriptions)`
-
-**Parameters:**
-
-- `const subscription of this.genericSubscriptions` (`any`) - 
 
 #### `invokeHandler(handler, topic, data)`
 
@@ -484,60 +225,12 @@ Process pending messages for this vm and advance simulation time. Must only be s
 - `topic` (`any`) - 
 - `data` (`any`) - 
 
-#### `if(!model)`
-
-**Parameters:**
-
-- `!model` (`any`) - 
-
-#### `if(methodName[0])`
-
-**Parameters:**
-
-- `methodName[0]` (`any`) - 
-
-#### `catch(error)`
-
-**Parameters:**
-
-- `error` (`any`) - 
-
-#### `if(methodName.indexOf('.') >)`
-
-**Parameters:**
-
-- `methodName.indexOf('.') >` (`any`) - 
-
-#### `catch(error)`
-
-**Parameters:**
-
-- `error` (`any`) - 
-
-#### `if(typeof model[methodName] !)`
-
-**Parameters:**
-
-- `typeof model[methodName] !` (`any`) - 
-
-#### `catch(error)`
-
-**Parameters:**
-
-- `error` (`any`) - 
-
 #### `handleViewEventInModel(topic, data)`
 
 **Parameters:**
 
 - `topic` (`any`) - 
 - `data` (`any`) - 
-
-#### `if(this.subscriptions[topic])`
-
-**Parameters:**
-
-- `this.subscriptions[topic]` (`any`) - 
 
 #### `handleModelEventInView(topic, data)`
 
@@ -579,12 +272,6 @@ Process pending messages for this vm and advance simulation time. Must only be s
 - `isInAnimationStep` (`any`) - 
 
 #### `handlePollForSnapshot()`
-
-#### `if(sinceLast < SNAPSHOT_MIN_POLL_GAP)`
-
-**Parameters:**
-
-- `sinceLast < SNAPSHOT_MIN_POLL_GAP` (`any`) - 
 
 #### `handleTuttiResult(data)`
 
@@ -629,41 +316,11 @@ Process pending messages for this vm and advance simulation time. Must only be s
 - `model` (`any`) - 
 - `persistentDataFunc` (`any`) - 
 
-#### `if(urlOptions.forcePersist)`
-
-**Parameters:**
-
-- `urlOptions.forcePersist` (`any`) - 
-
-#### `if(this.inPersistenceCoolOff)`
-
-**Parameters:**
-
-- `this.inPersistenceCoolOff` (`any`) - 
-
-#### `if(timeUntilReady > 0)`
-
-**Parameters:**
-
-- `timeUntilReady > 0` (`any`) - 
-
 #### `triggerPersistencePoll()`
-
-#### `if(this.controller.synced)`
-
-**Parameters:**
-
-- `this.controller.synced` (`any`) - 
 
 #### `random()`
 
 #### `randomID()`
-
-#### `for(let i)`
-
-**Parameters:**
-
-- `let i` (`any`) - 
 
 #### `toString()`
 
@@ -675,33 +332,9 @@ Process pending messages for this vm and advance simulation time. Must only be s
 - `selector` (`any`) - 
 - `args` (`any`) - 
 
-#### `if(receiver)`
-
-**Parameters:**
-
-- `receiver` (`any`) - 
-
-#### `if(args.length > 0)`
-
-**Parameters:**
-
-- `args.length > 0` (`any`) - 
-
 #### `decode(payload, vm)`
 
 **Parameters:**
 
 - `payload` (`any`) - 
 - `vm` (`any`) - 
-
-#### `if(payload.length)`
-
-**Parameters:**
-
-- `payload.length` (`any`) - 
-
-#### `if(argString)`
-
-**Parameters:**
-
-- `argString` (`any`) - 

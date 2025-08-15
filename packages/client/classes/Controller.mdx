@@ -22,7 +22,7 @@ description: 'API reference for Controller class'
 - `sessionSpec` (`Function`) - .initFn - the vm initializer `initFn(options)`
 - `sessionSpec` (`Function`) - .rebootModelView - for taking down and rebuilding the model (i.e., the vm) and view
 - `sessionSpec` (`Object`) - .options - options to pass to the vm initializer
-- `sessionSpec` (`Array<String>`) - .optionsFromUrl - names of additional app-specific vm initializer options to take from URL
+- `sessionSpec` (`Array&lt;String&gt;`) - .optionsFromUrl - names of additional app-specific vm initializer options to take from URL
 - `sessionSpec` (`String`) - .apiKey - an API key of the form `backend:secret` (or just `secret` if backend is `prod`)
 - `sessionSpec` (`String`) - .appId - a unique identifier for an app
 - `sessionSpec` (`String`) - .password - password for end-to-end encryption
@@ -31,19 +31,6 @@ description: 'API reference for Controller class'
 - `sessionSpec` (`Number|String`) - .tps - ticks per second (can be overridden by `options.tps` or `urlOptions.tps`)
 - `sessionSpec` (`Number`) - .autoSleep - number of seconds of being hidden to trigger dormancy (or 0 to disable)
 - `sessionSpec` (`Object`) - .flags - features to request from the reflector
-
-#### `if(optionsFromUrl) for (const key of optionsFromUrl)`
-
-**Parameters:**
-
-- `optionsFromUrl) for (const key of optionsFromUrl` (`any`) - 
-
-#### `for(const [key, option] of Object.entries(options))`
-
-**Parameters:**
-
-- `const [key` (`any`) - 
-- `option] of Object.entries(options)` (`any`) - 
 
 #### `establishSession()`
 
@@ -55,25 +42,6 @@ Join or create a session by connecting to the reflector
 
 - `apiKeysWithBackend` (`any`) - 
 
-#### `if(urlOptions.box || urlOptions.reflector)`
-
-**Parameters:**
-
-- `urlOptions.box || urlOptions.reflector` (`any`) - 
-
-#### `for(const key of apiKeysWithBackend.split(", "))`
-
-**Parameters:**
-
-- `const key of apiKeysWithBackend.split("` (`any`) - 
-- `")` (`any`) - 
-
-#### `if(backend)`
-
-**Parameters:**
-
-- `backend` (`any`) - 
-
 #### `verifyApiKey(apiKeysWithBackend, appId, persistentId)`
 
 fetch developerId from sign function via meta protocol
@@ -84,12 +52,6 @@ fetch developerId from sign function via meta protocol
 - `appId` (`any`) - 
 - `persistentId` (`any`) - 
 
-#### `catch(err)`
-
-**Parameters:**
-
-- `err` (`any`) - 
-
 #### `fetchWithRetries(goal, instantFailureCodes, allowedRetries, fetchFn)`
 
 **Parameters:**
@@ -98,18 +60,6 @@ fetch developerId from sign function via meta protocol
 - `instantFailureCodes` (`any`) - 
 - `allowedRetries` (`any`) - 
 - `fetchFn` (`any`) - 
-
-#### `for(;;)`
-
-**Parameters:**
-
-- `;;` (`any`) - 
-
-#### `catch(err)`
-
-**Parameters:**
-
-- `err` (`any`) - 
 
 #### `lastKnownTime(vmOrSnapshot)`
 
@@ -120,12 +70,6 @@ fetch developerId from sign function via meta protocol
 #### `takeSnapshot()`
 
 #### `takeSnapshotHandleErrors()`
-
-#### `catch(error)`
-
-**Parameters:**
-
-- `error` (`any`) - 
 
 #### `setDebug(options)`
 
@@ -141,47 +85,11 @@ fetch developerId from sign function via meta protocol
 
 - `force` (`any`) - 
 
-#### `if(sinceLast < 5000 && !force)`
-
-**Parameters:**
-
-- `sinceLast < 5000 && !force` (`any`) - 
-
-#### `if(this.migratingOldSnapshot)`
-
-**Parameters:**
-
-- `this.migratingOldSnapshot` (`any`) - 
-
-#### `if(force)`
-
-**Parameters:**
-
-- `force` (`any`) - 
-
-#### `if(force)`
-
-**Parameters:**
-
-- `force` (`any`) - 
-
 #### `handlePollForSnapshot(time)`
 
 **Parameters:**
 
 - `time` (`any`) - 
-
-#### `if(this.synced !)`
-
-**Parameters:**
-
-- `this.synced !` (`any`) - 
-
-#### `catch(error)`
-
-**Parameters:**
-
-- `error` (`any`) - 
 
 #### `pollForSnapshot(time, voteData)`
 
@@ -196,54 +104,12 @@ fetch developerId from sign function via meta protocol
 
 - `data` (`any`) - 
 
-#### `if(numberOfGroups > 1)`
-
-**Parameters:**
-
-- `numberOfGroups > 1` (`any`) - 
-
-#### `if(this.synced !)`
-
-**Parameters:**
-
-- `this.synced !` (`any`) - 
-
-#### `if(shouldUpload)`
-
-**Parameters:**
-
-- `shouldUpload` (`any`) - 
-
 #### `analyzeTally(tally, timeProperty)`
 
 **Parameters:**
 
 - `tally` (`any`) - 
 - `timeProperty` (`any`) - 
-
-#### `if(numberOfGroups > 1)`
-
-**Parameters:**
-
-- `numberOfGroups > 1` (`any`) - 
-
-#### `if(votesByHash[hashGroups[0]].length)`
-
-**Parameters:**
-
-- `votesByHash[hashGroups[0]].length` (`any`) - 
-
-#### `if(ourIndex !)`
-
-**Parameters:**
-
-- `ourIndex !` (`any`) - 
-
-#### `if(clientIndices[0])`
-
-**Parameters:**
-
-- `clientIndices[0]` (`any`) - 
 
 #### `snapshotPath(time, seq, hash)`
 
@@ -259,29 +125,11 @@ fetch developerId from sign function via meta protocol
 
 - `snapshot` (`any`) - 
 
-#### `if(!snapshot.meta.hashPromise)`
-
-**Parameters:**
-
-- `!snapshot.meta.hashPromise` (`any`) - 
-
 #### `uploadServer(apiKeysWithBackend)`
 
 **Parameters:**
 
 - `apiKeysWithBackend` (`any`) - 
-
-#### `if(typeof urlOptions.files)`
-
-**Parameters:**
-
-- `typeof urlOptions.files` (`any`) - 
-
-#### `if(signServer)`
-
-**Parameters:**
-
-- `signServer` (`any`) - 
 
 #### `uploadSnapshot(snapshot, auditStats, dissidentFlag)`
 
@@ -290,18 +138,6 @@ fetch developerId from sign function via meta protocol
 - `snapshot` (`any`) - 
 - `auditStats` (`any`) - 
 - `dissidentFlag` (`any`) - 
-
-#### `if(this.connection.socket !)`
-
-**Parameters:**
-
-- `this.connection.socket !` (`any`) - 
-
-#### `catch(e)`
-
-**Parameters:**
-
-- `e` (`any`) - 
 
 #### `announceSnapshotUrl(time, seq, hash, url, auditStats, dissidentFlag)`
 
@@ -313,24 +149,6 @@ fetch developerId from sign function via meta protocol
 - `url` (`any`) - 
 - `auditStats` (`any`) - 
 - `dissidentFlag` (`any`) - 
-
-#### `if(DEBUG.snapshot)`
-
-**Parameters:**
-
-- `DEBUG.snapshot` (`any`) - 
-
-#### `catch(e)`
-
-**Parameters:**
-
-- `e` (`any`) - 
-
-#### `if(this.diverged)`
-
-**Parameters:**
-
-- `this.diverged` (`any`) - 
 
 #### `diffDivergedSnapshots(urls)`
 
@@ -345,42 +163,6 @@ fetch developerId from sign function via meta protocol
 - `a` (`any`) - 
 - `b` (`any`) - 
 - `path` (`any`) - 
-
-#### `if(typeof a !)`
-
-**Parameters:**
-
-- `typeof a !` (`any`) - 
-
-#### `if(Array.isArray(a) !)`
-
-**Parameters:**
-
-- `Array.isArray(a) !` (`any`) - 
-
-#### `if(typeof a)`
-
-**Parameters:**
-
-- `typeof a` (`any`) - 
-
-#### `if(aOnly.length || bOnly.length)`
-
-**Parameters:**
-
-- `aOnly.length || bOnly.length` (`any`) - 
-
-#### `for(const k of aKeys) if (bKeys.includes(k))`
-
-**Parameters:**
-
-- `const k of aKeys) if (bKeys.includes(k)` (`any`) - 
-
-#### `if(a !)`
-
-**Parameters:**
-
-- `a !` (`any`) - 
 
 #### `downloadEncrypted({url, gzip, key, debug, json, what})`
 
@@ -401,12 +183,6 @@ fetch developerId from sign function via meta protocol
 - `what` (`any`) - 
 - `debug` (`any`) - 
 
-#### `catch(e)`
-
-**Parameters:**
-
-- `e` (`any`) - 
-
 #### `uploadEncrypted({content, path, key, gzip, keep, debug, what})`
 
 upload string or array buffer as binary encrypted, optionally gzipped if path contains %HASH% it will be replaced by the hash after encryption
@@ -420,12 +196,6 @@ upload string or array buffer as binary encrypted, optionally gzipped if path co
 - `keep` (`any`) - 
 - `debug` (`any`) - 
 - `what}` (`any`) - 
-
-#### `catch(e)`
-
-**Parameters:**
-
-- `e` (`any`) - 
 
 #### `persistentPath(hash)`
 
@@ -449,12 +219,6 @@ upload string or array buffer as binary encrypted, optionally gzipped if path co
 
 - `data` (`any`) - 
 
-#### `if(DEBUG.snapshot)`
-
-**Parameters:**
-
-- `DEBUG.snapshot` (`any`) - 
-
 #### `doPersist(persistTime, persistentString, persistentHash, dissidentFlag)`
 
 **Parameters:**
@@ -464,18 +228,6 @@ upload string or array buffer as binary encrypted, optionally gzipped if path co
 - `persistentHash` (`any`) - 
 - `dissidentFlag` (`any`) - 
 
-#### `if(DEBUG.snapshot)`
-
-**Parameters:**
-
-- `DEBUG.snapshot` (`any`) - 
-
-#### `catch(e)`
-
-**Parameters:**
-
-- `e` (`any`) - 
-
 #### `forcePersist(persistTime, persistentString, persistentHash)`
 
 **Parameters:**
@@ -484,41 +236,11 @@ upload string or array buffer as binary encrypted, optionally gzipped if path co
 - `persistentString` (`any`) - 
 - `persistentHash` (`any`) - 
 
-#### `if(this.didForcePersist)`
-
-**Parameters:**
-
-- `this.didForcePersist` (`any`) - 
-
-#### `if(urlOptions.forcePersist)`
-
-**Parameters:**
-
-- `urlOptions.forcePersist` (`any`) - 
-
 #### `convertReflectorMessage(msg)`
 
 **Parameters:**
 
 - `msg` (`any`) - 
-
-#### `switch(msg[2].what)`
-
-**Parameters:**
-
-- `msg[2].what` (`any`) - 
-
-#### `for(const user of payload.entered.concat(payload.exited))`
-
-**Parameters:**
-
-- `const user of payload.entered.concat(payload.exited)` (`any`) - 
-
-#### `catch(e)`
-
-**Parameters:**
-
-- `e` (`any`) - 
 
 #### `handleTuttiResult(data)`
 
@@ -526,47 +248,17 @@ upload string or array buffer as binary encrypted, optionally gzipped if path co
 
 - `data` (`any`) - 
 
-#### `if(local)`
-
-**Parameters:**
-
-- `local` (`any`) - 
-
-#### `if(tallyTarget)`
-
-**Parameters:**
-
-- `tallyTarget` (`any`) - 
-
 #### `handleAuditRequest(data)`
 
 **Parameters:**
 
 - `data` (`any`) - 
 
-#### `if(this.vm.time > sessionTimeAtDispatch)`
-
-**Parameters:**
-
-- `this.vm.time > sessionTimeAtDispatch` (`any`) - 
-
-#### `if(!this.fastForwardHandler)`
-
-**Parameters:**
-
-- `!this.fastForwardHandler` (`any`) - 
-
 #### `handleUserTotalForAccounting(total)`
 
 **Parameters:**
 
 - `total` (`any`) - 
-
-#### `if(DEPIN)`
-
-**Parameters:**
-
-- `DEPIN` (`any`) - 
 
 #### `messageSizeForAccounting(msg)`
 
@@ -581,204 +273,11 @@ upload string or array buffer as binary encrypted, optionally gzipped if path co
 - `action` (`any`) - 
 - `args` (`any`) - 
 
-#### `switch(action)`
-
-**Parameters:**
-
-- `action` (`any`) - 
-
-#### `catch(err)`
-
-**Parameters:**
-
-- `err` (`any`) - 
-
-#### `if(rejoining)`
-
-**Parameters:**
-
-- `rejoining` (`any`) - 
-
-#### `if(seamlessRejoin)`
-
-**Parameters:**
-
-- `seamlessRejoin` (`any`) - 
-
-#### `if(firstMessage && inSequence(firstMessage[1], this.vm.seq))`
-
-**Parameters:**
-
-- `firstMessage && inSequence(firstMessage[1]` (`any`) - 
-- `this.vm.seq)` (`any`) - 
-
-#### `for(let i)`
-
-**Parameters:**
-
-- `let i` (`any`) - 
-
-#### `if(typeof payload !)`
-
-**Parameters:**
-
-- `typeof payload !` (`any`) - 
-
-#### `if(seamlessRejoin && toDiscard)`
-
-**Parameters:**
-
-- `seamlessRejoin && toDiscard` (`any`) - 
-
-#### `if(seamlessRejoin)`
-
-**Parameters:**
-
-- `seamlessRejoin` (`any`) - 
-
-#### `if(this.sendBuffer.length > 0)`
-
-**Parameters:**
-
-- `this.sendBuffer.length > 0` (`any`) - 
-
-#### `for(const msg of messages)`
-
-**Parameters:**
-
-- `const msg of messages` (`any`) - 
-
-#### `if(typeof msg[2] !)`
-
-**Parameters:**
-
-- `typeof msg[2] !` (`any`) - 
-
-#### `catch(err)`
-
-**Parameters:**
-
-- `err` (`any`) - 
-
-#### `if(rejoining)`
-
-**Parameters:**
-
-- `rejoining` (`any`) - 
-
-#### `catch(err)`
-
-**Parameters:**
-
-- `err` (`any`) - 
-
-#### `if(!this.connected)`
-
-**Parameters:**
-
-- `!this.connected` (`any`) - 
-
-#### `if(persisted)`
-
-**Parameters:**
-
-- `persisted` (`any`) - 
-
-#### `if(auditStatsInitializer)`
-
-**Parameters:**
-
-- `auditStatsInitializer` (`any`) - 
-
-#### `if(!this.vm)`
-
-**Parameters:**
-
-- `!this.vm` (`any`) - 
-
-#### `if(this.vm.time)`
-
-**Parameters:**
-
-- `this.vm.time` (`any`) - 
-
-#### `if(this.viewId in this.vm.views)`
-
-**Parameters:**
-
-- `this.viewId in this.vm.views` (`any`) - 
-
-#### `if(!this.connected || !this.vm)`
-
-**Parameters:**
-
-- `!this.connected || !this.vm` (`any`) - 
-
-#### `if(caughtUp)`
-
-**Parameters:**
-
-- `caughtUp` (`any`) - 
-
-#### `if(success)`
-
-**Parameters:**
-
-- `success` (`any`) - 
-
-#### `if(typeof msg[2] !)`
-
-**Parameters:**
-
-- `typeof msg[2] !` (`any`) - 
-
-#### `catch(err)`
-
-**Parameters:**
-
-- `err` (`any`) - 
-
-#### `if(DEBUG.ticks)`
-
-**Parameters:**
-
-- `DEBUG.ticks` (`any`) - 
-
 #### `install(persistentData)`
 
 **Parameters:**
 
 - `persistentData` (`any`) - 
-
-#### `catch(error)`
-
-**Parameters:**
-
-- `error` (`any`) - 
-
-#### `if(DEBUG.session || (DEBUG.snapshot && snapshot.models))`
-
-**Parameters:**
-
-- `DEBUG.session || (DEBUG.snapshot && snapshot.models)` (`any`) - 
-
-#### `if(DEBUG.initsnapshot && !snapshot.models)`
-
-**Parameters:**
-
-- `DEBUG.initsnapshot && !snapshot.models` (`any`) - 
-
-#### `catch(error)`
-
-**Parameters:**
-
-- `error` (`any`) - 
-
-#### `catch(error)`
-
-**Parameters:**
-
-- `error` (`any`) - 
 
 #### `setVM(vm)`
 
@@ -790,39 +289,9 @@ upload string or array buffer as binary encrypted, optionally gzipped if path co
 
 #### `sendJoin()`
 
-#### `if(this.rejoinTimeout)`
-
-**Parameters:**
-
-- `this.rejoinTimeout` (`any`) - 
-
-#### `if(!this.syncReceived)`
-
-**Parameters:**
-
-- `!this.syncReceived` (`any`) - 
-
 #### `clearSyncReceiptTimeout()`
 
-#### `if(this.syncReceiptTimeout)`
-
-**Parameters:**
-
-- `this.syncReceiptTimeout` (`any`) - 
-
 #### `connectionInterrupted()`
-
-#### `if(!this.rejoinTimeout)`
-
-**Parameters:**
-
-- `!this.rejoinTimeout` (`any`) - 
-
-#### `if(this.leaving)`
-
-**Parameters:**
-
-- `this.leaving` (`any`) - 
 
 #### `leave(keepController)`
 
@@ -837,12 +306,6 @@ upload string or array buffer as binary encrypted, optionally gzipped if path co
 - `plaintext` (`any`) - 
 
 #### `deprecatedDefaultKey()`
-
-#### `if(!DEPRECATED_DEFAULT_KEY)`
-
-**Parameters:**
-
-- `!DEPRECATED_DEFAULT_KEY` (`any`) - 
 
 #### `decrypt(encrypted, key)`
 
@@ -863,12 +326,6 @@ upload string or array buffer as binary encrypted, optionally gzipped if path co
 
 - `buffer` (`any`) - 
 - `key` (`any`) - 
-
-#### `switch(version)`
-
-**Parameters:**
-
-- `version` (`any`) - 
 
 #### `encryptMessage(msg, viewId, sendTime)`
 
@@ -897,18 +354,6 @@ upload string or array buffer as binary encrypted, optionally gzipped if path co
 - `fst` (`any`) - 
 - `snd` (`any`) - 
 
-#### `for(let i)`
-
-**Parameters:**
-
-- `let i` (`any`) - 
-
-#### `if(!(fst[i])`
-
-**Parameters:**
-
-- `!(fst[i]` (`any`) - 
-
 #### `sendMessage(msg)`
 
 send a Message to all vm replicas via reflector
@@ -917,53 +362,11 @@ send a Message to all vm replicas via reflector
 
 - `msg` (`Message`) - 
 
-#### `if(payloadLength > PAYLOAD_LIMIT_MAX)`
-
-**Parameters:**
-
-- `payloadLength > PAYLOAD_LIMIT_MAX` (`any`) - 
-
-#### `if(!this.payloadSizeWarned && payloadLength > PAYLOAD_LIMIT_RECOMMENDED)`
-
-**Parameters:**
-
-- `!this.payloadSizeWarned && payloadLength > PAYLOAD_LIMIT_RECOMMENDED` (`any`) - 
-
-#### `if(buffer.length)`
-
-**Parameters:**
-
-- `buffer.length` (`any`) - 
-
-#### `if(times.length && this.synced)`
-
-**Parameters:**
-
-- `times.length && this.synced` (`any`) - 
-
-#### `if(!delay)`
-
-**Parameters:**
-
-- `!delay` (`any`) - 
-
 #### `recordRateLimitedSend(time)`
 
 **Parameters:**
 
 - `time` (`any`) - 
-
-#### `if(isSynced || !times.length || times[times.length - 1] !)`
-
-**Parameters:**
-
-- `isSynced || !times.length || times[times.length - 1] !` (`any`) - 
-
-#### `if(!this.rateLimitSoftWarned && times.length)`
-
-**Parameters:**
-
-- `!this.rateLimitSoftWarned && times.length` (`any`) - 
 
 #### `addToRateLimitBuffer(msg)`
 
@@ -971,61 +374,7 @@ send a Message to all vm replicas via reflector
 
 - `msg` (`any`) - 
 
-#### `if(buffer.length)`
-
-**Parameters:**
-
-- `buffer.length` (`any`) - 
-
-#### `if(totalPayload < PAYLOAD_LIMIT_RECOMMENDED)`
-
-**Parameters:**
-
-- `totalPayload < PAYLOAD_LIMIT_RECOMMENDED` (`any`) - 
-
-#### `if(DEBUG.session && buffered % 5)`
-
-**Parameters:**
-
-- `DEBUG.session && buffered % 5` (`any`) - 
-
-#### `if(buffered > this.eventMaxBundles)`
-
-**Parameters:**
-
-- `buffered > this.eventMaxBundles` (`any`) - 
-
-#### `if(!this.rateLimitBufferWarned && buffered > this.eventMaxBundles / 2)`
-
-**Parameters:**
-
-- `!this.rateLimitBufferWarned && buffered > this.eventMaxBundles / 2` (`any`) - 
-
 #### `serviceRateLimitBuffer()`
-
-#### `if(times.length)`
-
-**Parameters:**
-
-- `times.length` (`any`) - 
-
-#### `if(events.length)`
-
-**Parameters:**
-
-- `events.length` (`any`) - 
-
-#### `if(DEBUG.session && this.connected)`
-
-**Parameters:**
-
-- `DEBUG.session && this.connected` (`any`) - 
-
-#### `if(nowBuffered && nowBuffered % 5)`
-
-**Parameters:**
-
-- `nowBuffered && nowBuffered % 5` (`any`) - 
 
 #### `socketSendMessage(msg, tags)`
 
@@ -1033,18 +382,6 @@ send a Message to all vm replicas via reflector
 
 - `msg` (`any`) - 
 - `tags` (`any`) - 
-
-#### `if(!this.connected || !this.syncCompleted)`
-
-**Parameters:**
-
-- `!this.connected || !this.syncCompleted` (`any`) - 
-
-#### `if(this.vm)`
-
-**Parameters:**
-
-- `this.vm` (`any`) - 
 
 #### `sendTagged(msg)`
 
@@ -1062,35 +399,11 @@ send a TUTTI Message
 
 - `spec` (`Object`) - 
 
-#### `if(!this.connected || !this.syncCompleted)`
-
-**Parameters:**
-
-- `!this.connected || !this.syncCompleted` (`any`) - 
-
-#### `if(this.vm)`
-
-**Parameters:**
-
-- `this.vm` (`any`) - 
-
 #### `sendLog(...args)`
 
 **Parameters:**
 
 - `...args` (`any`) - 
-
-#### `if(!this.connected || !this.syncCompleted)`
-
-**Parameters:**
-
-- `!this.connected || !this.syncCompleted` (`any`) - 
-
-#### `if(this.vm)`
-
-**Parameters:**
-
-- `this.vm` (`any`) - 
 
 #### `addToStatistics(timeSent, timeReceived)`
 
@@ -1098,12 +411,6 @@ send a TUTTI Message
 
 - `timeSent` (`any`) - 
 - `timeReceived` (`any`) - 
-
-#### `if(this.latencyHistory)`
-
-**Parameters:**
-
-- `this.latencyHistory` (`any`) - 
 
 #### `latencies()`
 
@@ -1118,12 +425,6 @@ parse tps `ticks x multiplier` ticks are from server, multiplied by locally gene
      *      delay: Number,      // reflector delay to account for locally produced ticks
      * ` - }
 
-#### `if(multiplier > 1 && !NOCHEAT)`
-
-**Parameters:**
-
-- `multiplier > 1 && !NOCHEAT` (`any`) - 
-
 #### `simulate(deadline)`
 
 Process pending messages for this vm and advance simulation
@@ -1134,152 +435,12 @@ Process pending messages for this vm and advance simulation
 
 **Returns:** `Boolean` - true if simulation finished before deadline
 
-#### `if(nothingToDo)`
-
-**Parameters:**
-
-- `nothingToDo` (`any`) - 
-
-#### `while(weHaveTime)`
-
-**Parameters:**
-
-- `weHaveTime` (`any`) - 
-
-#### `if(typeof this.synced)`
-
-**Parameters:**
-
-- `typeof this.synced` (`any`) - 
-
-#### `if(nowSynced)`
-
-**Parameters:**
-
-- `nowSynced` (`any`) - 
-
-#### `if(!this.syncTimer)`
-
-**Parameters:**
-
-- `!this.syncTimer` (`any`) - 
-
-#### `if(!DEBUG.offline)`
-
-**Parameters:**
-
-- `!DEBUG.offline` (`any`) - 
-
-#### `if(this.synced && weHaveTime && this.vm.time - this.lastSnapshotRequest > SNAPSHOT_POLL_DEBOUNCE)`
-
-**Parameters:**
-
-- `this.synced && weHaveTime && this.vm.time - this.lastSnapshotRequest > SNAPSHOT_POLL_DEBOUNCE` (`any`) - 
-
-#### `if(this.cpuTime > SNAPSHOT_AFTER_CPU)`
-
-**Parameters:**
-
-- `this.cpuTime > SNAPSHOT_AFTER_CPU` (`any`) - 
-
-#### `if(DEPIN && this.vm.time - this.vm.lastSnapshotPoll > DEPIN_SNAPSHOT_AFTER_TEATIME)`
-
-**Parameters:**
-
-- `DEPIN && this.vm.time - this.vm.lastSnapshotPoll > DEPIN_SNAPSHOT_AFTER_TEATIME` (`any`) - 
-
-#### `if(doSchedule)`
-
-**Parameters:**
-
-- `doSchedule` (`any`) - 
-
-#### `if(this.isBeingAnimated())`
-
-**Parameters:**
-
-- `this.isBeingAnimated()` (`any`) - 
-
-#### `if(this.reflectorNeedsSnapshot)`
-
-**Parameters:**
-
-- `this.reflectorNeedsSnapshot` (`any`) - 
-
-#### `catch(error)`
-
-**Parameters:**
-
-- `error` (`any`) - 
-
 #### `stepSession(stepType, parameters)`
 
 **Parameters:**
 
 - `stepType` (`any`) - 
 - `parameters` (`any`) - 
-
-#### `if(stepType)`
-
-**Parameters:**
-
-- `stepType` (`any`) - 
-
-#### `if(this.lastAnimationEnd)`
-
-**Parameters:**
-
-- `this.lastAnimationEnd` (`any`) - 
-
-#### `if(this.animationGapCheck)`
-
-**Parameters:**
-
-- `this.animationGapCheck` (`any`) - 
-
-#### `if(this.animationGapCheck !)`
-
-**Parameters:**
-
-- `this.animationGapCheck !` (`any`) - 
-
-#### `if(gaps.length, b), 0) <)`
-
-**Parameters:**
-
-- `gaps.length` (`any`) - 
-- `b)` (`any`) - 
-- `0) <` (`any`) - 
-
-#### `if(!this.connected)`
-
-**Parameters:**
-
-- `!this.connected` (`any`) - 
-
-#### `switch(stepType)`
-
-**Parameters:**
-
-- `stepType` (`any`) - 
-
-#### `if(caughtUp)`
-
-**Parameters:**
-
-- `caughtUp` (`any`) - 
-
-#### `if(caughtUp !)`
-
-**Parameters:**
-
-- `caughtUp !` (`any`) - 
-
-#### `if(parameters.view)`
-
-**Parameters:**
-
-- `parameters.view` (`any`) - 
 
 #### `applySyncChange(bool)`
 
@@ -1305,12 +466,6 @@ call this from main loop to process queued model=>view events
 
 **Returns:** `Number` - number of processed events
 
-#### `if(this.vm)`
-
-**Parameters:**
-
-- `this.vm` (`any`) - 
-
 #### `timeFromReflector(time, src, rawTime)`
 
 Got the official time from reflector (on SYNC, TICK or RECV), or local tick multiplier.  src is "reflector" or "controller".  rawTime is reflector performance.now() since the resumption of the session, currently (dec 2021) defined in experimental reflectors on RECV events only, if flag "rawtime" is requested on join().
@@ -1321,12 +476,6 @@ Got the official time from reflector (on SYNC, TICK or RECV), or local tick mult
 - `src` (`any`) - 
 - `rawTime` (`any`) - 
 
-#### `if(time < this.reflectorTime)`
-
-**Parameters:**
-
-- `time < this.reflectorTime` (`any`) - 
-
 #### `multiplyTick(time)`
 
 we received a tick from reflector, generate local ticks
@@ -1335,12 +484,6 @@ we received a tick from reflector, generate local ticks
 
 - `time` (`any`) - 
 
-#### `if(++n >)`
-
-**Parameters:**
-
-- `++n >` (`any`) - 
-
 #### `startStepping(autoStepFn)`
 
 **Parameters:**
@@ -1348,53 +491,5 @@ we received a tick from reflector, generate local ticks
 - `autoStepFn` (`any`) - 
 
 #### `setUpActivityChecks()`
-
-#### `if(gapsOk && !delayOk)`
-
-**Parameters:**
-
-- `gapsOk && !delayOk` (`any`) - 
-
-#### `if(!NODE)`
-
-**Parameters:**
-
-- `!NODE` (`any`) - 
-
-#### `if(autoSleep)`
-
-**Parameters:**
-
-- `autoSleep` (`any`) - 
-
-#### `if(this.isOutOfSight())`
-
-**Parameters:**
-
-- `this.isOutOfSight()` (`any`) - 
-
-#### `if(now - outOfSightSince > dormantDelay)`
-
-**Parameters:**
-
-- `now - outOfSightSince > dormantDelay` (`any`) - 
-
-#### `if(this.leaving)`
-
-**Parameters:**
-
-- `this.leaving` (`any`) - 
-
-#### `if(alivenessPoll)`
-
-**Parameters:**
-
-- `alivenessPoll` (`any`) - 
-
-#### `if(this.connected)`
-
-**Parameters:**
-
-- `this.connected` (`any`) - 
 
 #### `toString()`
