@@ -1,6 +1,6 @@
 # auto generated files
-packages/**/*.mdx
-docs/packages/*/*.mdx
+# packages/**/*.mdx
+# docs/packages/*/*.mdx
 
 # Dependencies
 node_modules/

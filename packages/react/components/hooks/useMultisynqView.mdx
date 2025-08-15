@@ -1,0 +1,21 @@
+## useMultisynqView
+
+<a id="usemultisynqview"></a>
+<p>Hook that provides access to the current Multisynq React View.</p>
+### Syntax
+```typescript
+function useMultisynqView(): MultisynqReactView<M> | null
+```
+### Returns
+<ResponseField type="MultisynqReactView<M> | null">
+<p>The current Multisynq React View, or null if not available.</p>
+</ResponseField>
+### Examples
+<CodeGroup>
+```javascript
+const view = useView<GameView>();
+if (view) {
+  console.log(`Current view ID: ${view.viewId}`);
+}
+```
+</CodeGroup>

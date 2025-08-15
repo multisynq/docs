@@ -1,0 +1,177 @@
+## Connection
+
+<a id="connection"></a>
+### Constructor
+<CodeGroup>
+```typescript
+constructor(controller: any)
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="controller" type="any" required={true}>
+
+</ParamField>
+<Tabs>
+<Tab title="Methods">
+#### Instance Methods
+<AccordionGroup>
+<Accordion title="id">
+<CodeGroup>
+```typescript
+id(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="setTick">
+<CodeGroup>
+```typescript
+setTick(ms: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="ms" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="connected">
+<CodeGroup>
+```typescript
+connected(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="checkForConnection">
+<CodeGroup>
+```typescript
+checkForConnection(force: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="force" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="connectToReflector">
+<CodeGroup>
+```typescript
+connectToReflector(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="socketClosed">
+<CodeGroup>
+```typescript
+socketClosed(code: any, message: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="code" type="any" required={true}>
+
+</ParamField>
+<ParamField path="message" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="disconnected">
+<CodeGroup>
+```typescript
+disconnected(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="send">
+<CodeGroup>
+```typescript
+send(data: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="data" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="receive">
+<CodeGroup>
+```typescript
+receive(data: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="data" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="dormantDisconnect">
+<CodeGroup>
+```typescript
+dormantDisconnect(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="closeConnectionWithError">
+<CodeGroup>
+```typescript
+closeConnectionWithError(caller: any, error: any, code: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="caller" type="any" required={true}>
+
+</ParamField>
+<ParamField path="error" type="any" required={true}>
+
+</ParamField>
+<ParamField path="code" type="any" required={true} default="4000">
+
+</ParamField>
+</Accordion>
+<Accordion title="closeConnection">
+<CodeGroup>
+```typescript
+closeConnection(code: any, message: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="code" type="any" required={true}>
+
+</ParamField>
+<ParamField path="message" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="PULSE">
+<CodeGroup>
+```typescript
+PULSE(now: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="now" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="keepAlive">
+<CodeGroup>
+```typescript
+keepAlive(now: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="now" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="PING">
+<CodeGroup>
+```typescript
+PING(args: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="args" type="any" required={true} default="Date.now()">
+
+</ParamField>
+</Accordion>
+</AccordionGroup>
+</Tab>
+</Tabs>

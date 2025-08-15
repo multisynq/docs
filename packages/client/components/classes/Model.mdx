@@ -1,12 +1,12 @@
 ## Model
 
 <a id="model"></a>
-<p>Models are synchronized objects in Multisynq. They are automatically kept in sync for each user in the same [session]<a href="#sessionjoin">Session.join</a>. Models receive input by [subscribing]<a href="#modelsubscribe">Model#subscribe</a> to events published in a <a href="#view">View</a>. Their output is handled by views subscribing to events [published]<a href="#modelpublish">Model#publish</a> by a model. Models advance time by sending messages into their [future]<a href="#modelfuture">Model#future</a>.</p>
+<p>Models are synchronized objects in Multisynq. They are automatically kept in sync for each user in the same <a href="#sessionjoin">session</a>. Models receive input by <a href="#modelsubscribe">subscribing</a> to events published in a <a href="#view">View</a>. Their output is handled by views subscribing to events <a href="#modelpublish">published</a> by a model. Models advance time by sending messages into their <a href="#modelfuture">future</a>.</p>
         <h2>Instance Creation and Initialization</h2>
         <h3>Do <strong>NOT</strong> create a <a href="#model">Model</a> instance using <code>new</code> and<br />do <strong>NOT</strong> override the <code>constructor</code>!</h3>
-        <p>To <strong>create</strong> a new instance, use [create()]<a href="#modelcreate">Model.create</a>, for example:</p>
+        <p>To <strong>create</strong> a new instance, use <a href="#modelcreate">create()</a>, for example:</p>
         <pre><code>this.foo = FooModel.create({answer: 123});</code></pre>
-        <p>To <strong>initialize</strong> an instance, override [init()]<a href="#modelinit">Model#init</a>, for example:</p>
+        <p>To <strong>initialize</strong> an instance, override <a href="#modelinit">init()</a>, for example:</p>
         <pre><code>class FooModel extends Multisynq.Model {
         <p>init(options={}) { this.answer = options.answer || 42; } }</code></pre> The <strong>reason</strong> for this is that Models are only initialized by calling <code>init()</code> the first time the object comes into existence in the session. After that, when joining a session, the models are deserialized from the snapshot, which restores all properties automatically without calling <code>init()</code>. A constructor would be called all the time, not just when starting a session.</p>
 <Note>
@@ -22,7 +22,7 @@ This class should not be instantiated directly using <code>new</code>.
 static create(options: any): any
 ```
 </CodeGroup>
-<p><strong>Create an instance of a Model subclass.</strong> The instance will be registered for automatical snapshotting, and is assigned an [id]<a href="#modelid">Model#id</a>. Then it will call the user-defined [init()]<a href="#modelinit">Model#init</a> method to initialize the instance, passing the <a href="#options">options</a>. <strong>Note:</strong> When your model instance is no longer needed, you must [destroy]<a href="#modeldestroy">Model#destroy</a> it. Otherwise it will be kept in the snapshot forever. <strong>Warning</strong>: never create a Model instance using <code>new</code>, or override its constructor. See [above]<a href="#model">Model</a>.</p>
+<p><strong>Create an instance of a Model subclass.</strong> The instance will be registered for automatical snapshotting, and is assigned an <a href="#modelid">id</a>. Then it will call the user-defined <a href="#modelinit">init()</a> method to initialize the instance, passing the <a href="#options">options</a>. <strong>Note:</strong> When your model instance is no longer needed, you must <a href="#modeldestroy">destroy</a> it. Otherwise it will be kept in the snapshot forever. <strong>Warning</strong>: never create a Model instance using <code>new</code>, or override its constructor. See <a href="#model">above</a>.</p>
 ##### Parameters
 <ParamField path="options" type="any" required={true}>
 
@@ -58,7 +58,7 @@ static allowConstructors(): any
 static register(classId: any): any
 ```
 </CodeGroup>
-<p><strong>Registers this model subclass with Multisynq</strong> It is necessary to register all Model subclasses so the serializer can recreate their instances from a snapshot. Since source code minification can change the actual class name, you have to pass a <code>classId</code> explicitly. Secondly, the [session id]<a href="#sessionjoin">Session.join</a> is derived by hashing the source code of all registered classes. This ensures that only clients running the same source code can be in the same session, so that the synchronized computations are identical for each client. <strong>Important</strong>: for the hashing to work reliably across browsers, be sure to specify <code>charset="utf-8"</code> for your <code><html></code> or all <code><script></code> tags.</p>
+<p><strong>Registers this model subclass with Multisynq</strong> It is necessary to register all Model subclasses so the serializer can recreate their instances from a snapshot. Since source code minification can change the actual class name, you have to pass a <code>classId</code> explicitly. Secondly, the <a href="#sessionjoin">session id</a> is derived by hashing the source code of all registered classes. This ensures that only clients running the same source code can be in the same session, so that the synchronized computations are identical for each client. <strong>Important</strong>: for the hashing to work reliably across browsers, be sure to specify <code>charset="utf-8"</code> for your <code><html></code> or all <code><script></code> tags.</p>
 ##### Parameters
 <ParamField path="classId" type="any" required={true}>
 
@@ -79,7 +79,7 @@ MyModel.register("MyModel")
 static wellKnownModel(name: any): any
 ```
 </CodeGroup>
-<p>Static version of [wellKnownModel()]<a href="#modelwellknownmodel">Model#wellKnownModel</a> for currently executing model. This can be used to emulate static accessors, e.g. for lazy initialization. <strong>WARNING!</strong> Do not store the result in a static variable. Like any global state, that can lead to divergence. Will throw an error if called from outside model code.</p>
+<p>Static version of <a href="#modelwellknownmodel">wellKnownModel()</a> for currently executing model. This can be used to emulate static accessors, e.g. for lazy initialization. <strong>WARNING!</strong> Do not store the result in a static variable. Like any global state, that can lead to divergence. Will throw an error if called from outside model code.</p>
 ##### Parameters
 <ParamField path="name" type="any" required={true}>
 
@@ -109,7 +109,7 @@ static get Default() {
 static evaluate(func: any): any
 ```
 </CodeGroup>
-<p>Evaluates func inside of a temporary VM to get bit-identical results, e.g. to init [Constants]<a href="#constants">Constants</a>.</p>
+<p>Evaluates func inside of a temporary VM to get bit-identical results, e.g. to init <a href="#constants">Constants</a>.</p>
 ##### Parameters
 <ParamField path="func" type="any" required={true}>
 
@@ -282,7 +282,7 @@ static instantiateClassID(classId: any, id: any): any
 init(options: any, persistentData: any): any
 ```
 </CodeGroup>
-<p>This is called by [create()]<a href="#modelcreate">Model.create</a> to initialize a model instance. In your Model subclass this is the place to [subscribe]<a href="#modelsubscribe">Model#subscribe</a> to events, or start a [future]<a href="#modelfuture">Model#future</a> message chain. If you pass <code>{options:...}</code> to [Session.join]<a href="#sessionjoin">Session.join</a>, these will be passed to your root model's <code>init()</code>. Note that <code>options</code> affect the session's <code>persistentId</code> – in most cases, using [Multisynq.Constants]<a href="#constants">Constants</a> is a better choice to customize what happens in <code>init()</code>. If you called [persistSession]<a href="#modelpersistsession">Model#persistSession</a> in a previous session (same name, same options, different code base), that data will be passed as <code>persistentData</code> to your root model's <code>init()</code>. Based on that data you should re-create submodels, subscriptions, future messages etc. to start the new session in a state similar to when it was last saved. <strong>Note:</strong> When your model instance is no longer needed, you must [destroy]<a href="#modeldestroy">Model#destroy</a> it.</p>
+<p>This is called by <a href="#modelcreate">create()</a> to initialize a model instance. In your Model subclass this is the place to <a href="#modelsubscribe">subscribe</a> to events, or start a <a href="#modelfuture">future</a> message chain. If you pass <code>{options:...}</code> to <a href="#sessionjoin">Session.join</a>, these will be passed to your root model's <code>init()</code>. Note that <code>options</code> affect the session's <code>persistentId</code> – in most cases, using <a href="#constants">Multisynq.Constants</a> is a better choice to customize what happens in <code>init()</code>. If you called <a href="#modelpersistsession">persistSession</a> in a previous session (same name, same options, different code base), that data will be passed as <code>persistentData</code> to your root model's <code>init()</code>. Based on that data you should re-create submodels, subscriptions, future messages etc. to start the new session in a state similar to when it was last saved. <strong>Note:</strong> When your model instance is no longer needed, you must <a href="#modeldestroy">destroy</a> it.</p>
 ##### Parameters
 <ParamField path="options" type="any" required={true}>
 
@@ -297,7 +297,7 @@ init(options: any, persistentData: any): any
 destroy(): any
 ```
 </CodeGroup>
-<p>Unsubscribes all [subscriptions]<a href="#modelsubscribe">Model#subscribe</a> this model has, unschedules all [future]<a href="#modelfuture">Model#future</a> messages, and removes it from future snapshots.</p>
+<p>Unsubscribes all <a href="#modelsubscribe">subscriptions</a> this model has, unschedules all <a href="#modelfuture">future</a> messages, and removes it from future snapshots.</p>
 ##### Examples
 <CodeGroup>
 ```javascript
@@ -315,7 +315,7 @@ removeChild(child) {
 publish(scope: any, event: any, data: any): any
 ```
 </CodeGroup>
-<p><strong>Publish an event to a scope.</strong> Events are the main form of communication between models and views in Multisynq. Both models and views can publish events, and subscribe to each other's events. Model-to-model and view-to-view subscriptions are possible, too. See [Model.subscribe]<a href="#modelsubscribe">Model#subscribe</a>() for a discussion of <strong>scopes</strong> and <strong>event names</strong>. Refer to [View.subscribe]<a href="#viewsubscribe">View#subscribe</a>() for invoking event handlers <em>asynchronously</em> or <em>immediately</em>. Optionally, you can pass some <strong>data</strong> along with the event. For events published by a model, this can be any arbitrary value or object. See View's [publish]<a href="#viewpublish">View#publish</a> method for restrictions in passing data from a view to a model. If you subscribe inside the model to an event that is published by the model, the handler will be called immediately, before the publish method returns. If you want to have it handled asynchronously, you can use a future message:<pre><code>this.future(0).publish(&quot;scope&quot;, &quot;event&quot;, data);</code></pre> Note that there is no way of testing whether subscriptions exist or not (because models can exist independent of views). Publishing an event that has no subscriptions is about as cheap as that test would be, so feel free to always publish, there is very little overhead.</p>
+<p><strong>Publish an event to a scope.</strong> Events are the main form of communication between models and views in Multisynq. Both models and views can publish events, and subscribe to each other's events. Model-to-model and view-to-view subscriptions are possible, too. See <a href="#modelsubscribe">Model.subscribe</a>() for a discussion of <strong>scopes</strong> and <strong>event names</strong>. Refer to <a href="#viewsubscribe">View.subscribe</a>() for invoking event handlers <em>asynchronously</em> or <em>immediately</em>. Optionally, you can pass some <strong>data</strong> along with the event. For events published by a model, this can be any arbitrary value or object. See View's <a href="#viewpublish">publish</a> method for restrictions in passing data from a view to a model. If you subscribe inside the model to an event that is published by the model, the handler will be called immediately, before the publish method returns. If you want to have it handled asynchronously, you can use a future message:<pre><code>this.future(0).publish(&quot;scope&quot;, &quot;event&quot;, data);</code></pre> Note that there is no way of testing whether subscriptions exist or not (because models can exist independent of views). Publishing an event that has no subscriptions is about as cheap as that test would be, so feel free to always publish, there is very little overhead.</p>
 ##### Parameters
 <ParamField path="scope" type="any" required={true}>
 
@@ -340,7 +340,7 @@ this.publish(this.id, "moved", this.pos);
 subscribe(scope: any, event: any, methodName: any): any
 ```
 </CodeGroup>
-<p><strong>Register an event handler for an event published to a scope.</strong> Both <code>scope</code> and <code>event</code> can be arbitrary strings. Typically, the scope would select the object (or groups of objects) to respond to the event, and the event name would select which operation to perform. A commonly used scope is <code>this.id</code> (in a model) and <code>model.id</code> (in a view) to establish a communication channel between a model and its corresponding view. You can use any literal string as a global scope, or use [<code>this.sessionId</code>]<a href="#modelsessionid">Model#sessionId</a> for a session-global scope (if your application supports multipe sessions at the same time). The predefined [<code>"view-join"</code> event]<a href="#event:view-join">event:view-join</a> and [<code>"view-exit"</code> event]<a href="#event:view-exit">event:view-exit</a> use this session scope. The handler must be a method of <code>this</code>, e.g. <code>subscribe("scope", "event", this.methodName)</code> will schedule the invocation of <code>this["methodName"](data)</code> whenever <code>publish("scope", "event", data)</code> is executed. If <code>data</code> was passed to the [publish]<a href="#modelpublish">Model#publish</a> call, it will be passed as an argument to the handler method. You can have at most one argument. To pass multiple values, pass an Object or Array containing those values. Note that views can only pass serializable data to models, because those events are routed via a reflector server (see [View.publish)<a href="#viewpublish">View#publish</a>).</p>
+<p><strong>Register an event handler for an event published to a scope.</strong> Both <code>scope</code> and <code>event</code> can be arbitrary strings. Typically, the scope would select the object (or groups of objects) to respond to the event, and the event name would select which operation to perform. A commonly used scope is <code>this.id</code> (in a model) and <code>model.id</code> (in a view) to establish a communication channel between a model and its corresponding view. You can use any literal string as a global scope, or use <a href="#modelsessionid">&lt;code&gt;this.sessionId&lt;/code&gt;</a> for a session-global scope (if your application supports multipe sessions at the same time). The predefined <a href="#event:view-join">&lt;code&gt;&quot;view-join&quot;&lt;/code&gt; event</a> and <a href="#event:view-exit">&lt;code&gt;&quot;view-exit&quot;&lt;/code&gt; event</a> use this session scope. The handler must be a method of <code>this</code>, e.g. <code>subscribe("scope", "event", this.methodName)</code> will schedule the invocation of <code>this["methodName"](data)</code> whenever <code>publish("scope", "event", data)</code> is executed. If <code>data</code> was passed to the <a href="#modelpublish">publish</a> call, it will be passed as an argument to the handler method. You can have at most one argument. To pass multiple values, pass an Object or Array containing those values. Note that views can only pass serializable data to models, because those events are routed via a reflector server (see [View.publish)<a href="#viewpublish">View#publish</a>).</p>
 ##### Parameters
 <ParamField path="scope" type="any" required={true}>
 
@@ -456,7 +456,7 @@ __realmError(): any
 future(tOffset: any, methodName: any, args: any): any
 ```
 </CodeGroup>
-<p><strong>Schedule a message for future execution</strong> Use a future message to automatically advance time in a model, for example for animations. The execution will be scheduled <code>tOffset</code> milliseconds into the future. It will run at precisely <code>this.now() + tOffset</code>. Use the form <code>this.future(100).methodName(args)</code> to schedule the execution of <code>this.methodName(args)</code> at time <code>this.now() + tOffset</code>. <strong>Hint</strong>: This would be an unusual use of <code>future()</code>, but the <code>tOffset</code> given may be <code>0</code>, in which case the execution will happen asynchronously before advancing time. This is the only way for asynchronous execution in the model since you must not use Promises or async functions in model code (because a snapshot may happen at any time and it would not capture those executions). <strong>Note:</strong> the recommended form given above is equivalent to <code>this.future(100, "methodName", arg1, arg2)</code> but makes it more clear that "methodName" is not just a string but the name of a method of this object. Also, this will survive minification. Technically, it answers a [Proxy]<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Proxy">https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Proxy</a> that captures the name and arguments of <code>.methodName(args)</code> for later execution. See this <a href="/tutorials/1_1_hello_world">tutorial</a> for a complete example.</p>
+<p><strong>Schedule a message for future execution</strong> Use a future message to automatically advance time in a model, for example for animations. The execution will be scheduled <code>tOffset</code> milliseconds into the future. It will run at precisely <code>this.now() + tOffset</code>. Use the form <code>this.future(100).methodName(args)</code> to schedule the execution of <code>this.methodName(args)</code> at time <code>this.now() + tOffset</code>. <strong>Hint</strong>: This would be an unusual use of <code>future()</code>, but the <code>tOffset</code> given may be <code>0</code>, in which case the execution will happen asynchronously before advancing time. This is the only way for asynchronous execution in the model since you must not use Promises or async functions in model code (because a snapshot may happen at any time and it would not capture those executions). <strong>Note:</strong> the recommended form given above is equivalent to <code>this.future(100, "methodName", arg1, arg2)</code> but makes it more clear that "methodName" is not just a string but the name of a method of this object. Also, this will survive minification. Technically, it answers a <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Proxy">Proxy</a> that captures the name and arguments of <code>.methodName(args)</code> for later execution. See this <a href="/tutorials/1_1_hello_world">tutorial</a> for a complete example.</p>
 ##### Parameters
 <ParamField path="tOffset" type="any" required={true} default="0">
 
@@ -495,7 +495,7 @@ future(tOffset: any, methodName: any, args: any): any
 cancelFuture(methodOrMessage: any): any
 ```
 </CodeGroup>
-<p><strong>Cancel a previously scheduled future message</strong> This unschedules the invocation of a message that was scheduled with [future]<a href="#modelfuture">Model#future</a>. It is okay to call this method even if the message was already executed or if it was never scheduled. <strong>Note:</strong> as with [future]<a href="#modelfuture">Model#future</a>, the recommended form is to pass the method itself, but you can also pass the name of the method as a string.</p>
+<p><strong>Cancel a previously scheduled future message</strong> This unschedules the invocation of a message that was scheduled with <a href="#modelfuture">future</a>. It is okay to call this method even if the message was already executed or if it was never scheduled. <strong>Note:</strong> as with <a href="#modelfuture">future</a>, the recommended form is to pass the method itself, but you can also pass the name of the method as a string.</p>
 ##### Parameters
 <ParamField path="methodOrMessage" type="any" required={true}>
 
@@ -519,7 +519,7 @@ this.cancelFuture(this.say);
 random(): any
 ```
 </CodeGroup>
-<p><strong>Generate a synchronized pseudo-random number</strong> This returns a floating-point, pseudo-random number in the range 0–1 (inclusive of 0, but not 1) with approximately uniform distribution over that range (just like [Math.random]<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random">https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random</a>). Since the model computation is synchronized for every user on their device, the sequence of random numbers generated must also be exactly the same for everyone. This method provides access to such a random number generator.</p>
+<p><strong>Generate a synchronized pseudo-random number</strong> This returns a floating-point, pseudo-random number in the range 0–1 (inclusive of 0, but not 1) with approximately uniform distribution over that range (just like <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random">Math.random</a>). Since the model computation is synchronized for every user on their device, the sequence of random numbers generated must also be exactly the same for everyone. This method provides access to such a random number generator.</p>
 ##### Returns
 <ResponseField type="Number">
 
@@ -531,7 +531,7 @@ random(): any
 now(): any
 ```
 </CodeGroup>
-<p><strong>The model's current time</strong> Time is discreet in Multisynq, meaning it advances in steps. Every user's device performs the exact same computation at the exact same virtual time. This is what allows Multisynq to do perfectly synchronized computation. Every [event handler]<a href="#modelsubscribe">Model#subscribe</a> and [future message]<a href="#modelfuture">Model#future</a> is run at a precisely defined moment in virtual model time, and time stands still while this execution is happening. That means if you were to access <code>this.now()</code> in a loop, it would never answer a different value. The unit of <code>now</code> is milliseconds (1/1000 second) but the value can be fractional, it is a floating-point value.</p>
+<p><strong>The model's current time</strong> Time is discreet in Multisynq, meaning it advances in steps. Every user's device performs the exact same computation at the exact same virtual time. This is what allows Multisynq to do perfectly synchronized computation. Every <a href="#modelsubscribe">event handler</a> and <a href="#modelfuture">future message</a> is run at a precisely defined moment in virtual model time, and time stands still while this execution is happening. That means if you were to access <code>this.now()</code> in a loop, it would never answer a different value. The unit of <code>now</code> is milliseconds (1/1000 second) but the value can be fractional, it is a floating-point value.</p>
 ##### Returns
 <ResponseField type="Number">
 <p>the model's time in milliseconds since the first user created the session.</p>
@@ -543,7 +543,7 @@ now(): any
 beWellKnownAs(name: any): any
 ```
 </CodeGroup>
-<p>Make this model globally accessible under the given name. It can be retrieved from any other model in the same session using [wellKnownModel()]<a href="#modelwellknownmodel">Model#wellKnownModel</a>. Hint: Another way to make a model well-known is to pass a name as second argument to <a href="#modelcreate">Model.create</a>(). Note: The instance of your root Model class is automatically made well-known as <code>"modelRoot"</code> and passed to the [constructor]<a href="#view">View</a> of your root View during <a href="#sessionjoin">Session.join</a>.</p>
+<p>Make this model globally accessible under the given name. It can be retrieved from any other model in the same session using <a href="#modelwellknownmodel">wellKnownModel()</a>. Hint: Another way to make a model well-known is to pass a name as second argument to <a href="#modelcreate">Model.create</a>(). Note: The instance of your root Model class is automatically made well-known as <code>"modelRoot"</code> and passed to the <a href="#view">constructor</a> of your root View during <a href="#sessionjoin">Session.join</a>.</p>
 ##### Parameters
 <ParamField path="name" type="any" required={true}>
 
@@ -592,7 +592,7 @@ const otherModel = this.getModel(otherId);
 wellKnownModel(name: any): any
 ```
 </CodeGroup>
-<p>Access a model that was registered previously using  [beWellKnownAs()]<a href="#modelbewellknownas">Model#beWellKnownAs</a>. Note: The instance of your root Model class is automatically made well-known as <code>"modelRoot"</code> and passed to the [constructor]<a href="#view">View</a> of your root View during <a href="#sessionjoin">Session.join</a>.</p>
+<p>Access a model that was registered previously using  <a href="#modelbewellknownas">beWellKnownAs()</a>. Note: The instance of your root Model class is automatically made well-known as <code>"modelRoot"</code> and passed to the <a href="#view">constructor</a> of your root View during <a href="#sessionjoin">Session.join</a>.</p>
 ##### Parameters
 <ParamField path="name" type="any" required={true}>
 
@@ -641,7 +641,7 @@ set foo(value) { this.modelOnly(); this._foo = value; }
 sessionId(): any
 ```
 </CodeGroup>
-<p><strong>Identifies the shared session of all users</strong><br /> (as opposed to the [viewId]<a href="#viewviewid">View#viewId</a> which identifies the non-shared views of each user). The session id is used as "global" scope for events like the [<code>"view-join"</code> event]<a href="#event:view-join">event:view-join</a>. See <a href="#sessionjoin">Session.join</a> for how the session id is generated. If your app has several sessions at the same time, each session id will be different.</p>
+<p><strong>Identifies the shared session of all users</strong><br /> (as opposed to the <a href="#viewviewid">viewId</a> which identifies the non-shared views of each user). The session id is used as "global" scope for events like the <a href="#event:view-join">&lt;code&gt;&quot;view-join&quot;&lt;/code&gt; event</a>. See <a href="#sessionjoin">Session.join</a> for how the session id is generated. If your app has several sessions at the same time, each session id will be different.</p>
 ##### Examples
 <CodeGroup>
 ```javascript
@@ -655,7 +655,7 @@ this.subscribe(this.sessionId, "view-join", this.addUser);
 viewCount(): any
 ```
 </CodeGroup>
-<p><strong>The number of users currently in this session.</strong> All users in a session share the same Model (meaning all model objects) but each user has a different View (meaning all the non-model state). This is the number of views currently sharing this model. It is increased by 1 before every [<code>"view-join"</code> event]<a href="#event:view-join">event:view-join</a> and decreased by 1 before every [<code>"view-exit"</code> event]<a href="#event:view-exit">event:view-exit</a> handler is executed.</p>
+<p><strong>The number of users currently in this session.</strong> All users in a session share the same Model (meaning all model objects) but each user has a different View (meaning all the non-model state). This is the number of views currently sharing this model. It is increased by 1 before every <a href="#event:view-join">&lt;code&gt;&quot;view-join&quot;&lt;/code&gt; event</a> and decreased by 1 before every <a href="#event:view-exit">&lt;code&gt;&quot;view-exit&quot;&lt;/code&gt; event</a> handler is executed.</p>
 ##### Examples
 <CodeGroup>
 ```javascript
@@ -700,7 +700,7 @@ this.greet(this, "friend"); // logs "Bye now, friend"
 persistSession(collectDataFunc: any): any
 ```
 </CodeGroup>
-<p>Store an application-defined JSON representation of this session to be loaded into future sessions. This will be passed into the root model's [init]<a href="#modelinit">Model#init</a> method if resuming a session that is not currently ongoing (e.g. due to changes in the model code). <strong>Note:</strong> You should design the JSON in a way to be loadable in newer versions of your app. To help migrating incompatible data, you may want to include a version identifier so a future version of your [init]<a href="#modelinit">Model#init</a> can decide what to do. <strong>Warning</strong> Do NOT use <code>JSON.stringify</code> because the result is not guaranteed to have the same ordering of keys everywhere. Instead, store the JSON data directly and let Multisynq apply its stable stringification. Also you must only call persistSession() from your [root model]<a href="#modelwellknownmodel">Model#wellKnownModel</a>. If there are submodels, your collectDataFunc should collect data from all submodels. Similarly, only your root model's <code>init</code> will receive that persisted data. It should recreate submodels as necessary. Multisynq will not interpret this data in any way (e.g. not even the <code>version</code> property in the example below). It is stringified, encrypted, and stored.</p>
+<p>Store an application-defined JSON representation of this session to be loaded into future sessions. This will be passed into the root model's <a href="#modelinit">init</a> method if resuming a session that is not currently ongoing (e.g. due to changes in the model code). <strong>Note:</strong> You should design the JSON in a way to be loadable in newer versions of your app. To help migrating incompatible data, you may want to include a version identifier so a future version of your <a href="#modelinit">init</a> can decide what to do. <strong>Warning</strong> Do NOT use <code>JSON.stringify</code> because the result is not guaranteed to have the same ordering of keys everywhere. Instead, store the JSON data directly and let Multisynq apply its stable stringification. Also you must only call persistSession() from your <a href="#modelwellknownmodel">root model</a>. If there are submodels, your collectDataFunc should collect data from all submodels. Similarly, only your root model's <code>init</code> will receive that persisted data. It should recreate submodels as necessary. Multisynq will not interpret this data in any way (e.g. not even the <code>version</code> property in the example below). It is stringified, encrypted, and stored.</p>
 ##### Parameters
 <ParamField path="collectDataFunc" type="any" required={true}>
 

@@ -41,8 +41,8 @@ This next phase focuses on automating documentation generation, expanding conten
         -   ✅ Single-page documentation with imports
         -   ✅ New output structure: `packages/<package-name>/`
 -   **Remaining Steps**:
-    1.  Integrate the script into a CI/CD workflow (GitHub Actions)
-    2.  Ensure the generated documentation is automatically validated
+    1.  Integrate the script into a CI/CD workflow (GitHub Actions) — DONE (see `.github/workflows/docs.yml`)
+    2.  Ensure the generated documentation is automatically validated — PARTIAL (Mint CLI lint step added)
 
 #### **2. ⚛️ Comprehensive `multisynq-react` Documentation**
 
@@ -115,7 +115,7 @@ This next phase focuses on automating documentation generation, expanding conten
     -   ✅ Fixed parsing errors in generated documentation
     -   ✅ Removed problematic imports and escaped backticks
 
-#### **8. 🚧 Consolidate API Reference & Automate from JSDoc - COMPLETED ✅**
+#### **8. ✅ Consolidate API Reference & Automate from JSDoc - COMPLETED**
 
 -   **Goal**: Replace the fragmented API reference with a single, comprehensive page that is automatically generated from TSDoc/JSDoc comments in the source code.
 -   **Status**: ✅ **COMPLETED** (December 2024)
@@ -129,10 +129,16 @@ This next phase focuses on automating documentation generation, expanding conten
         -   ✅ Import-based component structure
         -   ✅ Client-side navigation support
         -   ✅ New `packages/` directory structure
-    -   ❌ **CI/CD Integration**: Not yet implemented
+    -   ✅ **CI/CD Integration**: Implemented via `.github/workflows/docs.yml` (generate per package, sync examples, lint, build)
 -   **Remaining Steps**:
-    1.  Set up GitHub Action for automated updates on source changes
-    2.  Create MDX validation workflow
+    1.  Enhance MDX validation workflow (broken link/anchor checks)
+    2.  Add preview deploy on PRs
+
+#### **10. ✅ Alias Exports and React Together Coverage**
+
+-   Implemented alias resolution in generator (e.g., `useIsTogether` aliasing `useIsJoined`).
+-   Generated `packages/react-together` docs for hooks, components, and utilities aligning with `react-together/website/src/pages` coverage.
+-   Added npm scripts in `docs/package.json` to generate all packages and sync examples: `docs:gen:all`.
 
 #### **9. 📚 Examples Section Integration - COMPLETED ✅**
 

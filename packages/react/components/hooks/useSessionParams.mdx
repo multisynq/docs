@@ -1,0 +1,20 @@
+## useSessionParams
+
+<a id="usesessionparams"></a>
+<p>Hook that gives access to the <code>sessionParams</code> object stored in the <a href="#multisynqroot">MultisynqRoot</a> state.</p>
+### Syntax
+```typescript
+function useSessionParams(): any
+```
+### Returns
+<ResponseField type="any">
+<p>{Object} The <code>sessionParams</code> object, which can be: 1. If currently joined to a Multisynq session: The parameters used in the active [Session.join](../client/Session.html#.join) call. 2. If not currently in a session, but previously joined: The parameters from the last joined session. 3. If never joined a session: The initial parameters passed to <a href="#multisynqroot">MultisynqRoot</a>.</p>
+</ResponseField>
+### Examples
+<CodeGroup>
+```javascript
+const sessionParams = useSessionParams();
+console.log('Current session name:', sessionParams.name);
+console.log('Application ID:', sessionParams.appId);
+```
+</CodeGroup>

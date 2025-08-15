@@ -1,0 +1,21 @@
+## useIsJoined
+
+<a id="useisjoined"></a>
+<p>Returns whether the component is currently joined to a Multisynq session.</p>
+### Syntax
+```typescript
+function useIsJoined(): boolean
+```
+### Returns
+<ResponseField type="boolean">
+<p>True if joined to a Multisynq session, false otherwise.</p>
+</ResponseField>
+### Examples
+<CodeGroup>
+```javascript
+const isJoined = useIsJoined();
+if (isJoined) {
+  console.log("We are connected to a Multisynq session");
+}
+```
+</CodeGroup>

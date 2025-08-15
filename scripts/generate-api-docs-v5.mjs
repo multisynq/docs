@@ -127,6 +127,10 @@ class EnhancedJSDocParser {
         const sourceFile = this.program.getSourceFile(filePath);
         if (!sourceFile) return;
 
+        // Track local variable declarations and exported names to resolve aliases and non-exported consts that are re-exported later
+        const localVarDecls = new Map(); // name -> { decl, jsdoc, isExport }
+        const exportedLocalNames = new Set();
+
         const visit = (node) => {
             // Extract JSDoc comments
             const jsdoc = this.extractTSDocComment(node, sourceFile);
@@ -156,29 +160,20 @@ class EnhancedJSDocParser {
                 const enumData = this.parseEnum(node, sourceFile, jsdoc);
                 results.enums.push(enumData);
             } else if (ts.isVariableStatement(node)) {
-                // Check for exported variables/constants and components
+                // Record local variable declarations, even if not exported here
                 const isExport = node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword);
-                if (isExport) {
-                    node.declarationList.declarations.forEach(decl => {
-                        if (ts.isIdentifier(decl.name)) {
-                            const name = decl.name.getText();
-                            // Simple heuristic for React components
-                            if (/^[A-Z]/.test(name) && decl.initializer) {
-                                const componentData = {
-                                    name,
-                                    ...this.parseJSDocComment(jsdoc || ''),
-                                    type: 'component'
-                                };
-                                results.components.push(componentData);
-                            } else {
-                                const constData = {
-                                    name,
-                                    ...this.parseJSDocComment(jsdoc || ''),
-                                    kind: 'constant'
-                                };
-                                results.constants.push(constData);
-                            }
-                        }
+                node.declarationList.declarations.forEach(decl => {
+                    if (ts.isIdentifier(decl.name)) {
+                        const name = decl.name.getText();
+                        localVarDecls.set(name, { decl, jsdoc: jsdoc || '', isExport: !!isExport });
+                    }
+                });
+            } else if (ts.isExportDeclaration(node)) {
+                // export { name as alias }
+                if (node.exportClause && ts.isNamedExports(node.exportClause)) {
+                    node.exportClause.elements.forEach(el => {
+                        const localName = el.propertyName ? el.propertyName.getText() : el.name.getText();
+                        exportedLocalNames.add(localName);
                     });
                 }
             }
@@ -187,6 +182,43 @@ class EnhancedJSDocParser {
         };
 
         visit(sourceFile);
+
+        // After traversal, materialize exported variables/components/hooks (handles aliasing and re-exports)
+        for (const [name, info] of localVarDecls.entries()) {
+            const isExported = info.isExport || exportedLocalNames.has(name);
+            if (!isExported) continue;
+
+            const initializer = info.decl.initializer;
+            const parsed = this.parseJSDocComment(info.jsdoc || '');
+            const isHookName = /^use[A-Z]/.test(name);
+            const isComponentName = /^[A-Z]/.test(name);
+
+            // Detect alias: const A = B
+            if (initializer && ts.isIdentifier(initializer)) {
+                const aliasOf = initializer.getText();
+                const aliasEntry = { name, aliasOf, ...parsed };
+                if (isHookName) {
+                    results.hooks.push(aliasEntry);
+                } else if (isComponentName) {
+                    results.components.push({ ...aliasEntry, type: 'component' });
+                } else {
+                    results.functions.push(aliasEntry);
+                }
+                continue;
+            }
+
+            // Arrow/function expression detection
+            const isFunctionLike = initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer));
+            if (isHookName || (isFunctionLike && name.startsWith('use'))) {
+                results.hooks.push({ name, ...parsed });
+            } else if (isComponentName && initializer) {
+                results.components.push({ name, ...parsed, type: 'component' });
+            } else if (isFunctionLike) {
+                results.functions.push({ name, ...parsed });
+            } else {
+                results.constants.push({ name, ...parsed, kind: 'constant' });
+            }
+        }
     }
 
     parseTypeScriptClass(node, sourceFile, classJsdoc) {
@@ -1540,7 +1572,7 @@ ${this.formatDescriptionForComponent(prop.description || '')}
                     sections.push(`<AccordionItem title="${method.name}">
 ${this.formatDescriptionForComponent(method.description || '')}
 
-<strong>Type:</strong> <code>${method.type}</code>
+<strong>Type:</strong> <code>${this.escapeHtml(method.type)}</code>
 </AccordionItem>`);
                 });
                 sections.push(`</Accordion>`);
@@ -1822,7 +1854,7 @@ ${this.formatDescriptionForComponent(param.description || '')}
         const sections = [];
         
         const type = prop.type || 'any';
-        sections.push(`<strong>Type:</strong> <code>${type}</code>`);
+        sections.push(`<strong>Type:</strong> <code>${this.escapeHtml(type)}</code>`);
         
         if (prop.description) {
             sections.push(`${this.formatDescriptionForComponent(prop.description)}`);
@@ -2143,6 +2175,15 @@ ${this.formatDescriptionForComponent(param.description || '')}
             return `<em>tutorial: ${this.escapeHtml(tutorialName)}</em>`;
         });
         
+        // Handle [text]{@link target} format FIRST to prevent double processing
+        formatted = formatted.replace(/\[([^\]]+)\]\{@link\s+([^}]+)\}/g, (match, text, target) => {
+            if (target.startsWith('http')) {
+                return `§§LINK§§${target}§§TEXT§§${text}§§LINK§§`;
+            }
+            const cleanTarget = target.replace(/[#.]/g, '').toLowerCase();
+            return `§§LINK§§#${cleanTarget}§§TEXT§§${text}§§LINK§§`;
+        });
+        
         // Handle {@link} tags
         formatted = formatted.replace(/\{@link\s+([^}]+)\}/g, (match, content) => {
             const parts = content.split(/\s+/);
@@ -2154,15 +2195,6 @@ ${this.formatDescriptionForComponent(param.description || '')}
             }
             
             // Handle internal links
-            const cleanTarget = target.replace(/[#.]/g, '').toLowerCase();
-            return `<a href="#${cleanTarget}">${this.escapeHtml(text)}</a>`;
-        });
-        
-        // Handle [text]{@link target} format
-        formatted = formatted.replace(/\[([^\]]+)\]\{@link\s+([^}]+)\}/g, (match, text, target) => {
-            if (target.startsWith('http')) {
-                return `<a href="${target}">${this.escapeHtml(text)}</a>`;
-            }
             const cleanTarget = target.replace(/[#.]/g, '').toLowerCase();
             return `<a href="#${cleanTarget}">${this.escapeHtml(text)}</a>`;
         });
@@ -2190,6 +2222,11 @@ ${this.formatDescriptionForComponent(param.description || '')}
         // Restore code blocks
         codeBlocks.forEach((block, index) => {
             formatted = formatted.replace(`§§CODEBLOCK${index}§§`, block);
+        });
+        
+        // Restore links after all other processing
+        formatted = formatted.replace(/§§LINK§§([^§]+)§§TEXT§§([^§]+)§§LINK§§/g, (match, href, text) => {
+            return `<a href="${href}">${this.escapeHtml(text)}</a>`;
         });
         
         // Handle multi-line formatting - split into paragraphs
@@ -2511,6 +2548,26 @@ Examples:
     // Parse files
     const parser = new EnhancedJSDocParser(config);
     const docs = await parser.parseFiles(sourceFiles);
+
+    // Resolve simple alias entries (e.g., const useIsTogether = useIsJoined)
+    (function resolveAliases(d) {
+        const indexByName = new Map();
+        d.hooks.forEach(h => indexByName.set(h.name, { ...h, __kind: 'hook' }));
+        d.functions.forEach(f => indexByName.set(f.name, { ...f, __kind: 'function' }));
+        function materialize(list) {
+            return list.map(item => {
+                if (item.aliasOf && indexByName.has(item.aliasOf)) {
+                    const target = indexByName.get(item.aliasOf);
+                    const merged = { ...target, name: item.name, isAlias: true, aliasOf: item.aliasOf };
+                    delete merged.__kind;
+                    return merged;
+                }
+                return item;
+            });
+        }
+        d.hooks = materialize(d.hooks);
+        d.functions = materialize(d.functions);
+    })(docs);
     
     console.log(`📊 Extracted:
   - ${docs.classes.length} classes

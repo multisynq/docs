@@ -1,0 +1,112 @@
+## Functions
+<a id="functions"></a>
+<AccordionGroup>
+<Accordion title="createMultisynqSession" id="func-createMultisynqSession">
+<CodeGroup>
+```typescript
+createMultisynqSession(): void
+```
+</CodeGroup>
+<p>When Multisynq is used in a component that is a part of a bigger application, it is sometimes better to establish the Multisynq session instance outside, and then pass it in to the Multisynq-powered part.</p>
+        <pre><code>const [multisynqSession, setMultisynqSession] = useState(null)
+        <p>const [multisynqView, setMultisynqView] = useState(null) const calledOnce = useRef(false) useEffect(() =&gt; { if (!calledOnce.current) { calledOnce.current = true const sessionParams = { name: projectId, apiKey: import.meta.env.VITE_MULTISYNQ_API_KEY, tps: 0.5, appId: import.meta.env.VITE_MULTISYNQ_APP_ID, password: &#39;abc&#39;, model: MyMultisynqModel, eventRateLimit: import.meta.env.EVENT_RATE_LIMIT || 60, } createMultisynqSession(sessionParams as any).then((session) =&gt; { console.log(`session created`) setMultisynqSession(session) setMultisynqView(session.view) setSyncedCallback((flag) =&gt; { console.log(`synced`, flag) if (flag) { setMultisynqView((old) =&gt; session.view) } session.view.detachCallback = (e) =&gt; { console.log(`detached`) setMultisynqView(null) } }) }) } }, []) return ( &lt;MultisynqRoot multisynqView={multisynqView}&gt; &lt;MyMultisynqComponent/&gt; &lt;/MultisynqRoot&gt; )</code></pre> /</p>
+</Accordion>
+<Accordion title="setSyncedCallback" id="func-setSyncedCallback">
+<CodeGroup>
+```typescript
+setSyncedCallback(): void
+```
+</CodeGroup>
+<p>A function to set up the handler for the synced event. It is supposed to be called from the React component that calls createReactSession() in the following manner from where the</p>
+        <pre><code>setSyncedCallback((flag) =&gt; {
+        <p>console.log(`synced`, flag) if (flag) { setMultisynqView((old) =&gt; session.view) } session.view.detachCallback = () =&gt; { console.log(`detached`) setMultisynqView(null) } })</code></pre> /</p>
+</Accordion>
+<Accordion title="deprecatedViewsPropertyWarning" id="func-deprecatedViewsPropertyWarning">
+<CodeGroup>
+```typescript
+deprecatedViewsPropertyWarning(): void
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="viewsSelector" id="func-viewsSelector">
+<CodeGroup>
+```typescript
+viewsSelector(): void
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="getModelObject" id="func-getModelObject">
+<CodeGroup>
+```typescript
+getModelObject(): void
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="MultisynqRoot" id="func-MultisynqRoot">
+<CodeGroup>
+```typescript
+MultisynqRoot(): void
+```
+</CodeGroup>
+<p>MultisynqRoot component implements the default implementation of the logic described for createMultisynqSession function. /</p>
+</Accordion>
+<Accordion title="join" id="func-join">
+<CodeGroup>
+```typescript
+join(): void
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="InMultisynqSession" id="func-InMultisynqSession">
+<CodeGroup>
+```typescript
+InMultisynqSession(): void
+```
+</CodeGroup>
+<p>Main wrapper component that starts and manages a Multisynq session, enabling child elements to use the <a href="#usepublish">usePublish</a>, <a href="#usesubscribe">useSubscribe</a>, <a href="#useobservable">useObservable</a>, <a href="#useviewid">useViewId</a> and <a href="#usemodelroot">useModelRoot</a> hooks. Takes the same parameters as <a href="#sessionjoin">Session.join</a> except that it doesn't need a root View class, since multisynq-react provides a suitable View class behind the scenes.</p>
+        <pre><code>function MyApp() {
+        <p>return ( &lt;InMultisynqSession apiKey=&#39;1_123abc&#39;, appId=&#39;com.example.myapp&#39; name=&#39;mySession&#39; password=&#39;secret&#39; model={MyRootModel} ... &gt; // child elements that use hooks go here... &lt;/InMultisynqSession&gt; ) }</code></pre> /</p>
+</Accordion>
+<Accordion title="createMultisynqSession" id="func-createMultisynqSession">
+<CodeGroup>
+```typescript
+createMultisynqSession(): any
+```
+</CodeGroup>
+<p>When Multisynq is used in a component that is a part of a bigger application, it is sometimes better to establish the Multisynq session instance outside,and then pass it in to the Multisynq-powered part.</p>
+##### Returns
+<ResponseField type="any">
+<p>- the Multisynq session object.</p>
+</ResponseField>
+##### Examples
+<CodeGroup>
+```jsx
+const [multisynqSession, setMultisynqSession] = useState(null);
+const calledOnce = useRef(false);
+useEffect(() => {
+  if (!calledOnce.current) {
+    calledOnce.current = true;
+    const sessionParams = {
+      name: projectId,
+      apiKey: import.meta.env.VITE_MULTISYNQ_API_KEY,
+      tps: 0.5,
+      appId: import.meta.env.VITE_MULTISYNQ_APP_ID,
+      password: "abc",
+      model: MyMultisynqModel,
+      eventRateLimit: import.meta.env.EVENT_RATE_LIMIT || 60,
+    };
+    createMultisynqSession(sessionParams as any).then((session) => {
+      console.log(`session created`);
+      setMultisynqSession(session);
+    });
+  }
+}, [...]);
+return (
+  <MultisynqRoot session={multisynqSession}>
+    <MyMultisynqComponent/>
+  </MultisynqRoot>
+);
+```
+</CodeGroup>
+</Accordion>
+</AccordionGroup>

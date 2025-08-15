@@ -1,0 +1,20 @@
+## useConnectedViews
+
+<a id="useconnectedviews"></a>
+<p>Returns information about the views currently joined to the Multisynq session.</p>
+### Syntax
+```typescript
+function useConnectedViews(): any
+```
+### Returns
+<ResponseField type="any">
+<p>{Object} An object containing information about joined views. * <code>viewIds</code>: string[] - An array of all the joined view ids. * <code>viewInfos</code>: { [viewId: string]: ViewInfo<T> } - An object with the joined view ids as keys and the ViewInfo objects as values. * <code>viewCount</code>: number - The total number of views currently joined to the session. <em> <code>views</code>: string[] - </em>Deprecated* An alias for <code>viewIds</code>. This property will be removed in the next major release.</p>
+</ResponseField>
+### Examples
+<CodeGroup>
+```javascript
+const { viewIds, viewCount } = useJoinedViews();
+console.log(`There are ${viewCount} views joined to the session.`);
+console.log('View IDs:', views.join(", "));
+```
+</CodeGroup>

@@ -1,7 +1,7 @@
 ## Data
 
 <a id="data"></a>
-<p><strong>Secure bulk data storage</strong> This Data API allows encrypted bulk data storage. E.g. if a user drops a file into a Multisynq application, the contents of that file can be handed off to the Data API for storage. It will be encrypted and uploaded to a file server. Other participants will download and decrypt the data. The [Data.store()]<a href="#datastore">Data#store</a> method returns a <em>data handle</em> that is to be stored in the model via [view.publish()]<a href="#viewpublish">View#publish</a>, and then other participants fetch the stored data via [Data.fetch()]<a href="#datafetch">Data#fetch</a>, passing the handle from the model. Off-loading the actual bits of data to a file server and keeping only the meta data (including the data handle) in the replicated model meta is a lot more efficient than trying to send that data via [publish]<a href="#viewpublish">View#publish</a>/[subscribe]<a href="#modelsubscribe">Model#subscribe</a>. It also allows caching. <strong>Shareable handles:</strong> By default, data handles are not shareable outside the session. The uploaded data is encrypted with the session password, just like snapshots, messages, etc. If you set the <code>shareable</code> option to <code>true</code>, the data handle will include the decryption key so it can be decrypted by anyone who has the handle, even without the session password. It is not protected by the session's end-to-end encryption. If the handle leaks, anyone can download and decrypt the data. Again: <strong>IF MADE SHAREABLE, THE DATA IS ENCRYPTED INDEPENDENTLY, THE HANDLE INCLUDES THE DECRYPTION KEY</strong> <strong>Note:</strong> The Data API is not available in <code>Model</code> code, only available in <code>View</code> code. Typically, you would access the Data API in a view as <code>this.session.data.store()</code> and <code>this.session.data.fetch()</code>. See this <a href="/tutorials/2_9_data">tutorial</a> for a complete example.</p>
+<p><strong>Secure bulk data storage</strong> This Data API allows encrypted bulk data storage. E.g. if a user drops a file into a Multisynq application, the contents of that file can be handed off to the Data API for storage. It will be encrypted and uploaded to a file server. Other participants will download and decrypt the data. The <a href="#datastore">Data.store()</a> method returns a <em>data handle</em> that is to be stored in the model via <a href="#viewpublish">view.publish()</a>, and then other participants fetch the stored data via <a href="#datafetch">Data.fetch()</a>, passing the handle from the model. Off-loading the actual bits of data to a file server and keeping only the meta data (including the data handle) in the replicated model meta is a lot more efficient than trying to send that data via <a href="#viewpublish">publish</a>/<a href="#modelsubscribe">subscribe</a>. It also allows caching. <strong>Shareable handles:</strong> By default, data handles are not shareable outside the session. The uploaded data is encrypted with the session password, just like snapshots, messages, etc. If you set the <code>shareable</code> option to <code>true</code>, the data handle will include the decryption key so it can be decrypted by anyone who has the handle, even without the session password. It is not protected by the session's end-to-end encryption. If the handle leaks, anyone can download and decrypt the data. Again: <strong>IF MADE SHAREABLE, THE DATA IS ENCRYPTED INDEPENDENTLY, THE HANDLE INCLUDES THE DECRYPTION KEY</strong> <strong>Note:</strong> The Data API is not available in <code>Model</code> code, only available in <code>View</code> code. Typically, you would access the Data API in a view as <code>this.session.data.store()</code> and <code>this.session.data.fetch()</code>. See this <a href="/tutorials/2_9_data">tutorial</a> for a complete example.</p>
 ### Constructor
 <CodeGroup>
 ```typescript
@@ -85,7 +85,7 @@ static fromId(id: any): any
 </ParamField>
 ##### Returns
 <ResponseField type="DataHandle">
-<p>a handle to be used with [Data.fetch()]<a href="#datafetch">Data#fetch</a></p>
+<p>a handle to be used with <a href="#datafetch">Data.fetch()</a></p>
 </ResponseField>
 </Accordion>
 <Accordion title="toId">
@@ -101,7 +101,7 @@ static toId(handle: any): any
 </ParamField>
 ##### Returns
 <ResponseField type="String">
-<p>id an id to be used with [Data.fromId()]<a href="#datafromid">Data.fromId</a></p>
+<p>id an id to be used with <a href="#datafromid">Data.fromId()</a></p>
 </ResponseField>
 </Accordion>
 </AccordionGroup>
@@ -113,7 +113,7 @@ static toId(handle: any): any
 async store(data: ArrayBuffer, [options=null]: Object, [options: Boolean): any
 ```
 </CodeGroup>
-<p>Store data and return an (opaque) handle. If <code>options.shareable</code> is <code>true</code>, the handle will include the decryption key and can be shared (see security/privacy warning above). By default, <code>data</code> will become unusable after this call, because the ArrayBuffer is detached when being [transferred]<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer#transferring_arraybuffers">https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer#transferring_arraybuffers</a> to a web worker for encryption and upload. Set <code>options.keep</code> to <code>true</code> to make a copy instead of moving the data.</p>
+<p>Store data and return an (opaque) handle. If <code>options.shareable</code> is <code>true</code>, the handle will include the decryption key and can be shared (see security/privacy warning above). By default, <code>data</code> will become unusable after this call, because the ArrayBuffer is detached when being <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer#transferring_arraybuffers">transferred</a> to a web worker for encryption and upload. Set <code>options.keep</code> to <code>true</code> to make a copy instead of moving the data.</p>
 ##### Returns
 <ResponseField type="Promise&lt;DataHandle&gt;">
 <p>return promise for the handle</p>

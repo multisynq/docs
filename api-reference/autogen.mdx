@@ -18,24 +18,24 @@ Models advance time by sending messages into their [future](#modelfuture)(#model
 
 ## Instance Creation and Initialization
 
-### Do __NOT__ create a [Model](#model) instance using `\`new\`` and<br>do __NOT__ override the `\`constructor\``!
+### Do __NOT__ create a [Model](#model) instance using `new` and<br>do __NOT__ override the `constructor`!
 
 To __create__ a new instance, use [create()](#modelcreate)(#modelcreate), for example:
-`\`\`\`
+```js
 this.foo = FooModel.create({answer: 123});
-\`\`\``
+```
 To __initialize__ an instance, override [init()](#modelinit)(#modelinit), for example:
-`\`\`\`
+```js
 class FooModel extends Multisynq.Model {
     init(options={}) {
         this.answer = options.answer || 42;
     }
 }
-\`\`\``
-The **reason** for this is that Models are only initialized by calling `\`init()\``
+```
+The **reason** for this is that Models are only initialized by calling `init()`
 the first time the object comes into existence in the session.
 After that, when joining a session, the models are deserialized from the snapshot, which
-restores all properties automatically without calling `\`init()\``. A constructor would
+restores all properties automatically without calling `init()`. A constructor would
 be called all the time, not just when starting a session.
 
 #### `constructor`
@@ -61,9 +61,9 @@ See [Session.join](#sessionjoin) for how the session id is generated.
 If your app has several sessions at the same time, each session id will be different.
 
 Example
-`\`\`\`
+```js
 this.subscribe(this.sessionId, "view-join", this.addUser);
-\`\`\``
+```
 
 ##### `viewCount`
 
@@ -75,11 +75,11 @@ It increases by 1 for every [`\`"view-join"\``](#eventview-join)(#eventview-join
 and decreases by 1 for every [`\`"view-exit"\``](#eventview-exit)(#eventview-exit) event.
 
 Example
-`\`\`\`
+```js
 this.subscribe(this.sessionId, "view-join", this.showUsers);
 this.subscribe(this.sessionId, "view-exit", this.showUsers);
 showUsers() { this.publish(this.sessionId, "view-count", this.viewCount); }
-\`\`\``
+```
 
 ##### `Multisynq`
 
@@ -95,7 +95,7 @@ using [wellKnownModel()](#modelwellknownmodel)(#modelwellknownmodel).
 Hint: Another way to make a model well-known is to pass a name as second argument to [Model.create()]Model#create.
 
 Example:
-`\`\`\`
+```js
  class FooManager extends Multisynq.Model {
      init() {
          this.beWellKnownAs("UberFoo");
@@ -106,7 +106,7 @@ Example:
          this.wellKnownModel("UberFoo").report(something);
      }
  }
-\`\`\``
+```
 
 <RequestExample>
 <ParamField path="name" type="string">
@@ -195,10 +195,10 @@ removeChild(child) {
 Use a future message to automatically advance time in a model,
 for example for animations.
 The execution will be scheduled `\`tOffset\`` milliseconds into the future.
-It will run at precisely `\`this.now() + tOffset\``.
+It will run at precisely `this.now() + tOffset`.
 
-Use the form `\`this.future(100).methodName(args)\`` to schedule the execution
-of `\`this.methodName(args)\`` at time `\`this.now() + tOffset\``.
+Use the form `this.future(100).methodName(args)` to schedule the execution
+of `this.methodName(args)` at time `this.now() + tOffset`.
 
 **Hint**: This would be an unusual use of `\`future()\``, but the `\`tOffset\`` given may be `\`0\``,
 in which case the execution will happen asynchronously before advancing time.

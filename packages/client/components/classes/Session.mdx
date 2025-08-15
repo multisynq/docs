@@ -14,7 +14,7 @@ This class should not be instantiated directly using <code>new</code>.
 static async join(parameters: any): any
 ```
 </CodeGroup>
-<p><strong>Join a Multisynq session.</strong> Joins a session by instantiating the root model (for a new session) or resuming from a snapshot, then constructs the view root instance. The <code>appId</code> identifies each Multisynq app. It must be a globally unique identifier following the [Android convention](https://developer.android.com/studio/build/application-id), e.g. <code>"com.example.myapp"</code>. Each dot-separated segment must start with a letter, and only letters, digits, and underscores are allowed. The session <code>name</code> identifies individual sessions within an app. You can use it for example to create different sessions for different users. That is, a user in session <code>"ABC"</code> will not see a user in <code>"DEF"</code>. One simple way to create unique sessions is via <code>Multisynq.App.autoSession()</code> which will use or generate a random name in the query part (<code>?...</code>) of the current url. (If you use a constant, then all users will end up in the same session. This is what we do in some of our tutorials for simplicity, but actual apps should manage sessions.) The session <code>password</code> is used for end-to-end encryption of all data leaving the client. If your app does not need to protect user data, you will still have to provide a constant dummy password. One simple way to have individual passwords is via <code>Multisynq.App.autoPassword()</code> which will use or generate a random password in the hash part (<code>#...</code>) of the current url. A [session id]<a href="#modelsessionid">Model#sessionId</a> is created from the given session <code>name</code> and <code>options</code>, and a hash of all the [registered]<a href="#modelregister">Model.register</a> Model classes and <a href="#constants">Constants</a>. This ensures that only users running the exact same source code end up in the same session, which is a prerequisite for perfectly synchronized computation. The session id is used to connect to a reflector. If there is no ongoing session, an instance of the <code>model</code> class is [created]<a href="#modelcreate">Model.create</a> (which in turn typically creates a number of submodels). Otherwise, the previously stored [modelRoot]<a href="#modelbewellknownas">Model#beWellKnownAs</a> is deserialized from the snapshot, along with all additional models. That root model instance is passed to the [constructor]<a href="#view">View</a> of your root <code>view</code> class. The root view should set up the input and output operations of your application, and create any additional views as to match the application state as found in the models. Then the Multisynq <strong>main loop</strong> is started (unless you pass in a <code>step: "manual"</code> parameter, e.g. for WebXR, see example below). This uses [requestAnimationFrame()](https://developer.mozilla.org/docs/Web/API/window/requestAnimationFrame) for continuous updating. Each step of the main loop executes in three phases: 1. <em>Simulation:</em> the models execute the events received via the reflector, and the [future messages]<a href="#modelfuture">Model#future</a> up to the latest time stamp received from the reflector. The [events]<a href="#modelpublish">Model#publish</a> generated in this phase are put in a queue for the views to consume. 2. <em>Event Processing:</em> the queued events are processed by calling the view's [event handlers]<a href="#viewsubscribe">View#subscribe</a>. The views typically use these events to modify some view state, e.g. moving a DOM element or setting some attribute of a Three.js object. 3. <em>Updating/Rendering:</em> The view root's [update()]<a href="#viewupdate">View#update</a> method is called after all the queued events have been processed. In some applications, the update method will do nothing (e.g. DOM elements are rendered after returning control to the browser). When using other UI frameworks (e.g. Three.js), this is the place to perform the actual rendering. Also, polling input and other tasks that should happen in every frame should be placed here.</p>
+<p><strong>Join a Multisynq session.</strong> Joins a session by instantiating the root model (for a new session) or resuming from a snapshot, then constructs the view root instance. The <code>appId</code> identifies each Multisynq app. It must be a globally unique identifier following the [Android convention](https://developer.android.com/studio/build/application-id), e.g. <code>"com.example.myapp"</code>. Each dot-separated segment must start with a letter, and only letters, digits, and underscores are allowed. The session <code>name</code> identifies individual sessions within an app. You can use it for example to create different sessions for different users. That is, a user in session <code>"ABC"</code> will not see a user in <code>"DEF"</code>. One simple way to create unique sessions is via <code>Multisynq.App.autoSession()</code> which will use or generate a random name in the query part (<code>?...</code>) of the current url. (If you use a constant, then all users will end up in the same session. This is what we do in some of our tutorials for simplicity, but actual apps should manage sessions.) The session <code>password</code> is used for end-to-end encryption of all data leaving the client. If your app does not need to protect user data, you will still have to provide a constant dummy password. One simple way to have individual passwords is via <code>Multisynq.App.autoPassword()</code> which will use or generate a random password in the hash part (<code>#...</code>) of the current url. A <a href="#modelsessionid">session id</a> is created from the given session <code>name</code> and <code>options</code>, and a hash of all the <a href="#modelregister">registered</a> Model classes and <a href="#constants">Constants</a>. This ensures that only users running the exact same source code end up in the same session, which is a prerequisite for perfectly synchronized computation. The session id is used to connect to a reflector. If there is no ongoing session, an instance of the <code>model</code> class is <a href="#modelcreate">created</a> (which in turn typically creates a number of submodels). Otherwise, the previously stored <a href="#modelbewellknownas">modelRoot</a> is deserialized from the snapshot, along with all additional models. That root model instance is passed to the <a href="#view">constructor</a> of your root <code>view</code> class. The root view should set up the input and output operations of your application, and create any additional views as to match the application state as found in the models. Then the Multisynq <strong>main loop</strong> is started (unless you pass in a <code>step: "manual"</code> parameter, e.g. for WebXR, see example below). This uses [requestAnimationFrame()](https://developer.mozilla.org/docs/Web/API/window/requestAnimationFrame) for continuous updating. Each step of the main loop executes in three phases: 1. <em>Simulation:</em> the models execute the events received via the reflector, and the <a href="#modelfuture">future messages</a> up to the latest time stamp received from the reflector. The <a href="#modelpublish">events</a> generated in this phase are put in a queue for the views to consume. 2. <em>Event Processing:</em> the queued events are processed by calling the view's <a href="#viewsubscribe">event handlers</a>. The views typically use these events to modify some view state, e.g. moving a DOM element or setting some attribute of a Three.js object. 3. <em>Updating/Rendering:</em> The view root's <a href="#viewupdate">update()</a> method is called after all the queued events have been processed. In some applications, the update method will do nothing (e.g. DOM elements are rendered after returning control to the browser). When using other UI frameworks (e.g. Three.js), this is the place to perform the actual rendering. Also, polling input and other tasks that should happen in every frame should be placed here.</p>
 ##### Parameters
 <ParamField path="parameters" type="any" required={true}>
 
@@ -92,7 +92,7 @@ static thisSession(): any
 id(): any
 ```
 </CodeGroup>
-<p>Session ID, generated by [Session.join]<a href="#sessionjoin">Session.join</a>. This is a unique identifier for the session, combining the session's [persistentId]<a href="#sessionpersistentid">Session.persistentId</a> and [versionId]<a href="#sessionversionid">Session.versionId</a>. It ensures that all users in a session execute the exact same Model code.</p>
+<p>Session ID, generated by <a href="#sessionjoin">Session.join</a>. This is a unique identifier for the session, combining the session's <a href="#sessionpersistentid">persistentId</a> and <a href="#sessionversionid">versionId</a>. It ensures that all users in a session execute the exact same Model code.</p>
 </Accordion>
 <Accordion title="persistentId">
 <CodeGroup>
@@ -100,7 +100,7 @@ id(): any
 persistentId(): any
 ```
 </CodeGroup>
-<p>Persistent ID, generated by [Session.join]<a href="#sessionjoin">Session.join</a>. This is a unique identifier for the session, which remains the same even if a new code version is deployed.</p>
+<p>Persistent ID, generated by <a href="#sessionjoin">Session.join</a>. This is a unique identifier for the session, which remains the same even if a new code version is deployed.</p>
 </Accordion>
 <Accordion title="versionId">
 <CodeGroup>
@@ -108,7 +108,7 @@ persistentId(): any
 versionId(): any
 ```
 </CodeGroup>
-<p>Version ID, generated by [Session.join]<a href="#sessionjoin">Session.join</a>. This is a unique identifier for the app version independent of the session name. It is a hash of the source code of registered Model classes and Constants. Everything the Model depends on must be registered, or Constants, to ensure that all users in a session have the exact same code. Otherwise, they might diverge in their computations. /</p>
+<p>Version ID, generated by <a href="#sessionjoin">Session.join</a>. This is a unique identifier for the app version independent of the session name. It is a hash of the source code of registered Model classes and Constants. Everything the Model depends on must be registered, or Constants, to ensure that all users in a session have the exact same code. Otherwise, they might diverge in their computations. /</p>
 </Accordion>
 <Accordion title="name">
 <CodeGroup>
@@ -116,7 +116,7 @@ versionId(): any
 name(): any
 ```
 </CodeGroup>
-<p>The session name, as given to [Session.join]<a href="#sessionjoin">Session.join</a>.</p>
+<p>The session name, as given to <a href="#sessionjoin">Session.join</a>.</p>
 </Accordion>
 <Accordion title="data">
 <CodeGroup>
@@ -124,7 +124,7 @@ name(): any
 data(): any
 ```
 </CodeGroup>
-<p>interface to the bulk [Data API]<a href="#data">Data</a> for this session.</p>
+<p>interface to the bulk <a href="#data">Data API</a> for this session.</p>
 </Accordion>
 <Accordion title="step">
 <CodeGroup>
@@ -132,7 +132,7 @@ data(): any
 step(_time: any): any
 ```
 </CodeGroup>
-<p>Invoke this function regularly if you selected <code>"manual"</code> stepping in [Session.join]<a href="#sessionjoin">Session.join</a>.</p>
+<p>Invoke this function regularly if you selected <code>"manual"</code> stepping in <a href="#sessionjoin">Session.join</a>.</p>
 ##### Parameters
 <ParamField path="_time" type="any" required={true}>
 
@@ -144,7 +144,7 @@ step(_time: any): any
 leave(): any
 ```
 </CodeGroup>
-<p>Leave the session. The only way back in is to invoke [Session.join()]<a href="#sessionjoin">Session.join</a> again - or reload the app.</p>
+<p>Leave the session. The only way back in is to invoke <a href="#sessionjoin">Session.join()</a> again - or reload the app.</p>
 ##### Returns
 <ResponseField type="any">
 <p>{Promise} Promise that resolves when the session was left /</p>

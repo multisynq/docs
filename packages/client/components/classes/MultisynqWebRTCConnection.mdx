@@ -1,0 +1,246 @@
+## MultisynqWebRTCConnection
+
+<a id="multisynqwebrtcconnection"></a>
+### Constructor
+<CodeGroup>
+```typescript
+constructor(registryURL: any)
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="registryURL" type="any" required={true}>
+
+</ParamField>
+<Tabs>
+<Tab title="Methods">
+#### Static Methods
+<AccordionGroup>
+<Accordion title="name">
+<CodeGroup>
+```typescript
+static name(): any
+```
+</CodeGroup>
+</Accordion>
+</AccordionGroup>
+#### Instance Methods
+<AccordionGroup>
+<Accordion title="isConnecting">
+<CodeGroup>
+```typescript
+isConnecting(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="openConnection">
+<CodeGroup>
+```typescript
+async openConnection(registryURL: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="registryURL" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="openSignalingChannel">
+<CodeGroup>
+```typescript
+openSignalingChannel(registryURL: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="registryURL" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="clearNegotiationTimeout">
+<CodeGroup>
+```typescript
+clearNegotiationTimeout(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="signalToSessionRunner">
+<CodeGroup>
+```typescript
+signalToSessionRunner(msg: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="msg" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="logConnectionState">
+<CodeGroup>
+```typescript
+async logConnectionState(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="close">
+<CodeGroup>
+```typescript
+close(_code: any, _message: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="_code" type="any" required={true}>
+
+</ParamField>
+<ParamField path="_message" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="synchronizerDisconnected">
+<CodeGroup>
+```typescript
+synchronizerDisconnected(code: any, reason: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="code" type="any" required={true} default="1006">
+
+</ParamField>
+<ParamField path="reason" type="any" required={true} default="&#39;connection to synchronizer lost&#39;">
+
+</ParamField>
+</Accordion>
+<Accordion title="synchronizerError">
+<CodeGroup>
+```typescript
+synchronizerError(errorDetail: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="errorDetail" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="cleanUpConnection">
+<CodeGroup>
+```typescript
+cleanUpConnection(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="closeSignalingChannel">
+<CodeGroup>
+```typescript
+closeSignalingChannel(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="createPeerConnection">
+<CodeGroup>
+```typescript
+async createPeerConnection(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="handleAnswer">
+<CodeGroup>
+```typescript
+async handleAnswer(answer: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="answer" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="handleCandidate">
+<CodeGroup>
+```typescript
+async handleCandidate(candidate: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="candidate" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="send">
+<CodeGroup>
+```typescript
+send(data: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="data" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="onDataChannelOpen">
+<CodeGroup>
+```typescript
+onDataChannelOpen(event: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="event" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="onDataChannelMessage">
+<CodeGroup>
+```typescript
+onDataChannelMessage(event: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="event" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="onDataChannelError">
+<CodeGroup>
+```typescript
+onDataChannelError(event: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="event" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="onDataChannelClosing">
+<CodeGroup>
+```typescript
+onDataChannelClosing(_event: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="_event" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="onDataChannelClose">
+<CodeGroup>
+```typescript
+onDataChannelClose(_event: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="_event" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="scheduleSignalingClose">
+<CodeGroup>
+```typescript
+scheduleSignalingClose(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="defunct_readConnectionType">
+<CodeGroup>
+```typescript
+async defunct_readConnectionType(): any
+```
+</CodeGroup>
+</Accordion>
+</AccordionGroup>
+</Tab>
+</Tabs>

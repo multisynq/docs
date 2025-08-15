@@ -1,0 +1,93 @@
+## ActivityModel
+
+<a id="activitymodel"></a>
+<p><strong>Extends:</strong> <code>ReactModel</code></p>
+<Tabs>
+<Tab title="Properties">
+#### Instance Properties
+<Accordion>
+<AccordionItem title="activities">
+<strong>Type:</strong> <code>ActivityArgs[]</code>
+</AccordionItem>
+<AccordionItem title="maxActivities">
+<strong>Type:</strong> <code>number</code>
+</AccordionItem>
+<AccordionItem title="connectedViews">
+<strong>Type:</strong> <code>Set&lt;string&gt;</code>
+</AccordionItem>
+</Accordion>
+</Tab>
+<Tab title="Methods">
+#### Instance Methods
+<AccordionGroup>
+<Accordion title="init">
+<CodeGroup>
+```typescript
+init(options: ActivityModelOptions): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="options" type="ActivityModelOptions" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="handleViewJoin">
+<CodeGroup>
+```typescript
+handleViewJoin(viewId: string, _viewInfo: ViewInfo<{ userId?: string }>): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="viewId" type="string" required={true}>
+
+</ParamField>
+<ParamField path="_viewInfo" type="ViewInfo&lt;{ userId?: string }&gt;" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="handleViewExit">
+<CodeGroup>
+```typescript
+handleViewExit(viewId: string): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="viewId" type="string" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="handleActivity">
+<CodeGroup>
+```typescript
+handleActivity(activityData: ActivityArgs): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="activityData" type="ActivityArgs" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="getHistoricalActivities">
+<CodeGroup>
+```typescript
+getHistoricalActivities(): ActivityArgs[]
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="getActivityCount">
+<CodeGroup>
+```typescript
+getActivityCount(): number
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="clearActivities">
+<CodeGroup>
+```typescript
+clearActivities(): any
+```
+</CodeGroup>
+</Accordion>
+</AccordionGroup>
+</Tab>
+</Tabs>

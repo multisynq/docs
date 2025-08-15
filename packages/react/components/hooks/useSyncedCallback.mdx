@@ -1,0 +1,23 @@
+## useSyncedCallback
+
+<a id="usesyncedcallback"></a>
+<p>Hook that sets up a callback for Multisynq.View.synced(). The callback function is called when a Multisynq synced event occurs.</p>
+### Syntax
+```typescript
+function useSyncedCallback(callback: function(): void): void
+```
+### Parameters
+<ParamField>
+<ParamField path="callback" type="function(): void" required={true}>
+<p>The function to be called when a <code>synced</code> event occurs</p>
+</ParamField>
+</ParamField>
+### Examples
+<CodeGroup>
+```javascript
+function onSynced(): void  {
+ // Callback logic here
+}
+useSyncedCallback(onSynced);
+```
+</CodeGroup>

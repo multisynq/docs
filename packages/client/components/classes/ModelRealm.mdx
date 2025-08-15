@@ -1,0 +1,176 @@
+## ModelRealm
+
+<a id="modelrealm"></a>
+### Constructor
+<CodeGroup>
+```typescript
+constructor(vm: any)
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="vm" type="any" required={true}>
+
+</ParamField>
+<Tabs>
+<Tab title="Methods">
+#### Instance Methods
+<AccordionGroup>
+<Accordion title="register">
+<CodeGroup>
+```typescript
+register(model: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="model" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="deregister">
+<CodeGroup>
+```typescript
+deregister(model: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="model" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="publish">
+<CodeGroup>
+```typescript
+publish(event: any, data: any, scope: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="event" type="any" required={true}>
+
+</ParamField>
+<ParamField path="data" type="any" required={true}>
+
+</ParamField>
+<ParamField path="scope" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="subscribe">
+<CodeGroup>
+```typescript
+subscribe(model: any, scope: any, event: any, methodName: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="model" type="any" required={true}>
+
+</ParamField>
+<ParamField path="scope" type="any" required={true}>
+
+</ParamField>
+<ParamField path="event" type="any" required={true}>
+
+</ParamField>
+<ParamField path="methodName" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="unsubscribe">
+<CodeGroup>
+```typescript
+unsubscribe(model: any, scope: any, event: any, methodName: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="model" type="any" required={true}>
+
+</ParamField>
+<ParamField path="scope" type="any" required={true}>
+
+</ParamField>
+<ParamField path="event" type="any" required={true}>
+
+</ParamField>
+<ParamField path="methodName" type="any" required={true} default="&#39;*&#39;">
+
+</ParamField>
+</Accordion>
+<Accordion title="unsubscribeAll">
+<CodeGroup>
+```typescript
+unsubscribeAll(model: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="model" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="future">
+<CodeGroup>
+```typescript
+future(model: any, tOffset: any, methodName: any, methodArgs: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="model" type="any" required={true}>
+
+</ParamField>
+<ParamField path="tOffset" type="any" required={true}>
+
+</ParamField>
+<ParamField path="methodName" type="any" required={true}>
+
+</ParamField>
+<ParamField path="methodArgs" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="cancelFuture">
+<CodeGroup>
+```typescript
+cancelFuture(model: any, methodOrMessage: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="model" type="any" required={true}>
+
+</ParamField>
+<ParamField path="methodOrMessage" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="random">
+<CodeGroup>
+```typescript
+random(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="now">
+<CodeGroup>
+```typescript
+now(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="equal">
+<CodeGroup>
+```typescript
+equal(otherRealm: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="otherRealm" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="isViewRealm">
+<CodeGroup>
+```typescript
+isViewRealm(): any
+```
+</CodeGroup>
+</Accordion>
+</AccordionGroup>
+</Tab>
+</Tabs>

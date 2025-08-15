@@ -1,0 +1,21 @@
+## useModelRoot
+
+<a id="usemodelroot"></a>
+<p>Hook that returns a <em>reference</em> to the root Model instance of the current Multisynq session. Keep in mind that even if the model data changes, React will not rerender the components that depend on its data. To achieve this behavior use <a href="#usereactmodelroot">useReactModelRoot</a> or <a href="#usemodelselector">useModelSelector</a> instead.</p>
+### Syntax
+```typescript
+function useModelRoot(): M | null
+```
+### Returns
+<ResponseField type="M | null">
+<p>The root Model instance if available, or null if not.</p>
+</ResponseField>
+### Examples
+<CodeGroup>
+```javascript
+const rootModel = useModelRoot<RootModel>();
+if (rootModel) {
+  console.log(rootModel.gameState);
+}
+```
+</CodeGroup>

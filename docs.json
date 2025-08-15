@@ -253,6 +253,18 @@
       "destination": "/api-reference#multisynq-data"
     },
     {
+      "source": "/examples/physics-fountain",
+      "destination": "/examples/demos/physics-fountain.html"
+    },
+    {
+      "source": "/examples/multiblaster-lobby",
+      "destination": "/examples/demos/multiblaster-lobby.html"
+    },
+    {
+      "source": "/examples/vibecoded-gallery",
+      "destination": "/examples/demos/vibecoded-gallery.html"
+    },
+    {
       "source": "/client/Model.html",
       "destination": "/packages/client/index#model"
     },

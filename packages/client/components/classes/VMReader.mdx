@@ -1,0 +1,323 @@
+## VMReader
+
+<a id="vmreader"></a>
+### Constructor
+<CodeGroup>
+```typescript
+constructor(vm: any)
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="vm" type="any" required={true}>
+
+</ParamField>
+<Tabs>
+<Tab title="Methods">
+#### Static Methods
+<AccordionGroup>
+<Accordion title="newOrRecycled">
+<CodeGroup>
+```typescript
+static newOrRecycled(vm: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="vm" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="reusableInstance">
+<CodeGroup>
+```typescript
+static reusableInstance(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="reusableInstance">
+<CodeGroup>
+```typescript
+static reusableInstance(val: any): void
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="val" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="resetInstance">
+<CodeGroup>
+```typescript
+static resetInstance(): any
+```
+</CodeGroup>
+</Accordion>
+</AccordionGroup>
+#### Instance Methods
+<AccordionGroup>
+<Accordion title="addReader">
+<CodeGroup>
+```typescript
+addReader(classId: any, ClassOrSpec: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="classId" type="any" required={true}>
+
+</ParamField>
+<ParamField path="ClassOrSpec" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="enableBackwardCompatibility">
+<CodeGroup>
+```typescript
+enableBackwardCompatibility(snapshot: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="snapshot" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="readVM">
+<CodeGroup>
+```typescript
+readVM(snapshot: any, root: any, compat: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="snapshot" type="any" required={true}>
+
+</ParamField>
+<ParamField path="root" type="any" required={true}>
+
+</ParamField>
+<ParamField path="compat" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="readDeferred">
+<CodeGroup>
+```typescript
+readDeferred(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="resolveRefs">
+<CodeGroup>
+```typescript
+resolveRefs(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="doPostprocess">
+<CodeGroup>
+```typescript
+doPostprocess(): any
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="readAllStatic">
+<CodeGroup>
+```typescript
+readAllStatic(vmState: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="vmState" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="read">
+<CodeGroup>
+```typescript
+read(value: any, path: any, defer: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="value" type="any" required={true}>
+
+</ParamField>
+<ParamField path="path" type="any" required={true}>
+
+</ParamField>
+<ParamField path="defer" type="any" required={true} default="true">
+
+</ParamField>
+</Accordion>
+<Accordion title="readModel">
+<CodeGroup>
+```typescript
+readModel(state: any, path: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="state" type="any" required={true}>
+
+</ParamField>
+<ParamField path="path" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="readObject">
+<CodeGroup>
+```typescript
+readObject(Class: any, state: any, path: any, defer: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="Class" type="any" required={true}>
+
+</ParamField>
+<ParamField path="state" type="any" required={true}>
+
+</ParamField>
+<ParamField path="path" type="any" required={true}>
+
+</ParamField>
+<ParamField path="defer" type="any" required={true} default="true">
+
+</ParamField>
+</Accordion>
+<Accordion title="readArray">
+<CodeGroup>
+```typescript
+readArray(array: any, path: any, defer: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="array" type="any" required={true}>
+
+</ParamField>
+<ParamField path="path" type="any" required={true}>
+
+</ParamField>
+<ParamField path="defer" type="any" required={true} default="true">
+
+</ParamField>
+</Accordion>
+<Accordion title="readAsArray">
+<CodeGroup>
+```typescript
+readAsArray(state: any, path: any, defer: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="state" type="any" required={true}>
+
+</ParamField>
+<ParamField path="path" type="any" required={true}>
+
+</ParamField>
+<ParamField path="defer" type="any" required={true} default="true">
+
+</ParamField>
+</Accordion>
+<Accordion title="readAsSet">
+<CodeGroup>
+```typescript
+readAsSet(state: any, path: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="state" type="any" required={true}>
+
+</ParamField>
+<ParamField path="path" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="readAsMap">
+<CodeGroup>
+```typescript
+readAsMap(state: any, path: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="state" type="any" required={true}>
+
+</ParamField>
+<ParamField path="path" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="readAsClass">
+<CodeGroup>
+```typescript
+readAsClass(classId: any, state: any, path: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="classId" type="any" required={true}>
+
+</ParamField>
+<ParamField path="state" type="any" required={true}>
+
+</ParamField>
+<ParamField path="path" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="readAs">
+<CodeGroup>
+```typescript
+readAs(classId: any, state: any, path: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="classId" type="any" required={true}>
+
+</ParamField>
+<ParamField path="state" type="any" required={true}>
+
+</ParamField>
+<ParamField path="path" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="readRef">
+<CodeGroup>
+```typescript
+readRef(object: any, key: any, value: any, path: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="object" type="any" required={true}>
+
+</ParamField>
+<ParamField path="key" type="any" required={true}>
+
+</ParamField>
+<ParamField path="value" type="any" required={true}>
+
+</ParamField>
+<ParamField path="path" type="any" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="readInto">
+<CodeGroup>
+```typescript
+readInto(object: any, key: any, value: any, path: any, defer: any): any
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="object" type="any" required={true}>
+
+</ParamField>
+<ParamField path="key" type="any" required={true}>
+
+</ParamField>
+<ParamField path="value" type="any" required={true}>
+
+</ParamField>
+<ParamField path="path" type="any" required={true}>
+
+</ParamField>
+<ParamField path="defer" type="any" required={true} default="true">
+
+</ParamField>
+</Accordion>
+</AccordionGroup>
+</Tab>
+</Tabs>

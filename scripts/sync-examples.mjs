@@ -42,9 +42,10 @@ async function cloneAndCopyExample(key, config) {
     const tempRepoDir = path.join(TEMP_DIR, key);
     
     try {
-        // Clone the repository
+        // Reset temp dir then clone the repository shallowly
+        await fs.remove(tempRepoDir);
         console.log(`  📥 Cloning ${config.repo}...`);
-        execSync(`git clone ${config.repo} ${tempRepoDir}`, { stdio: 'pipe' });
+        execSync(`git clone --depth 1 ${config.repo} ${tempRepoDir}`, { stdio: 'pipe' });
         
         // Find the HTML file
         const htmlPath = path.join(tempRepoDir, config.htmlFile);
@@ -110,8 +111,6 @@ title: Examples
 description: Interactive examples and demos showcasing Multisynq capabilities
 icon: 'play'
 ---
-
-import { Card, CardGroup } from '/snippets/card-components.mdx';
 
 # Interactive Examples
 
@@ -209,6 +208,15 @@ async function updateNavigation() {
     
     // Update pages
     examplesSection.pages = ['examples/index'];
+
+    // Ensure redirects for example demos (optional convenience)
+    if (!docsJson.redirects) docsJson.redirects = [];
+    const existing = new Set(docsJson.redirects.map(r => r.source));
+    Object.keys(EXAMPLE_REPOS).forEach(key => {
+        const src = `/examples/${key}`;
+        const dest = `/examples/demos/${key}.html`;
+        if (!existing.has(src)) docsJson.redirects.push({ source: src, destination: dest });
+    });
     
     // Write back
     await fs.writeJson(docsJsonPath, docsJson, { spaces: 2 });

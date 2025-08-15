@@ -1,0 +1,177 @@
+## ActivitySynqGlobalManager
+
+<a id="activitysynqglobalmanager"></a>
+<Tabs>
+<Tab title="Properties">
+#### Static Properties
+<Accordion>
+<AccordionItem title="instance (static)">
+<strong>Type:</strong> <code>ActivitySynqGlobalManager | null</code>
+<p><strong>Default:</strong> <code>null</code></p>
+</AccordionItem>
+</Accordion>
+#### Instance Properties
+<Accordion>
+<AccordionItem title="session">
+<strong>Type:</strong> <code>MultisynqSession&lt;MultisynqReactView&lt;ActivityModel&gt;&gt; | null</code>
+<p><strong>Default:</strong> <code>null</code></p>
+</AccordionItem>
+<AccordionItem title="eventEmitter">
+<strong>Type:</strong> <code>BrowserEventEmitter</code>
+<p><strong>Default:</strong> <code>new BrowserEventEmitter()</code></p>
+</AccordionItem>
+<AccordionItem title="config">
+<strong>Type:</strong> <code>ActivitySynqConfig | null</code>
+<p><strong>Default:</strong> <code>null</code></p>
+</AccordionItem>
+<AccordionItem title="initPromise">
+<strong>Type:</strong> <code>Promise&lt;void&gt; | null</code>
+<p><strong>Default:</strong> <code>null</code></p>
+</AccordionItem>
+<AccordionItem title="reconnectAttempts">
+<strong>Type:</strong> <code>number</code>
+<p><strong>Default:</strong> <code>0</code></p>
+</AccordionItem>
+<AccordionItem title="maxReconnectAttempts">
+<strong>Type:</strong> <code>number</code>
+<p><strong>Default:</strong> <code>5</code></p>
+</AccordionItem>
+<AccordionItem title="isReconnecting">
+<strong>Type:</strong> <code>boolean</code>
+<p><strong>Default:</strong> <code>false</code></p>
+</AccordionItem>
+</Accordion>
+</Tab>
+<Tab title="Methods">
+#### Static Methods
+<AccordionGroup>
+<Accordion title="getInstance">
+<CodeGroup>
+```typescript
+static getInstance(): ActivitySynqGlobalManager
+```
+</CodeGroup>
+</Accordion>
+</AccordionGroup>
+#### Instance Methods
+<AccordionGroup>
+<Accordion title="initialize">
+<CodeGroup>
+```typescript
+async initialize(config: ActivitySynqConfig): Promise<void>
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="config" type="ActivitySynqConfig" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="doInitialize">
+<CodeGroup>
+```typescript
+async private doInitialize(config: ActivitySynqConfig): Promise<void>
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="config" type="ActivitySynqConfig" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="registerActivity">
+<CodeGroup>
+```typescript
+registerActivity(type: string, data?: any): void
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="type" type="string" required={true}>
+
+</ParamField>
+<ParamField path="data" type="any" required={false}>
+
+</ParamField>
+</Accordion>
+<Accordion title="clearActivities">
+<CodeGroup>
+```typescript
+clearActivities(): void
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="getActivities">
+<CodeGroup>
+```typescript
+getActivities(): ActivityEvent[]
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="isReady">
+<CodeGroup>
+```typescript
+isReady(): boolean
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="subscribe">
+<CodeGroup>
+```typescript
+subscribe(event: string, callback: (...args: any[]) => void): void
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="event" type="string" required={true}>
+
+</ParamField>
+<ParamField path="callback" type="(...args: any[]) =&gt; void" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="unsubscribe">
+<CodeGroup>
+```typescript
+unsubscribe(event: string, callback: (...args: any[]) => void): void
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="event" type="string" required={true}>
+
+</ParamField>
+<ParamField path="callback" type="(...args: any[]) =&gt; void" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="configEquals">
+<CodeGroup>
+```typescript
+private configEquals(config: ActivitySynqConfig): boolean
+```
+</CodeGroup>
+##### Parameters
+<ParamField path="config" type="ActivitySynqConfig" required={true}>
+
+</ParamField>
+</Accordion>
+<Accordion title="attemptReconnection">
+<CodeGroup>
+```typescript
+async private attemptReconnection(): Promise<void>
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="reconnect">
+<CodeGroup>
+```typescript
+reconnect(): void
+```
+</CodeGroup>
+</Accordion>
+<Accordion title="destroy">
+<CodeGroup>
+```typescript
+destroy(): void
+```
+</CodeGroup>
+</Accordion>
+</AccordionGroup>
+</Tab>
+</Tabs>
