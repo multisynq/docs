@@ -1117,8 +1117,20 @@ class EnhancedMDXGenerator {
                 const categoryDir = path.join(componentDir, category.name);
                 fs.ensureDirSync(categoryDir);
                 
+                // Track names to handle duplicates
+                const nameCount = {};
+                
                 category.items.forEach(item => {
-                    const fileName = `${item.name}.mdx`;
+                    // Handle duplicate names
+                    let uniqueName = item.name;
+                    if (nameCount[item.name]) {
+                        nameCount[item.name]++;
+                        uniqueName = `${item.name}${nameCount[item.name]}`;
+                    } else {
+                        nameCount[item.name] = 1;
+                    }
+                    
+                    const fileName = `${uniqueName}.mdx`;
                     const filePath = path.join(categoryDir, fileName);
                     const content = this[category.generator](item);
                     
@@ -1126,6 +1138,7 @@ class EnhancedMDXGenerator {
                     this.generatedFiles.push({
                         category: category.name,
                         name: item.name,
+                        uniqueName: uniqueName,
                         path: `components/${category.name}/${fileName}`
                     });
                     
@@ -1158,9 +1171,18 @@ icon: '${this.config.navigation.icon}'
         
         // Import statements (real ESM imports so components can be rendered)
         const imports = [];
+        const importNames = new Set();
         this.generatedFiles.forEach(file => {
-            const importName = `${file.category}_${file.name}`.replace(/[^a-zA-Z0-9_]/g, '_');
+            const baseName = `${file.category}_${file.uniqueName || file.name}`.replace(/[^a-zA-Z0-9_]/g, '_');
+            let importName = baseName;
+            let counter = 1;
+            while (importNames.has(importName)) {
+                importName = `${baseName}_${counter}`;
+                counter++;
+            }
+            importNames.add(importName);
             imports.push(`import ${importName} from './${file.path}';`);
+            file.importName = importName; // Store for later use
         });
         sections.push('');
         sections.push(...imports);
@@ -1222,16 +1244,14 @@ Last updated: ${new Date().toISOString()}
             // Render each component
             if (category === 'functions' && files.length > 0) {
                 const file = files[0];
-                const componentName = `${file.category}_${file.name}`.replace(/[^a-zA-Z0-9_]/g, '_');
                 sections.push(`    <div id="functions">`);
-                sections.push(`      <${componentName} />`);
+                sections.push(`      <${file.importName} />`);
                 sections.push('    </div>');
                 sections.push('');
             } else {
                 files.forEach(file => {
-                    const componentName = `${file.category}_${file.name}`.replace(/[^a-zA-Z0-9_]/g, '_');
                     sections.push(`    <div id="${file.name.toLowerCase()}">`);
-                    sections.push(`      <${componentName} />`);
+                    sections.push(`      <${file.importName} />`);
                     sections.push('    </div>');
                     sections.push('');
                 });
