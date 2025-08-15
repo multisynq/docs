@@ -1,0 +1,10 @@
+---
+title: 'MultisynqWarning'
+description: '@typedef { import("'
+---
+
+# MultisynqWarning
+
+**Extends:** [Error](#)
+
+@typedef { import("./controller").default } Controller */ /** @type {VirtualMachine} */ let CurrentVM = null; let DEBUG = null; function initDEBUG() {     // TODO: turn this into a reasonable API     DEBUG = {         snapshot: urlOptions.has("debug", "snapshot", false),               // snapshotting, uploading etc         session: urlOptions.has("debug", "session", false),                 // session logging         write: urlOptions.has("debug", "write", false),                     // check writes into model by proxying     }; } const DEBUG_WRITE_TARGET = Symbol("DEBUG_WRITE_TARGET"); let DEBUG_WRITE_PROXIES = null; export function propertyAccessor(object, property) {     return Array.isArray(object) || typeof property !== "string" ? `[${property}]` :         property.match(/^[a-z_$][a-z0-9_$]*$/i) ? `.${property}` : `["${property}"]`; } /** this shows up as "MultisynqWarning" in the console

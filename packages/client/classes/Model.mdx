@@ -1,0 +1,596 @@
+---
+title: 'Model'
+description: 'passed to Model constructor to check if it was called via create */ let SECRET = Symbol("SECRET"); /** For warning about model instances that have not called super'
+---
+
+# Model
+
+passed to Model constructor to check if it was called via create */ let SECRET = Symbol("SECRET"); /** For warning about model instances that have not called super.init */ const SuperInitNotCalled = new WeakSet(); /** Models are synchronized objects in Multisynq. They are automatically kept in sync for each user in the same [session][Session.join](#session.join). Models receive input by [subscribing][Model#subscribe](#model#subscribe) to events published in a [View](#view). Their output is handled by views subscribing to events [published][Model#publish](#model#publish) by a model. Models advance time by sending messages into their [future][Model#future](#model#future). ## Instance Creation and Initialization ### Do __NOT__ create a [Model](#model) instance using `new` and<br>do __NOT__ override the `constructor`! To __create__ a new instance, use [create()][Model.create](#model.create), for example: ``` this.foo = FooModel.create({answer: 123}); ``` To __initialize__ an instance, override [init()][Model#init](#model#init), for example: ``` class FooModel extends Multisynq.Model {     init(options={}) {         this.answer = options.answer || 42;     } } ``` The **reason** for this is that Models are only initialized by calling `init()` the first time the object comes into existence in the session. After that, when joining a session, the models are deserialized from the snapshot, which restores all properties automatically without calling `init()`. A constructor would be called all the time, not just when starting a session.
+
+## Methods
+
+### Static Methods
+
+#### `static create(options, persistentData)`
+
+__Create an instance of a Model subclass.__ The instance will be registered for automatical snapshotting, and is assigned an [id][Model#id](#model#id). Then it will call the user-defined [init()][Model#init](#model#init) method to initialize the instance, passing the [options](#options). **Note:** When your model instance is no longer needed, you must [destroy][Model#destroy](#model#destroy) it. Otherwise it will be kept in the snapshot forever. **Warning**: never create a Model instance using `new`, or override its constructor. See [above][Model](#model).
+
+**Parameters:**
+
+- `options` (`Object=`) - option object to be passed to [init()]{@link Model#init}.
+- `persistentData` (`Object=`) - passed to [init()]{@link Model#init}, if provided.
+
+**Example:**
+
+```javascript
+this.foo = FooModel.create({answer: 123});
+```
+
+#### `static createNoInit(id)`
+
+**Parameters:**
+
+- `id` (`any`) - 
+
+#### `static allowConstructors()`
+
+#### `static register(classId)`
+
+__Registers this model subclass with Multisynq__ It is necessary to register all Model subclasses so the serializer can recreate their instances from a snapshot. Since source code minification can change the actual class name, you have to pass a `classId` explicitly. Secondly, the [session id][Session.join](#session.join) is derived by hashing the source code of all registered classes. This ensures that only clients running the same source code can be in the same session, so that the synchronized computations are identical for each client. **Important**: for the hashing to work reliably across browsers, be sure to specify `charset="utf-8"` for your `<html>` or all `<script>` tags.
+
+**Parameters:**
+
+- `classId` (`String`) - Id for this model class. Must be unique. If you use the same class name in two files, use e.g. `"file1/MyModel"` and `"file2/MyModel"`.
+
+**Example:**
+
+```javascript
+class MyModel extends Multisynq.Model {
+  ...
+}
+MyModel.register("MyModel")
+```
+
+#### `static wellKnownModel(name)`
+
+Static version of [wellKnownModel()][Model#wellKnownModel](#model#wellknownmodel) for currently executing model. This can be used to emulate static accessors, e.g. for lazy initialization. __WARNING!__ Do not store the result in a static variable. Like any global state, that can lead to divergence. Will throw an error if called from outside model code.
+
+**Parameters:**
+
+- `name` (`String`) - the name given in [beWellKnownAs()]{@link Model#beWellKnownAs}
+
+**Returns:** `Model?` - the model if found, or `undefined`
+
+**Example:**
+
+```javascript
+static get Default() {
+    let default = this.wellKnownModel("DefaultModel");
+    if (!default) {
+        console.log("Creating default")
+        default = MyModel.create();
+        default.beWellKnownAs("DefaultModel");
+    }
+    return default;
+}
+```
+
+#### `static evaluate(func)`
+
+Evaluates func inside of a temporary VM to get bit-identical results, e.g. to init [Constants][Constants](#constants).
+
+**Parameters:**
+
+- `func` (`Function`) - function to evaluate
+
+**Returns:** `*` - result of func
+
+#### `static isExecuting()`
+
+**Check if currently executing code is inside a model.**
+
+**Returns:** `Boolean` - true if currently executing code is inside a model
+
+#### `static types()`
+
+__Static declaration of how to serialize non-model classes.__ The Multisynq snapshot mechanism knows about [Model](#model) subclasses, as well as many JS built-in types (see below), it handles circular references, and it works recursively by converting all non-JSON types to JSON. If you want to store instances of non-model classes in your model, override this method. `types()` needs to return an Object that maps _names_ to _class descriptions_: - the name can be any string, it just has to be unique within your app - the class description can either be just the class itself (if the serializer should   snapshot all its fields, see first example below), or an object with `write()` and `read()` methods to   convert instances from and to their serializable form (see second example below),   and (since v2.0) `writeStatic()` and `readStatic()` to serialize and restore static properties. - the serialized form answered by `write()` should return a simpler representation,   but it can still contain references to other objects, which will be resolved by the serializer.   E.g. if it answers an Array of objects then the serializer will be called for each of those objects.   Conversely, these objects will be deserialized before passing the reconstructed Array to `read()`. Declaring a type in any class makes that declaration available globally. The types only need to be declared once, even if several different Model subclasses are using them. __NOTE:__ This is currently the only way to customize serialization (for example to keep snapshots fast and small). The serialization of Model subclasses themselves can not be customized, except through "dollar properties": __All properties starting with `$` are ignored, e.g. `$foo`.__ This can be used for caching big objects that should not appear in the snapshot, but care needs to be taken to make sure that the cache is reconstructed whenever used. Serialization types supported: - plain `Object`, `Array`, `number`, `string`, `boolean`, `null`: just like JSON - `-0`, `NaN`, `Infinity`, `-Infinity` - `BigInt` (since 1.1.0) - `undefined` - `ArrayBuffer`, `DataView`, `Int8Array`, `Uint8Array`, `Uint8ClampedArray`, `Int16Array`, `Uint16Array`, `Int32Array`, `Uint32Array`, `Float32Array`, `Float64Array` - `Set`, `Map` Not supported: - `Date`: the built-in Date type is dangerous because it implicitly depends on the current timezone which can lead to divergence. - `RegExp`: this has built-in state that can not be introspected and recreated in JS. - `WeakMap`, `WeakSet`: these are not enumerable and can not be serialized. - `Symbol`: these are unique and can not be serialized. - `Function`, `Promise`, `Generator` etc: there is no generic way to serialize functions because closures can not be introspected in JS.    Even just for the source code, browsers differ in how they convert functions to strings.    If you need to store functions in the model (e.g. for live coding),    either wrap the source and function in a custom type (where `read` would compile the source saved by `write`),    or store the source in a regular property, the function in a dollar property,    and have an accessor that compiles the function lazily when needed.
+
+**Example:**
+
+```javascript
+<caption>To use the default serializer just declare the class:</caption>
+class MyModel extends Multisynq.Model {
+  static types() {
+    return {
+      "SomeUniqueName": MyNonModelClass,
+      "THREE.Vector3": THREE.Vector3,        // serialized as '{"x":...,"y":...,"z":...}'
+      "THREE.Quaternion": THREE.Quaternion,
+    };
+  }
+}
+```
+
+```javascript
+<caption>To define your own serializer, declare read and write functions:</caption>
+class MyModel extends Multisynq.Model {
+  static types() {
+    return {
+     "SomeUniqueName": {
+         cls: MyNonModelClass,
+         write: obj => obj.serialize(),  // answer a serializable type, see above
+         read: state => MyNonModelClass.deserialize(state), // answer a new instance
+         writeStatic: () => ({foo: MyNonModelClass.foo}),
+         readStatic: state => MyNonModelClass.foo = state.foo,
+      },
+      "THREE.Vector3": {
+        cls: THREE.Vector3,
+        write: v => [v.x, v.y, v.z],        // serialized as '[...,...,...]' which is shorter than the default above
+        read: v => new THREE.Vector3(v[0], v[1], v[2]),
+      },
+      "THREE.Color": {
+        cls: THREE.Color,
+        write: color => '#' + color.getHexString(),
+        read: state => new THREE.Color(state)
+      },
+    }
+  }
+}
+```
+
+#### `static gatherClassTypes(dummyObject, prefix)`
+
+Find classes inside an external library This recursivley traverses a dummy object and gathers all object classes found. Returns a mapping that can be returned from a Model's static `types()` method. This can be used to gather all internal class types of a third party library that otherwise would not be accessible to the serializer
+
+**Parameters:**
+
+- `dummyObject` (`Object`) - an instance of a class from the library
+- `prefix` (`String`) - a prefix to add to the class names
+
+**Example:**
+
+```javascript
+<caption>
+  If `Foo` is a class from a third party library
+  that internally create a `Bar` instance,
+  this would find both classes
+</caption>
+class Bar {} // internal class
+class Foo { constructor() { this.bar = new Bar(); } }
+static types() {
+   const sample = new Foo();
+   return this.gatherClassTypes(sample, "MyLib");
+   // returns { "MyLib.Foo": Foo, "MyLib.Bar": Bar }
+}
+```
+
+#### `static eventDebugOptions()`
+
+#### `static eventDebugInit(model)`
+
+register event logger subscription
+
+**Parameters:**
+
+- `model` (`any`) - 
+
+#### `static okayToIgnore()`
+
+#### `static classToID(cls)`
+
+**Parameters:**
+
+- `cls` (`any`) - 
+
+#### `static classFromID(id)`
+
+**Parameters:**
+
+- `id` (`any`) - 
+
+#### `static allClasses()`
+
+#### `static allClassTypes()`
+
+#### `static instantiateClassID(classId, id)`
+
+**Parameters:**
+
+- `classId` (`any`) - 
+- `id` (`any`) - 
+
+#### `static wellKnownModel(name)`
+
+Access a model that was registered previously using  [beWellKnownAs()][Model#beWellKnownAs](#model#bewellknownas). Note: The instance of your root Model class is automatically made well-known as `"modelRoot"` and passed to the [constructor][View](#view) of your root View during [Session.join](#session.join).
+
+**Parameters:**
+
+- `name` (`String`) - the name given in [beWellKnownAs()]{@link Model#beWellKnownAs}
+
+**Returns:** `Model?` - the model if found, or `undefined`
+
+**Example:**
+
+```javascript
+const topModel = this.wellKnownModel("modelRoot");
+```
+
+#### `static allClasses()`
+
+#### `static allClassTypes()`
+
+#### `static classToID(cls)`
+
+**Parameters:**
+
+- `cls` (`any`) - 
+
+#### `static classFromID(classId)`
+
+**Parameters:**
+
+- `classId` (`any`) - 
+
+### Instance Methods
+
+#### `if(beModelRoot)`
+
+**Parameters:**
+
+- `beModelRoot` (`any`) - 
+
+#### `if(model.__realm.vm.debugEvents)`
+
+**Parameters:**
+
+- `model.__realm.vm.debugEvents` (`any`) - 
+
+#### `if(SuperInitNotCalled.has(model))`
+
+**Parameters:**
+
+- `SuperInitNotCalled.has(model)` (`any`) - 
+
+#### `if(Object.getPrototypeOf(ModelClass) !)`
+
+**Parameters:**
+
+- `Object.getPrototypeOf(ModelClass) !` (`any`) - 
+
+#### `if(!classId)`
+
+**Parameters:**
+
+- `!classId` (`any`) - 
+
+#### `logEvents(data)`
+
+**Parameters:**
+
+- `data` (`any`) - 
+
+#### `init(options, persistentData)`
+
+This is called by [create()][Model.create](#model.create) to initialize a model instance. In your Model subclass this is the place to [subscribe][Model#subscribe](#model#subscribe) to events, or start a [future][Model#future](#model#future) message chain. If you pass `{options:...}` to [Session.join][Session.join](#session.join), these will be passed to your root model's `init()`. Note that `options` affect the session's `persistentId` – in most cases, using [Multisynq.Constants][Constants](#constants) is a better choice to customize what happens in `init()`. If you called [persistSession][Model#persistSession](#model#persistsession) in a previous session (same name, same options, different code base), that data will be passed as `persistentData` to your root model's `init()`. Based on that data you should re-create submodels, subscriptions, future messages etc. to start the new session in a state similar to when it was last saved. **Note:** When your model instance is no longer needed, you must [destroy][Model#destroy](#model#destroy) it.
+
+**Parameters:**
+
+- `options` (`Object=`) - if passed to [Session.join]{@link Session.join}
+- `persistentData` (`Object=`) - data previously stored by [persistSession]{@link Model#persistSession}
+
+#### `if(false)`
+
+**Parameters:**
+
+- `false` (`any`) - 
+
+#### `destroy()`
+
+Each model has an id which can be used to scope [events][Model#publish](#model#publish). It is unique within the session. This property is read-only. There will be an error if you try to assign to it. It is assigned in [Model.create](#model.create) before calling [init][Model#init](#model#init).
+
+**Example:**
+
+```javascript
+this.publish(this.id, "changed");
+```
+
+```javascript
+removeChild(child) {
+   const index = this.children.indexOf(child);
+   this.children.splice(index, 1);
+   child.destroy();
+}
+```
+
+#### `publish(scope, event, data)`
+
+**Publish an event to a scope.** Events are the main form of communication between models and views in Multisynq. Both models and views can publish events, and subscribe to each other's events. Model-to-model and view-to-view subscriptions are possible, too. See [Model.subscribe][Model#subscribe](#model#subscribe)() for a discussion of **scopes** and **event names**. Refer to [View.subscribe][View#subscribe](#view#subscribe)() for invoking event handlers *asynchronously* or *immediately*. Optionally, you can pass some **data** along with the event. For events published by a model, this can be any arbitrary value or object. See View's [publish][View#publish](#view#publish) method for restrictions in passing data from a view to a model. If you subscribe inside the model to an event that is published by the model, the handler will be called immediately, before the publish method returns. If you want to have it handled asynchronously, you can use a future message:     this.future(0).publish("scope", "event", data); Note that there is no way of testing whether subscriptions exist or not (because models can exist independent of views). Publishing an event that has no subscriptions is about as cheap as that test would be, so feel free to always publish, there is very little overhead.
+
+**Parameters:**
+
+- `scope` (`String`) - see [subscribe]{@link Model#subscribe}()
+- `event` (`String`) - see [subscribe]{@link Model#subscribe}()
+- `data` (`*=`) - can be any value or object
+
+**Example:**
+
+```javascript
+this.publish("something", "changed");
+this.publish(this.id, "moved", this.pos);
+```
+
+#### `subscribe(scope, event, handler)`
+
+**Register an event handler for an event published to a scope.** Both `scope` and `event` can be arbitrary strings. Typically, the scope would select the object (or groups of objects) to respond to the event, and the event name would select which operation to perform. A commonly used scope is `this.id` (in a model) and `model.id` (in a view) to establish a communication channel between a model and its corresponding view. You can use any literal string as a global scope, or use [`this.sessionId`][Model#sessionId](#model#sessionid) for a session-global scope (if your application supports multipe sessions at the same time). The predefined [`"view-join"` event][event:view-join](#event:view-join) and [`"view-exit"` event][event:view-exit](#event:view-exit) use this session scope. The handler must be a method of `this`, e.g. `subscribe("scope", "event", this.methodName)` will schedule the invocation of `this["methodName"](data)` whenever `publish("scope", "event", data)` is executed. If `data` was passed to the [publish][Model#publish](#model#publish) call, it will be passed as an argument to the handler method. You can have at most one argument. To pass multiple values, pass an Object or Array containing those values. Note that views can only pass serializable data to models, because those events are routed via a reflector server (see [View.publish)[View#publish](#view#publish)).
+
+**Parameters:**
+
+- `scope` (`String`) - the event scope (to distinguish between events of the same name used by different objects)
+- `event` (`String`) - the event name (user-defined or system-defined)
+- `handler` (`Function`) - the event handler (must be a method of `this`)
+
+**Returns:** `this` - * @public
+
+**Example:**
+
+```javascript
+this.subscribe("something", "changed", this.update);
+this.subscribe(this.id, "moved", this.handleMove);
+```
+
+```javascript
+class MyModel extends Multisynq.Model {
+  init() {
+    this.subscribe(this.id, "moved", this.handleMove);
+  }
+  handleMove({x,y}) {
+    this.x = x;
+    this.y = y;
+  }
+}
+class MyView extends Multisynq.View {
+  constructor(model) {
+    this.modelId = model.id;
+  }
+  onpointermove(evt) {
+     const x = evt.x;
+     const y = evt.y;
+     this.publish(this.modelId, "moved", {x,y});
+  }
+}
+```
+
+#### `unsubscribe(scope, event, handler)`
+
+Unsubscribes this model's handler(s) for the given event in the given scope. To unsubscribe only a specific handler, pass it as the third argument.
+
+**Parameters:**
+
+- `scope` (`String`) - see [subscribe]{@link Model#subscribe}
+- `event` (`String`) - see [subscribe]{@link Model#subscribe}
+- `handler` (`Function?`) - (optional) the handler to unsubscribe (added in 1.1)
+
+**Example:**
+
+```javascript
+this.unsubscribe("something", "changed");
+this.unsubscribe(this.id, "moved", this.handleMove);
+```
+
+#### `unsubscribeAll()`
+
+Unsubscribes all of this model's handlers for any event in any scope.
+
+#### `future(tOffset)`
+
+Scope, event, and source of the currently executing subscription handler. The `source` is either `"model"` or `"view"`.
+
+**Parameters:**
+
+- `tOffset` (`Number`) - time offset in milliseconds, must be >= 0
+
+**Returns:** `Object` - `{scope, event, source}` or `undefined` if not in a subscription handler.
+
+**Example:**
+
+```javascript
+// this.subscribe("*", "*", this.logEvents)
+logEvents(data: any) {
+    const {scope, event, source} = this.activeSubscription;
+    console.log(`${this.now()} Event in model from ${source} ${scope}:${event} with`, data);
+}
+```
+
+```javascript
+<caption>single invocation with two arguments</caption>
+this.future(3000).say("hello", "world");
+```
+
+```javascript
+<caption>repeated invocation with no arguments</caption>
+tick() {
+    this.n++;
+    this.publish(this.id, "count", {time: this.now(), count: this.n)});
+    this.future(100).tick();
+}
+```
+
+#### `cancelFuture(method)`
+
+**Cancel a previously scheduled future message** This unschedules the invocation of a message that was scheduled with [future][Model#future](#model#future). It is okay to call this method even if the message was already executed or if it was never scheduled. **Note:** as with [future][Model#future](#model#future), the recommended form is to pass the method itself, but you can also pass the name of the method as a string.
+
+**Parameters:**
+
+- `method` (`Function`) - the method (must be a method of `this`) or "*" to cancel all of this object's future messages
+
+**Returns:** `Boolean` - true if the message was found and canceled, false if it was not found
+
+**Example:**
+
+```javascript
+this.future(3000).say("hello", "world");
+...
+this.cancelFuture(this.say);
+```
+
+#### `random()`
+
+**Generate a synchronized pseudo-random number** This returns a floating-point, pseudo-random number in the range 0–1 (inclusive of 0, but not 1) with approximately uniform distribution over that range (just like [Math.random][https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random](#https://developer.mozilla.org/docs/web/javascript/reference/global_objects/math/random)). Since the model computation is synchronized for every user on their device, the sequence of random numbers generated must also be exactly the same for everyone. This method provides access to such a random number generator.
+
+**Returns:** `Number` - * @public
+
+#### `now()`
+
+**The model's current time** Time is discreet in Multisynq, meaning it advances in steps. Every user's device performs the exact same computation at the exact same virtual time. This is what allows Multisynq to do perfectly synchronized computation. Every [event handler][Model#subscribe](#model#subscribe) and [future message][Model#future](#model#future) is run at a precisely defined moment in virtual model time, and time stands still while this execution is happening. That means if you were to access `this.now()` in a loop, it would never answer a different value. The unit of `now` is milliseconds (1/1000 second) but the value can be fractional, it is a floating-point value.
+
+**Returns:** `Number` - the model's time in milliseconds since the first user created the session.
+
+#### `beWellKnownAs(name)`
+
+Make this model globally accessible under the given name. It can be retrieved from any other model in the same session using [wellKnownModel()][Model#wellKnownModel](#model#wellknownmodel). Hint: Another way to make a model well-known is to pass a name as second argument to [Model.create](#model.create)(). Note: The instance of your root Model class is automatically made well-known as `"modelRoot"` and passed to the [constructor][View](#view) of your root View during [Session.join](#session.join).
+
+**Parameters:**
+
+- `name` (`String`) - a name for the model
+
+**Example:**
+
+```javascript
+class FooManager extends Multisynq.Model {
+  init() {
+    this.beWellKnownAs("UberFoo");
+  }
+}
+class Underlings extends Multisynq.Model {
+  reportToManager(something) {
+    this.wellKnownModel("UberFoo").report(something);
+  }
+}
+```
+
+#### `getModel(id)`
+
+Look up a model in the current session given its `id`
+
+**Parameters:**
+
+- `id` (`String`) - the model's `id`
+
+**Returns:** `Model` - the model if found, or `undefined`
+
+**Example:**
+
+```javascript
+const otherModel = this.getModel(otherId);
+```
+
+#### `modelOnly(msg)`
+
+This methods checks if it is being called from a model, and throws an Error otherwise. Use this to protect some model code against accidentally being called from a view.
+
+**Parameters:**
+
+- `msg` (`String=`) - error message to display
+
+**Returns:** `Boolean` - true (otherwise, throws Error)
+
+**Example:**
+
+```javascript
+get foo() { return this._foo; }
+set foo(value) { this.modelOnly(); this._foo = value; }
+```
+
+#### `createQFunc(env, func)`
+
+**Identifies the shared session of all users**<br> (as opposed to the [viewId][View#viewId](#view#viewid) which identifies the non-shared views of each user). The session id is used as "global" scope for events like the [`"view-join"` event][event:view-join](#event:view-join). See [Session.join](#session.join) for how the session id is generated. If your app has several sessions at the same time, each session id will be different.
+
+**Parameters:**
+
+- `env` (`Object`) - an object with references used by the function
+- `func` (`Function|String`) - the function to be wrapped, or a string with the function's source code
+
+**Returns:** `Function` - a serializable function bound to the given environment
+
+**Example:**
+
+```javascript
+this.subscribe(this.sessionId, "view-join", this.addUser);
+```
+
+```javascript
+this.subscribe(this.sessionId, "view-join", this.showUsers);
+this.subscribe(this.sessionId, "view-exit", this.showUsers);
+showUsers() { this.publish(this.sessionId, "view-count", this.viewCount); }
+```
+
+```javascript
+const template = { greeting: "Hi there," };
+this.greet = this.createQFunc({template}, (name) => console.log(template.greeting, name));
+this.greet(this, "friend"); // logs "Hi there, friend"
+template.greeting = "Bye now,";
+this.greet(this, "friend"); // logs "Bye now, friend"
+```
+
+#### `if(func)`
+
+**Parameters:**
+
+- `func` (`any`) - 
+
+#### `persistSession(collectDataFunc)`
+
+Store an application-defined JSON representation of this session to be loaded into future sessions. This will be passed into the root model's [init][Model#init](#model#init) method if resuming a session that is not currently ongoing (e.g. due to changes in the model code). **Note:** You should design the JSON in a way to be loadable in newer versions of your app. To help migrating incompatible data, you may want to include a version identifier so a future version of your [init][Model#init](#model#init) can decide what to do. **Warning** Do NOT use `JSON.stringify` because the result is not guaranteed to have the same ordering of keys everywhere. Instead, store the JSON data directly and let Multisynq apply its stable stringification. Also you must only call persistSession() from your [root model][Model#wellKnownModel](#model#wellknownmodel). If there are submodels, your collectDataFunc should collect data from all submodels. Similarly, only your root model's `init` will receive that persisted data. It should recreate submodels as necessary. Multisynq will not interpret this data in any way (e.g. not even the `version` property in the example below). It is stringified, encrypted, and stored.
+
+**Parameters:**
+
+- `collectDataFunc` (`Function`) - method returning information to be stored, will be stringified as JSON
+
+**Example:**
+
+```javascript
+class SimpleAppRootModel {
+    init(options, persisted) {
+        ...                         // regular setup
+        if (persisted) {
+            if (persisted.version === 1) {
+                ...                 // init from persisted data
+            }
+        }
+    }
+
+    save() {
+        this.persistSession(() => {
+            const data = {
+               version: 1,         // for future migrations
+               ...                 // data to persist
+            };
+            return data;
+        });
+    }
+}
+```
+
+#### `for(const modelClass of allClasses())`
+
+**Parameters:**
+
+- `const modelClass of allClasses()` (`any`) - 
+
+#### `hasID(cls)`
+
+**Parameters:**
+
+- `cls` (`any`) - 
+
+#### `registerClass(cls, classId)`
+
+**Parameters:**
+
+- `cls` (`any`) - 
+- `classId` (`any`) - 
+
+#### `if(hasID(cls))`
+
+**Parameters:**
+
+- `hasID(cls)` (`any`) - 

@@ -7,7 +7,7 @@
     "docs:build": "mint build",
     "docs:deploy": "./build-docs.sh",
     "docs:serve": "mint dev",
-    "docs:gen:client": "node scripts/generate-api-docs-v5.mjs --package client",
+    "docs:gen:client": "node scripts/generate-api-docs-v6.mjs --package client",
     "docs:gen:react": "node scripts/generate-api-docs-v5.mjs --package react",
     "docs:gen:react-together": "node scripts/generate-api-docs-v5.mjs --package react-together",
     "docs:gen:all": "npm run docs:gen:client && npm run docs:gen:react && npm run docs:gen:react-together && node scripts/sync-examples.mjs",

@@ -1,0 +1,126 @@
+---
+title: 'Data'
+description: '**Secure bulk data storage** This Data API allows encrypted bulk data storage'
+---
+
+# Data
+
+**Secure bulk data storage** This Data API allows encrypted bulk data storage. E.g. if a user drops a file into a Multisynq application, the contents of that file can be handed off to the Data API for storage. It will be encrypted and uploaded to a file server. Other participants will download and decrypt the data. The [Data.store()][Data#store](#data#store) method returns a *data handle* that is to be stored in the model via [view.publish()][View#publish](#view#publish), and then other participants fetch the stored data via [Data.fetch()][Data#fetch](#data#fetch), passing the handle from the model. Off-loading the actual bits of data to a file server and keeping only the meta data (including the data handle) in the replicated model meta is a lot more efficient than trying to send that data via [publish][View#publish](#view#publish)/[subscribe][Model#subscribe](#model#subscribe). It also allows caching. **Shareable handles:** By default, data handles are not shareable outside the session. The uploaded data is encrypted with the session password, just like snapshots, messages, etc. If you set the `shareable` option to `true`, the data handle will include the decryption key so it can be decrypted by anyone who has the handle, even without the session password. It is not protected by the session's end-to-end encryption. If the handle leaks, anyone can download and decrypt the data. Again: **IF MADE SHAREABLE, THE DATA IS ENCRYPTED INDEPENDENTLY, THE HANDLE INCLUDES THE DECRYPTION KEY** **Note:** The Data API is not available in `Model` code, only available in `View` code. Typically, you would access the Data API in a view as `this.session.data.store()` and `this.session.data.fetch()`. See this [tutorial]{@tutorial 2_9_data} for a complete example.
+
+## Methods
+
+### Static Methods
+
+#### `static hash(data, output)`
+
+Answer a hash for the given data. Strings and binary arrays are hashed directly, other objects use a stable JSON stringification
+
+**Parameters:**
+
+- `data` (`ArrayBuffer|String|*`) - the data to be hashed
+- `output` (`"hex"|"base64"|"base64url"`) - hash encoding (default: "base64url")
+
+**Returns:** `String` - SHA256 hash
+
+#### `static fromId(id)`
+
+Create a data handle from a string id.
+
+**Parameters:**
+
+- `id` (`String`) - an id created by [Data.toId()]{@link Data.toId}
+
+**Returns:** `DataHandle` - a handle to be used with [Data.fetch()]{@link Data#fetch}
+
+#### `static toId(handle)`
+
+Create a string id from a data handle. This base64url-encoded id is a string that includes the data location and decryption key.
+
+**Parameters:**
+
+- `handle` (`DataHandle`) - a handle created by [Data.store()]{@link Data#store}
+
+**Returns:** `String` - id an id to be used with [Data.fromId()]{@link Data.fromId}
+
+### Instance Methods
+
+#### `store(data)`
+
+Store data and return an (opaque) handle. If `options.shareable` is `true`, the handle will include the decryption key and can be shared (see security/privacy warning above). By default, `data` will become unusable after this call, because the ArrayBuffer is detached when being [transferred][https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer#transferring_arraybuffers](#https://developer.mozilla.org/en-us/docs/web/javascript/reference/global_objects/arraybuffer#transferring_arraybuffers) to a web worker for encryption and upload. Set `options.keep` to `true` to make a copy instead of moving the data.
+
+**Parameters:**
+
+- `data` (`ArrayBuffer`) - the data to be stored
+
+**Returns:** `Promise<DataHandle>` - return promise for the handle
+
+**Example:**
+
+```javascript
+// in a view, perhaps after a file drop event
+const handle = await this.session.data.store(arrayBuffer);
+this.publish("set-file", handle);
+```
+
+#### `fetch(dataHandle)`
+
+Fetch data for a given data handle
+
+**Parameters:**
+
+- `dataHandle` (`DataHandle`) - created by [Data.store()]{@link Data#store}
+
+**Returns:** `Promise<ArrayBuffer>` - the data
+
+**Example:**
+
+```javascript
+// in a view, perhaps after a "got-file" event from the model
+const handle = this.model.handle;
+const arrayBuffer = await this.session.data.fetch(handle);
+```
+
+#### `store(data, options, deprecatedKeep)`
+
+**Parameters:**
+
+- `data` (`any`) - 
+- `options` (`any`) - 
+- `deprecatedKeep` (`any`) - 
+
+#### `if(typeof data)`
+
+**Parameters:**
+
+- `typeof data` (`any`) - 
+
+#### `fetch(handle, options)`
+
+**Parameters:**
+
+- `handle` (`any`) - 
+- `options` (`any`) - 
+
+#### `if(options && options[DATAHANDLE_URL])`
+
+**Parameters:**
+
+- `options && options[DATAHANDLE_URL]` (`any`) - 
+
+#### `switch(output)`
+
+**Parameters:**
+
+- `output` (`any`) - 
+
+#### `switch(version)`
+
+**Parameters:**
+
+- `version` (`any`) - 
+
+#### `if(existing)`
+
+**Parameters:**
+
+- `existing` (`any`) - 

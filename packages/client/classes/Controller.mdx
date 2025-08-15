@@ -1,0 +1,1400 @@
+---
+title: 'Controller'
+description: 'API reference for Controller class'
+---
+
+# Controller
+
+## Methods
+
+### Instance Methods
+
+#### `reset()`
+
+#### `initFromSessionSpec(name, sessionSpec, sessionSpec, sessionSpec, sessionSpec, sessionSpec, sessionSpec, sessionSpec, sessionSpec, sessionSpec, sessionSpec, sessionSpec, sessionSpec, sessionSpec)`
+
+@type {VirtualMachine} */         this.vm = null;         /** @type {Session} the session object as returned from Session.join, set in session.js. Not to be used here but only so that View.session can find it. Needs redesign. */         this.session = null;         /**  @type {Connection} our websocket connection for talking to the reflector */         this.connection = this.connection || new Connection(this);         /** the messages received from reflector */         this.networkQueue = [];         /** the time stamp of last message received from reflector, or internal tick */         this.reflectorTime = 0;         /** ms between expected ticks */         this.msPerTick = this.msPerTick || 0;         /** multiply reflector ticks if > 1 (a.k.a. "cheat beats") */         this.tickMultiplier = this.tickMultiplier || 1;         /** the local time at which we received the last time stamp, minus that time stamp */         this.extrapolatedTimeBase = Date.now();         /** key generated from password, shared by all clients in session */         this.key = this.key || null;         /** encrypted message used to verify all clients actually use the same key */         this.tove = this.tove || null;         /** @type {String} the client id (different in each replica, but stays the same on reconnect) */         this.viewId = this.viewId || randomString(); // todo: have reflector assign unique ids         /** @type {String} payload for view-join  */         this.viewDataEncrypted = this.viewDataEncrypted || null;         /** @type {String} stateless reflectors always start new session, this is the only way to notice that */         this.timeline = "";         // just to be safe ...         if (this.rejoinTimeout) clearTimeout(this.rejoinTimeout);         /** timeout rejoin if rejoinLimit has been requested */         this.rejoinTimeout = 0;         /** @type {Function[]} buffered sends to reflector while reconnecting */         this.sendBuffer = [];         /** the number of concurrent users in our vm (excluding spectators) */         this.users = 0;         /** the number of concurrent users in our vm (including spectators) */         this.usersTotal = 0;         /** CPU time spent simulating since last snapshot */         this.cpuTime = 0;         /** CPU time spent at the point when we realised a snapshot is needed */         this.triggeringCpuTime = null;         /** record of teatime for debouncing our snapshot requests */         this.lastSnapshotRequest = 0;         /** @type {Boolean} backlog was below SYNCED_MIN */         this.synced = null; // null indicates never synced before         /** last measured latency in ms */         this.latency = 0;         // only collect latency history if asked for         if (this.latencyHistory) {             /** @type {Array<Number>} */             this.latencyHistory = [];         }         // make sure we have no residual "multiply" ticks         if (this.localTicker) {             globalThis.clearInterval(this.localTicker);             delete this.localTicker;         }         // in case we were still waiting for sync         if (this.syncTimer) {             globalThis.clearTimeout(this.syncTimer);             delete this.syncTimer;         }         /** @type {Array} recent TUTTI sends and their payloads, for matching up with incoming votes and divergence alerts */         this.tuttiHistory = [];         // stats relevant to DePIN         this.auditStats = {             /** track total reported users in this work unit */             lastUsers: -1, // will be initialised by first 'users' message             minUsers: -1,  // ditto             maxUsers: -1,  // ditto             /** cumulative total size of message payloads received in this work unit */             payloadTally: 0,         };         /** Date.now() at end of last stepSession triggered by animation */         this.lastAnimationEnd = 0;         /** array of gaps between animation end and the next start.  replaced with the value true once rapid animation has been detected. */         this.animationGapCheck = [];         /** socket send times of recent events */         this.rateLimitedSendTimes = [];         /** events held back and bundled to avoid exceeding instantaneous send rate */         this.rateLimitBuffer = [];         this.rateLimitSoftWarned = false;         this.rateLimitBufferWarned = false;         this.rateLimitLastLogged = 0;         this.payloadSizeWarned = false;         // controller (only) gets to subscribe to events using the shared viewId as the "subscriber" argument         viewDomain.removeAllSubscriptionsFor(this.viewId); // in case we're recycling         viewDomain.addSubscription(this.viewId, "__views__", this.viewId, count => displayStatus(`users now ${count}`), "oncePerFrameWhileSynced");         // "leaving" is set in session.js if we are leaving by user's request (rather than going dormant/reconnecting), or in controller.closeConnectionWithError in the case of an unrecoverable error being thrown.         if (!this.leaving) App.showSyncWait(true); // enable (i.e., not synced)     }     /** @type {String} the session id (same for all replicas running with same options on the same app version) */     get id() { return this.vm ? this.vm.id : this.sessionSpec.id; }     /** @type {String} the persistent id (same for all replicas with same options across app versions) */     get persistentId() { return this.sessionSpec.persistentId; }     /** @type {String} identifies Multisynq version and app code */     get versionId() { return this.sessionSpec.codeHash; }     /** @type {Number} the reflector time extrapolated beyond last received tick */     get extrapolatedTime() { return Date.now() - this.extrapolatedTimeBase; }     /** @type {Boolean} if true, sends to the reflector are disabled */     get viewOnly() { return this.sessionSpec.viewOnly; }     /**  @type {Number} how many ms need to be simulated to catch up to latest time from the reflector */     get backlog() { return this.vm ? this.reflectorTime - this.vm.time : 0; }     /** @type {Number} how many ms passed since we received something from reflector */     get starvation() { return Date.now() - this.lastReceived; }     /**  @type {Number} how many ms the simulation is lagging behind extrapolated time, beyond expected tick interval */     get lag() { return this.vm ? Math.max(0, this.extrapolatedTime - this.vm.time - this.msPerTick): 0; }     /** @type {Number} how many ms passed since we sent a message via the reflector */     get activity() { return Date.now() - this.lastSent; }     /** @type {Boolean} true if our root view is up */     get viewed() {         return !!(this.session && this.session.view);     }     /** @type {Boolean} true if our connection is fine */     get connected() { return this.connection.connected; }     /** @type {Boolean} should the connection call leave() when disconnected? */     get shouldLeaveWhenDisconnected() { return this.leaving || !this.canRejoinSeamlessly || this.sessionSpec.rejoinLimit === 0; }     /** @type {Boolean} does the reflector support seamless rejoin? */     get canRejoinSeamlessly() { return !!this.timeline; }     /** @type {Boolean} did we load a snapshot that we did not write? */     get migratingOldSnapshot() {         // if session was started with hashOverride         // we will load old snapshots but refuse to save them         if (!this.sessionSpec) return false;         const { codeHash, computedCodeHash} = this.sessionSpec;         return codeHash !== computedCodeHash;     }     checkForConnection(force) { this.connection.checkForConnection(force); }     dormantDisconnect() {         if (!this.connected) return;         this.connection.dormantDisconnect();     }     /** Initialise the controller from the sessionSpec assembled in Session.join() - the vm/session id is created from `name` and   a hash of registered options and source code
+
+**Parameters:**
+
+- `name` (`String`) - A (human-readable) name for the session/room
+- `sessionSpec` (`Object`) - Spec for the session
+- `sessionSpec` (`Function`) - .initFn - the vm initializer `initFn(options)`
+- `sessionSpec` (`Function`) - .rebootModelView - for taking down and rebuilding the model (i.e., the vm) and view
+- `sessionSpec` (`Object`) - .options - options to pass to the vm initializer
+- `sessionSpec` (`Array<String>`) - .optionsFromUrl - names of additional app-specific vm initializer options to take from URL
+- `sessionSpec` (`String`) - .apiKey - an API key of the form `backend:secret` (or just `secret` if backend is `prod`)
+- `sessionSpec` (`String`) - .appId - a unique identifier for an app
+- `sessionSpec` (`String`) - .password - password for end-to-end encryption
+- `sessionSpec` (`String`) - .viewData - payload for view-join event
+- `sessionSpec` (`String`) - .viewIdDebugSuffix - suffix for viewIds to help debugging
+- `sessionSpec` (`Number|String`) - .tps - ticks per second (can be overridden by `options.tps` or `urlOptions.tps`)
+- `sessionSpec` (`Number`) - .autoSleep - number of seconds of being hidden to trigger dormancy (or 0 to disable)
+- `sessionSpec` (`Object`) - .flags - features to request from the reflector
+
+#### `if(optionsFromUrl) for (const key of optionsFromUrl)`
+
+**Parameters:**
+
+- `optionsFromUrl) for (const key of optionsFromUrl` (`any`) - 
+
+#### `for(const [key, option] of Object.entries(options))`
+
+**Parameters:**
+
+- `const [key` (`any`) - 
+- `option] of Object.entries(options)` (`any`) - 
+
+#### `establishSession()`
+
+Join or create a session by connecting to the reflector
+
+#### `getBackend(apiKeysWithBackend)`
+
+**Parameters:**
+
+- `apiKeysWithBackend` (`any`) - 
+
+#### `if(urlOptions.box || urlOptions.reflector)`
+
+**Parameters:**
+
+- `urlOptions.box || urlOptions.reflector` (`any`) - 
+
+#### `for(const key of apiKeysWithBackend.split(", "))`
+
+**Parameters:**
+
+- `const key of apiKeysWithBackend.split("` (`any`) - 
+- `")` (`any`) - 
+
+#### `if(backend)`
+
+**Parameters:**
+
+- `backend` (`any`) - 
+
+#### `verifyApiKey(apiKeysWithBackend, appId, persistentId)`
+
+fetch developerId from sign function via meta protocol
+
+**Parameters:**
+
+- `apiKeysWithBackend` (`any`) - 
+- `appId` (`any`) - 
+- `persistentId` (`any`) - 
+
+#### `catch(err)`
+
+**Parameters:**
+
+- `err` (`any`) - 
+
+#### `fetchWithRetries(goal, instantFailureCodes, allowedRetries, fetchFn)`
+
+**Parameters:**
+
+- `goal` (`any`) - 
+- `instantFailureCodes` (`any`) - 
+- `allowedRetries` (`any`) - 
+- `fetchFn` (`any`) - 
+
+#### `for(;;)`
+
+**Parameters:**
+
+- `;;` (`any`) - 
+
+#### `catch(err)`
+
+**Parameters:**
+
+- `err` (`any`) - 
+
+#### `lastKnownTime(vmOrSnapshot)`
+
+**Parameters:**
+
+- `vmOrSnapshot` (`any`) - 
+
+#### `takeSnapshot()`
+
+#### `takeSnapshotHandleErrors()`
+
+#### `catch(error)`
+
+**Parameters:**
+
+- `error` (`any`) - 
+
+#### `setDebug(options)`
+
+**Parameters:**
+
+- `options` (`any`) - 
+
+#### `requestDebugSnapshot()`
+
+#### `scheduleSnapshot(force)`
+
+**Parameters:**
+
+- `force` (`any`) - 
+
+#### `if(sinceLast < 5000 && !force)`
+
+**Parameters:**
+
+- `sinceLast < 5000 && !force` (`any`) - 
+
+#### `if(this.migratingOldSnapshot)`
+
+**Parameters:**
+
+- `this.migratingOldSnapshot` (`any`) - 
+
+#### `if(force)`
+
+**Parameters:**
+
+- `force` (`any`) - 
+
+#### `if(force)`
+
+**Parameters:**
+
+- `force` (`any`) - 
+
+#### `handlePollForSnapshot(time)`
+
+**Parameters:**
+
+- `time` (`any`) - 
+
+#### `if(this.synced !)`
+
+**Parameters:**
+
+- `this.synced !` (`any`) - 
+
+#### `catch(error)`
+
+**Parameters:**
+
+- `error` (`any`) - 
+
+#### `pollForSnapshot(time, voteData)`
+
+**Parameters:**
+
+- `time` (`any`) - 
+- `voteData` (`any`) - 
+
+#### `handleSnapshotVote(data)`
+
+**Parameters:**
+
+- `data` (`any`) - 
+
+#### `if(numberOfGroups > 1)`
+
+**Parameters:**
+
+- `numberOfGroups > 1` (`any`) - 
+
+#### `if(this.synced !)`
+
+**Parameters:**
+
+- `this.synced !` (`any`) - 
+
+#### `if(shouldUpload)`
+
+**Parameters:**
+
+- `shouldUpload` (`any`) - 
+
+#### `analyzeTally(tally, timeProperty)`
+
+**Parameters:**
+
+- `tally` (`any`) - 
+- `timeProperty` (`any`) - 
+
+#### `if(numberOfGroups > 1)`
+
+**Parameters:**
+
+- `numberOfGroups > 1` (`any`) - 
+
+#### `if(votesByHash[hashGroups[0]].length)`
+
+**Parameters:**
+
+- `votesByHash[hashGroups[0]].length` (`any`) - 
+
+#### `if(ourIndex !)`
+
+**Parameters:**
+
+- `ourIndex !` (`any`) - 
+
+#### `if(clientIndices[0])`
+
+**Parameters:**
+
+- `clientIndices[0]` (`any`) - 
+
+#### `snapshotPath(time, seq, hash)`
+
+**Parameters:**
+
+- `time` (`any`) - 
+- `seq` (`any`) - 
+- `hash` (`any`) - 
+
+#### `hashSnapshot(snapshot)`
+
+**Parameters:**
+
+- `snapshot` (`any`) - 
+
+#### `if(!snapshot.meta.hashPromise)`
+
+**Parameters:**
+
+- `!snapshot.meta.hashPromise` (`any`) - 
+
+#### `uploadServer(apiKeysWithBackend)`
+
+**Parameters:**
+
+- `apiKeysWithBackend` (`any`) - 
+
+#### `if(typeof urlOptions.files)`
+
+**Parameters:**
+
+- `typeof urlOptions.files` (`any`) - 
+
+#### `if(signServer)`
+
+**Parameters:**
+
+- `signServer` (`any`) - 
+
+#### `uploadSnapshot(snapshot, auditStats, dissidentFlag)`
+
+**Parameters:**
+
+- `snapshot` (`any`) - 
+- `auditStats` (`any`) - 
+- `dissidentFlag` (`any`) - 
+
+#### `if(this.connection.socket !)`
+
+**Parameters:**
+
+- `this.connection.socket !` (`any`) - 
+
+#### `catch(e)`
+
+**Parameters:**
+
+- `e` (`any`) - 
+
+#### `announceSnapshotUrl(time, seq, hash, url, auditStats, dissidentFlag)`
+
+**Parameters:**
+
+- `time` (`any`) - 
+- `seq` (`any`) - 
+- `hash` (`any`) - 
+- `url` (`any`) - 
+- `auditStats` (`any`) - 
+- `dissidentFlag` (`any`) - 
+
+#### `if(DEBUG.snapshot)`
+
+**Parameters:**
+
+- `DEBUG.snapshot` (`any`) - 
+
+#### `catch(e)`
+
+**Parameters:**
+
+- `e` (`any`) - 
+
+#### `if(this.diverged)`
+
+**Parameters:**
+
+- `this.diverged` (`any`) - 
+
+#### `diffDivergedSnapshots(urls)`
+
+**Parameters:**
+
+- `urls` (`any`) - 
+
+#### `diffJSON(a, b, path)`
+
+**Parameters:**
+
+- `a` (`any`) - 
+- `b` (`any`) - 
+- `path` (`any`) - 
+
+#### `if(typeof a !)`
+
+**Parameters:**
+
+- `typeof a !` (`any`) - 
+
+#### `if(Array.isArray(a) !)`
+
+**Parameters:**
+
+- `Array.isArray(a) !` (`any`) - 
+
+#### `if(typeof a)`
+
+**Parameters:**
+
+- `typeof a` (`any`) - 
+
+#### `if(aOnly.length || bOnly.length)`
+
+**Parameters:**
+
+- `aOnly.length || bOnly.length` (`any`) - 
+
+#### `for(const k of aKeys) if (bKeys.includes(k))`
+
+**Parameters:**
+
+- `const k of aKeys) if (bKeys.includes(k)` (`any`) - 
+
+#### `if(a !)`
+
+**Parameters:**
+
+- `a !` (`any`) - 
+
+#### `downloadEncrypted({url, gzip, key, debug, json, what})`
+
+**Parameters:**
+
+- `{url` (`any`) - 
+- `gzip` (`any`) - 
+- `key` (`any`) - 
+- `debug` (`any`) - 
+- `json` (`any`) - 
+- `what}` (`any`) - 
+
+#### `fetchOffline(url, what, debug)`
+
+**Parameters:**
+
+- `url` (`any`) - 
+- `what` (`any`) - 
+- `debug` (`any`) - 
+
+#### `catch(e)`
+
+**Parameters:**
+
+- `e` (`any`) - 
+
+#### `uploadEncrypted({content, path, key, gzip, keep, debug, what})`
+
+upload string or array buffer as binary encrypted, optionally gzipped if path contains %HASH% it will be replaced by the hash after encryption
+
+**Parameters:**
+
+- `{content` (`any`) - 
+- `path` (`any`) - 
+- `key` (`any`) - 
+- `gzip` (`any`) - 
+- `keep` (`any`) - 
+- `debug` (`any`) - 
+- `what}` (`any`) - 
+
+#### `catch(e)`
+
+**Parameters:**
+
+- `e` (`any`) - 
+
+#### `persistentPath(hash)`
+
+**Parameters:**
+
+- `hash` (`any`) - 
+
+#### `pollForPersist(vmTime, persistTime, persistentString, persistentHash, ms)`
+
+**Parameters:**
+
+- `vmTime` (`any`) - 
+- `persistTime` (`any`) - 
+- `persistentString` (`any`) - 
+- `persistentHash` (`any`) - 
+- `ms` (`any`) - 
+
+#### `handlePersistVote(data)`
+
+**Parameters:**
+
+- `data` (`any`) - 
+
+#### `if(DEBUG.snapshot)`
+
+**Parameters:**
+
+- `DEBUG.snapshot` (`any`) - 
+
+#### `doPersist(persistTime, persistentString, persistentHash, dissidentFlag)`
+
+**Parameters:**
+
+- `persistTime` (`any`) - 
+- `persistentString` (`any`) - 
+- `persistentHash` (`any`) - 
+- `dissidentFlag` (`any`) - 
+
+#### `if(DEBUG.snapshot)`
+
+**Parameters:**
+
+- `DEBUG.snapshot` (`any`) - 
+
+#### `catch(e)`
+
+**Parameters:**
+
+- `e` (`any`) - 
+
+#### `forcePersist(persistTime, persistentString, persistentHash)`
+
+**Parameters:**
+
+- `persistTime` (`any`) - 
+- `persistentString` (`any`) - 
+- `persistentHash` (`any`) - 
+
+#### `if(this.didForcePersist)`
+
+**Parameters:**
+
+- `this.didForcePersist` (`any`) - 
+
+#### `if(urlOptions.forcePersist)`
+
+**Parameters:**
+
+- `urlOptions.forcePersist` (`any`) - 
+
+#### `convertReflectorMessage(msg)`
+
+**Parameters:**
+
+- `msg` (`any`) - 
+
+#### `switch(msg[2].what)`
+
+**Parameters:**
+
+- `msg[2].what` (`any`) - 
+
+#### `for(const user of payload.entered.concat(payload.exited))`
+
+**Parameters:**
+
+- `const user of payload.entered.concat(payload.exited)` (`any`) - 
+
+#### `catch(e)`
+
+**Parameters:**
+
+- `e` (`any`) - 
+
+#### `handleTuttiResult(data)`
+
+**Parameters:**
+
+- `data` (`any`) - 
+
+#### `if(local)`
+
+**Parameters:**
+
+- `local` (`any`) - 
+
+#### `if(tallyTarget)`
+
+**Parameters:**
+
+- `tallyTarget` (`any`) - 
+
+#### `handleAuditRequest(data)`
+
+**Parameters:**
+
+- `data` (`any`) - 
+
+#### `if(this.vm.time > sessionTimeAtDispatch)`
+
+**Parameters:**
+
+- `this.vm.time > sessionTimeAtDispatch` (`any`) - 
+
+#### `if(!this.fastForwardHandler)`
+
+**Parameters:**
+
+- `!this.fastForwardHandler` (`any`) - 
+
+#### `handleUserTotalForAccounting(total)`
+
+**Parameters:**
+
+- `total` (`any`) - 
+
+#### `if(DEPIN)`
+
+**Parameters:**
+
+- `DEPIN` (`any`) - 
+
+#### `messageSizeForAccounting(msg)`
+
+**Parameters:**
+
+- `msg` (`any`) - 
+
+#### `receive(action, args)`
+
+**Parameters:**
+
+- `action` (`any`) - 
+- `args` (`any`) - 
+
+#### `switch(action)`
+
+**Parameters:**
+
+- `action` (`any`) - 
+
+#### `catch(err)`
+
+**Parameters:**
+
+- `err` (`any`) - 
+
+#### `if(rejoining)`
+
+**Parameters:**
+
+- `rejoining` (`any`) - 
+
+#### `if(seamlessRejoin)`
+
+**Parameters:**
+
+- `seamlessRejoin` (`any`) - 
+
+#### `if(firstMessage && inSequence(firstMessage[1], this.vm.seq))`
+
+**Parameters:**
+
+- `firstMessage && inSequence(firstMessage[1]` (`any`) - 
+- `this.vm.seq)` (`any`) - 
+
+#### `for(let i)`
+
+**Parameters:**
+
+- `let i` (`any`) - 
+
+#### `if(typeof payload !)`
+
+**Parameters:**
+
+- `typeof payload !` (`any`) - 
+
+#### `if(seamlessRejoin && toDiscard)`
+
+**Parameters:**
+
+- `seamlessRejoin && toDiscard` (`any`) - 
+
+#### `if(seamlessRejoin)`
+
+**Parameters:**
+
+- `seamlessRejoin` (`any`) - 
+
+#### `if(this.sendBuffer.length > 0)`
+
+**Parameters:**
+
+- `this.sendBuffer.length > 0` (`any`) - 
+
+#### `for(const msg of messages)`
+
+**Parameters:**
+
+- `const msg of messages` (`any`) - 
+
+#### `if(typeof msg[2] !)`
+
+**Parameters:**
+
+- `typeof msg[2] !` (`any`) - 
+
+#### `catch(err)`
+
+**Parameters:**
+
+- `err` (`any`) - 
+
+#### `if(rejoining)`
+
+**Parameters:**
+
+- `rejoining` (`any`) - 
+
+#### `catch(err)`
+
+**Parameters:**
+
+- `err` (`any`) - 
+
+#### `if(!this.connected)`
+
+**Parameters:**
+
+- `!this.connected` (`any`) - 
+
+#### `if(persisted)`
+
+**Parameters:**
+
+- `persisted` (`any`) - 
+
+#### `if(auditStatsInitializer)`
+
+**Parameters:**
+
+- `auditStatsInitializer` (`any`) - 
+
+#### `if(!this.vm)`
+
+**Parameters:**
+
+- `!this.vm` (`any`) - 
+
+#### `if(this.vm.time)`
+
+**Parameters:**
+
+- `this.vm.time` (`any`) - 
+
+#### `if(this.viewId in this.vm.views)`
+
+**Parameters:**
+
+- `this.viewId in this.vm.views` (`any`) - 
+
+#### `if(!this.connected || !this.vm)`
+
+**Parameters:**
+
+- `!this.connected || !this.vm` (`any`) - 
+
+#### `if(caughtUp)`
+
+**Parameters:**
+
+- `caughtUp` (`any`) - 
+
+#### `if(success)`
+
+**Parameters:**
+
+- `success` (`any`) - 
+
+#### `if(typeof msg[2] !)`
+
+**Parameters:**
+
+- `typeof msg[2] !` (`any`) - 
+
+#### `catch(err)`
+
+**Parameters:**
+
+- `err` (`any`) - 
+
+#### `if(DEBUG.ticks)`
+
+**Parameters:**
+
+- `DEBUG.ticks` (`any`) - 
+
+#### `install(persistentData)`
+
+**Parameters:**
+
+- `persistentData` (`any`) - 
+
+#### `catch(error)`
+
+**Parameters:**
+
+- `error` (`any`) - 
+
+#### `if(DEBUG.session || (DEBUG.snapshot && snapshot.models))`
+
+**Parameters:**
+
+- `DEBUG.session || (DEBUG.snapshot && snapshot.models)` (`any`) - 
+
+#### `if(DEBUG.initsnapshot && !snapshot.models)`
+
+**Parameters:**
+
+- `DEBUG.initsnapshot && !snapshot.models` (`any`) - 
+
+#### `catch(error)`
+
+**Parameters:**
+
+- `error` (`any`) - 
+
+#### `catch(error)`
+
+**Parameters:**
+
+- `error` (`any`) - 
+
+#### `setVM(vm)`
+
+**Parameters:**
+
+- `vm` (`any`) - 
+
+#### `createCleanVM()`
+
+#### `sendJoin()`
+
+#### `if(this.rejoinTimeout)`
+
+**Parameters:**
+
+- `this.rejoinTimeout` (`any`) - 
+
+#### `if(!this.syncReceived)`
+
+**Parameters:**
+
+- `!this.syncReceived` (`any`) - 
+
+#### `clearSyncReceiptTimeout()`
+
+#### `if(this.syncReceiptTimeout)`
+
+**Parameters:**
+
+- `this.syncReceiptTimeout` (`any`) - 
+
+#### `connectionInterrupted()`
+
+#### `if(!this.rejoinTimeout)`
+
+**Parameters:**
+
+- `!this.rejoinTimeout` (`any`) - 
+
+#### `if(this.leaving)`
+
+**Parameters:**
+
+- `this.leaving` (`any`) - 
+
+#### `leave(keepController)`
+
+**Parameters:**
+
+- `keepController` (`any`) - 
+
+#### `encrypt(plaintext)`
+
+**Parameters:**
+
+- `plaintext` (`any`) - 
+
+#### `deprecatedDefaultKey()`
+
+#### `if(!DEPRECATED_DEFAULT_KEY)`
+
+**Parameters:**
+
+- `!DEPRECATED_DEFAULT_KEY` (`any`) - 
+
+#### `decrypt(encrypted, key)`
+
+**Parameters:**
+
+- `encrypted` (`any`) - 
+- `key` (`any`) - 
+
+#### `stringify(decrypted); } catch (err)`
+
+**Parameters:**
+
+- `decrypted); } catch (err` (`any`) - 
+
+#### `decryptBinary(buffer, key)`
+
+**Parameters:**
+
+- `buffer` (`any`) - 
+- `key` (`any`) - 
+
+#### `switch(version)`
+
+**Parameters:**
+
+- `version` (`any`) - 
+
+#### `encryptMessage(msg, viewId, sendTime)`
+
+**Parameters:**
+
+- `msg` (`any`) - 
+- `viewId` (`any`) - 
+- `sendTime` (`any`) - 
+
+#### `encryptPayload(payload)`
+
+**Parameters:**
+
+- `payload` (`any`) - 
+
+#### `decryptPayload(encrypted)`
+
+**Parameters:**
+
+- `encrypted` (`any`) - 
+
+#### `compareHmacs(fst, snd)`
+
+**Parameters:**
+
+- `fst` (`any`) - 
+- `snd` (`any`) - 
+
+#### `for(let i)`
+
+**Parameters:**
+
+- `let i` (`any`) - 
+
+#### `if(!(fst[i])`
+
+**Parameters:**
+
+- `!(fst[i]` (`any`) - 
+
+#### `sendMessage(msg)`
+
+send a Message to all vm replicas via reflector
+
+**Parameters:**
+
+- `msg` (`Message`) - 
+
+#### `if(payloadLength > PAYLOAD_LIMIT_MAX)`
+
+**Parameters:**
+
+- `payloadLength > PAYLOAD_LIMIT_MAX` (`any`) - 
+
+#### `if(!this.payloadSizeWarned && payloadLength > PAYLOAD_LIMIT_RECOMMENDED)`
+
+**Parameters:**
+
+- `!this.payloadSizeWarned && payloadLength > PAYLOAD_LIMIT_RECOMMENDED` (`any`) - 
+
+#### `if(buffer.length)`
+
+**Parameters:**
+
+- `buffer.length` (`any`) - 
+
+#### `if(times.length && this.synced)`
+
+**Parameters:**
+
+- `times.length && this.synced` (`any`) - 
+
+#### `if(!delay)`
+
+**Parameters:**
+
+- `!delay` (`any`) - 
+
+#### `recordRateLimitedSend(time)`
+
+**Parameters:**
+
+- `time` (`any`) - 
+
+#### `if(isSynced || !times.length || times[times.length - 1] !)`
+
+**Parameters:**
+
+- `isSynced || !times.length || times[times.length - 1] !` (`any`) - 
+
+#### `if(!this.rateLimitSoftWarned && times.length)`
+
+**Parameters:**
+
+- `!this.rateLimitSoftWarned && times.length` (`any`) - 
+
+#### `addToRateLimitBuffer(msg)`
+
+**Parameters:**
+
+- `msg` (`any`) - 
+
+#### `if(buffer.length)`
+
+**Parameters:**
+
+- `buffer.length` (`any`) - 
+
+#### `if(totalPayload < PAYLOAD_LIMIT_RECOMMENDED)`
+
+**Parameters:**
+
+- `totalPayload < PAYLOAD_LIMIT_RECOMMENDED` (`any`) - 
+
+#### `if(DEBUG.session && buffered % 5)`
+
+**Parameters:**
+
+- `DEBUG.session && buffered % 5` (`any`) - 
+
+#### `if(buffered > this.eventMaxBundles)`
+
+**Parameters:**
+
+- `buffered > this.eventMaxBundles` (`any`) - 
+
+#### `if(!this.rateLimitBufferWarned && buffered > this.eventMaxBundles / 2)`
+
+**Parameters:**
+
+- `!this.rateLimitBufferWarned && buffered > this.eventMaxBundles / 2` (`any`) - 
+
+#### `serviceRateLimitBuffer()`
+
+#### `if(times.length)`
+
+**Parameters:**
+
+- `times.length` (`any`) - 
+
+#### `if(events.length)`
+
+**Parameters:**
+
+- `events.length` (`any`) - 
+
+#### `if(DEBUG.session && this.connected)`
+
+**Parameters:**
+
+- `DEBUG.session && this.connected` (`any`) - 
+
+#### `if(nowBuffered && nowBuffered % 5)`
+
+**Parameters:**
+
+- `nowBuffered && nowBuffered % 5` (`any`) - 
+
+#### `socketSendMessage(msg, tags)`
+
+**Parameters:**
+
+- `msg` (`any`) - 
+- `tags` (`any`) - 
+
+#### `if(!this.connected || !this.syncCompleted)`
+
+**Parameters:**
+
+- `!this.connected || !this.syncCompleted` (`any`) - 
+
+#### `if(this.vm)`
+
+**Parameters:**
+
+- `this.vm` (`any`) - 
+
+#### `sendTagged(msg)`
+
+send a Message to all vm replicas via reflector, subject to reflector preprocessing as determined by the tag(s)
+
+**Parameters:**
+
+- `msg` (`Message`) - * @param {Object} tags
+
+#### `sendTutti(spec)`
+
+send a TUTTI Message
+
+**Parameters:**
+
+- `spec` (`Object`) - 
+
+#### `if(!this.connected || !this.syncCompleted)`
+
+**Parameters:**
+
+- `!this.connected || !this.syncCompleted` (`any`) - 
+
+#### `if(this.vm)`
+
+**Parameters:**
+
+- `this.vm` (`any`) - 
+
+#### `sendLog(...args)`
+
+**Parameters:**
+
+- `...args` (`any`) - 
+
+#### `if(!this.connected || !this.syncCompleted)`
+
+**Parameters:**
+
+- `!this.connected || !this.syncCompleted` (`any`) - 
+
+#### `if(this.vm)`
+
+**Parameters:**
+
+- `this.vm` (`any`) - 
+
+#### `addToStatistics(timeSent, timeReceived)`
+
+**Parameters:**
+
+- `timeSent` (`any`) - 
+- `timeReceived` (`any`) - 
+
+#### `if(this.latencyHistory)`
+
+**Parameters:**
+
+- `this.latencyHistory` (`any`) - 
+
+#### `latencies()`
+
+#### `getTickAndMultiplier()`
+
+parse tps `ticks x multiplier` ticks are from server, multiplied by locally generated ticks default taken from `sessionSpec.tps` unless `sessionSpec.options.tps` is present
+
+**Returns:** `{
+     *      msPerTick: Number,  // effective tick period in ms
+     *      multiplier: Number, // local multiplier
+     *      tick: Number,       // reflector tick period in ms
+     *      delay: Number,      // reflector delay to account for locally produced ticks
+     * ` - }
+
+#### `if(multiplier > 1 && !NOCHEAT)`
+
+**Parameters:**
+
+- `multiplier > 1 && !NOCHEAT` (`any`) - 
+
+#### `simulate(deadline)`
+
+Process pending messages for this vm and advance simulation
+
+**Parameters:**
+
+- `deadline` (`Number`) - CPU time deadline before interrupting simulation
+
+**Returns:** `Boolean` - true if simulation finished before deadline
+
+#### `if(nothingToDo)`
+
+**Parameters:**
+
+- `nothingToDo` (`any`) - 
+
+#### `while(weHaveTime)`
+
+**Parameters:**
+
+- `weHaveTime` (`any`) - 
+
+#### `if(typeof this.synced)`
+
+**Parameters:**
+
+- `typeof this.synced` (`any`) - 
+
+#### `if(nowSynced)`
+
+**Parameters:**
+
+- `nowSynced` (`any`) - 
+
+#### `if(!this.syncTimer)`
+
+**Parameters:**
+
+- `!this.syncTimer` (`any`) - 
+
+#### `if(!DEBUG.offline)`
+
+**Parameters:**
+
+- `!DEBUG.offline` (`any`) - 
+
+#### `if(this.synced && weHaveTime && this.vm.time - this.lastSnapshotRequest > SNAPSHOT_POLL_DEBOUNCE)`
+
+**Parameters:**
+
+- `this.synced && weHaveTime && this.vm.time - this.lastSnapshotRequest > SNAPSHOT_POLL_DEBOUNCE` (`any`) - 
+
+#### `if(this.cpuTime > SNAPSHOT_AFTER_CPU)`
+
+**Parameters:**
+
+- `this.cpuTime > SNAPSHOT_AFTER_CPU` (`any`) - 
+
+#### `if(DEPIN && this.vm.time - this.vm.lastSnapshotPoll > DEPIN_SNAPSHOT_AFTER_TEATIME)`
+
+**Parameters:**
+
+- `DEPIN && this.vm.time - this.vm.lastSnapshotPoll > DEPIN_SNAPSHOT_AFTER_TEATIME` (`any`) - 
+
+#### `if(doSchedule)`
+
+**Parameters:**
+
+- `doSchedule` (`any`) - 
+
+#### `if(this.isBeingAnimated())`
+
+**Parameters:**
+
+- `this.isBeingAnimated()` (`any`) - 
+
+#### `if(this.reflectorNeedsSnapshot)`
+
+**Parameters:**
+
+- `this.reflectorNeedsSnapshot` (`any`) - 
+
+#### `catch(error)`
+
+**Parameters:**
+
+- `error` (`any`) - 
+
+#### `stepSession(stepType, parameters)`
+
+**Parameters:**
+
+- `stepType` (`any`) - 
+- `parameters` (`any`) - 
+
+#### `if(stepType)`
+
+**Parameters:**
+
+- `stepType` (`any`) - 
+
+#### `if(this.lastAnimationEnd)`
+
+**Parameters:**
+
+- `this.lastAnimationEnd` (`any`) - 
+
+#### `if(this.animationGapCheck)`
+
+**Parameters:**
+
+- `this.animationGapCheck` (`any`) - 
+
+#### `if(this.animationGapCheck !)`
+
+**Parameters:**
+
+- `this.animationGapCheck !` (`any`) - 
+
+#### `if(gaps.length, b), 0) <)`
+
+**Parameters:**
+
+- `gaps.length` (`any`) - 
+- `b)` (`any`) - 
+- `0) <` (`any`) - 
+
+#### `if(!this.connected)`
+
+**Parameters:**
+
+- `!this.connected` (`any`) - 
+
+#### `switch(stepType)`
+
+**Parameters:**
+
+- `stepType` (`any`) - 
+
+#### `if(caughtUp)`
+
+**Parameters:**
+
+- `caughtUp` (`any`) - 
+
+#### `if(caughtUp !)`
+
+**Parameters:**
+
+- `caughtUp !` (`any`) - 
+
+#### `if(parameters.view)`
+
+**Parameters:**
+
+- `parameters.view` (`any`) - 
+
+#### `applySyncChange(bool)`
+
+**Parameters:**
+
+- `bool` (`any`) - 
+
+#### `inViewRealm(fn)`
+
+execute something in the view realm
+
+**Parameters:**
+
+- `fn` (`any`) - 
+
+#### `processModelViewEvents(isInAnimationStep)`
+
+call this from main loop to process queued model=>view events
+
+**Parameters:**
+
+- `isInAnimationStep` (`any`) - 
+
+**Returns:** `Number` - number of processed events
+
+#### `if(this.vm)`
+
+**Parameters:**
+
+- `this.vm` (`any`) - 
+
+#### `timeFromReflector(time, src, rawTime)`
+
+Got the official time from reflector (on SYNC, TICK or RECV), or local tick multiplier.  src is "reflector" or "controller".  rawTime is reflector performance.now() since the resumption of the session, currently (dec 2021) defined in experimental reflectors on RECV events only, if flag "rawtime" is requested on join().
+
+**Parameters:**
+
+- `time` (`any`) - 
+- `src` (`any`) - 
+- `rawTime` (`any`) - 
+
+#### `if(time < this.reflectorTime)`
+
+**Parameters:**
+
+- `time < this.reflectorTime` (`any`) - 
+
+#### `multiplyTick(time)`
+
+we received a tick from reflector, generate local ticks
+
+**Parameters:**
+
+- `time` (`any`) - 
+
+#### `if(++n >)`
+
+**Parameters:**
+
+- `++n >` (`any`) - 
+
+#### `startStepping(autoStepFn)`
+
+**Parameters:**
+
+- `autoStepFn` (`any`) - 
+
+#### `setUpActivityChecks()`
+
+#### `if(gapsOk && !delayOk)`
+
+**Parameters:**
+
+- `gapsOk && !delayOk` (`any`) - 
+
+#### `if(!NODE)`
+
+**Parameters:**
+
+- `!NODE` (`any`) - 
+
+#### `if(autoSleep)`
+
+**Parameters:**
+
+- `autoSleep` (`any`) - 
+
+#### `if(this.isOutOfSight())`
+
+**Parameters:**
+
+- `this.isOutOfSight()` (`any`) - 
+
+#### `if(now - outOfSightSince > dormantDelay)`
+
+**Parameters:**
+
+- `now - outOfSightSince > dormantDelay` (`any`) - 
+
+#### `if(this.leaving)`
+
+**Parameters:**
+
+- `this.leaving` (`any`) - 
+
+#### `if(alivenessPoll)`
+
+**Parameters:**
+
+- `alivenessPoll` (`any`) - 
+
+#### `if(this.connected)`
+
+**Parameters:**
+
+- `this.connected` (`any`) - 
+
+#### `toString()`

@@ -180,13 +180,13 @@ unschedules all [future](#modelfuture)(#modelfuture) messages,
 and removes it from future snapshots.
 
 Example:
-`\`\`\`
+```javascript
 removeChild(child) {
    const index = this.children.indexOf(child);
    this.children.splice(index, 1);
    child.destroy();
 }
-\`\`\``
+```
 
 #### `future()`
 

@@ -1,0 +1,343 @@
+---
+title: 'Global Constants'
+description: 'Global constants and configuration values'
+icon: 'globe'
+---
+
+# Global Constants
+
+Configuration constants used throughout the Multisynq client library.
+
+## Constants
+
+
+### `ICE_NEGOTIATION_MAX`
+
+**Value:** `15_000`
+
+
+### `FUTURE_MESSAGE_HANDLER`
+
+**Value:** `"future message"`
+
+
+### `CANCEL_FUTURE`
+
+**Value:** `"message in cancelFuture"`
+
+
+### `SUBSCRIPTION_HANDLER`
+
+**Value:** `"subscription handler"`
+
+
+### `UNSUBSCRIBE_ARGUMENT`
+
+**Value:** `"unsubscribe argument"`
+
+
+### `QFUNC_FUTURE_PREFIX`
+
+**Value:** `asQFuncMethodPrefix(FUTURE_MESSAGE_HANDLER)`
+
+
+### `QFUNC_SUBSCRIPTION_PREFIX`
+
+**Value:** `asQFuncMethodPrefix(SUBSCRIPTION_HANDLER)`
+
+
+### `INITIAL_SEQ`
+
+**Value:** `0xFFFFFFF0`
+
+
+### `VOTE_SUFFIX`
+
+**Value:** `"#__vote"`
+
+
+### `REFLECTED_SUFFIX`
+
+**Value:** `"#reflected"`
+
+
+### `DIVERGENCE_SUFFIX`
+
+**Value:** `"#divergence"`
+
+
+### `ENCODED_MESSAGES`
+
+**Value:** `[`
+
+
+### `ENCODE_MESSAGE`
+
+**Value:** `{}`
+
+
+### `SNAPSHOT_MIN_POLL_GAP`
+
+**Value:** `5000`
+
+
+### `PERSIST_MIN_POLL_GAP`
+
+**Value:** `25000`
+
+
+### `HANDLER_REGEX`
+
+**Value:** `/^\(?([a-z][a-z0-9]*)?\)? *=> *this\.([a-z][a-z0-9]*) *\( *([a-z][a-z0-9]*)? *\) *$/i`
+
+
+### `MODEL_CLASS`
+
+**Value:** `Symbol("MODEL_CLASS")`
+
+
+### `SYSTEM_CLASSES`
+
+**Value:** `[`
+
+
+### `PATH_REGEX`
+
+**Value:** `/^\/([^/]+)\/(.*)$/`
+
+
+### `HASH_REGEX`
+
+**Value:** `/^#([^&]+)&?(.*)$/`
+
+
+### `PLOT_BACKLOG`
+
+**Value:** `false`
+
+
+### `DEFAULT_BALANCE_FPS`
+
+**Value:** `60`
+
+
+### `MAX_BALANCE_FPS`
+
+**Value:** `120`
+
+
+### `DORMANCY_DEFAULT_SECONDS`
+
+**Value:** `10`
+
+
+### `DEFAULT_EVENT_RATE_LIMIT`
+
+**Value:** `20`
+
+
+### `SESSION_PARAMS`
+
+**Value:** `['name', 'password', 'apiKey', 'appId', 'tps', 'autoSleep', 'heraldUrl', 'rejoinLimit', 'eventRateLimit', 'optionsFromUrl', 'persistentIdOptions', 'viewOptions', 'viewData', 'viewIdDebugSuffix', 'hashOverride', 'location', 'flags', 'progressReporter']`
+
+
+### `CLASS_ID`
+
+**Value:** `Symbol('CLASS_ID')`
+
+
+### `BAR_PROPORTION`
+
+**Value:** `18`
+
+
+### `BUTTON_RIGHT`
+
+**Value:** `2`
+
+
+### `BUTTON_WIDTH`
+
+**Value:** `TOUCH ? 20 : 12`
+
+
+### `BUTTON_SEPARATION`
+
+**Value:** `2`
+
+
+### `BUTTON_OFFSET`
+
+**Value:** `TOUCH ? 0 : 15`
+
+
+### `CONTENT_MARGIN`
+
+**Value:** `2`
+
+
+### `TRANSITION_TIME`
+
+**Value:** `0.3`
+
+
+### `VOTE_SUFFIX`
+
+**Value:** `'#__vote'`
+
+
+### `DATAHANDLE_HASH`
+
+**Value:** `Symbol("hash")`
+
+
+### `DATAHANDLE_KEY`
+
+**Value:** `Symbol("key")`
+
+
+### `DATAHANDLE_URL`
+
+**Value:** `Symbol("url")`
+
+
+### `DEPIN_API_PROD`
+
+**Value:** `'wss://api.multisynq.io/depin'`
+
+@typedef { import("./model").default } Model */ /** @typedef { {} } Session */ // when reflector has a new feature, we increment this value // only newer clients get to use it const PROTOCOL_VERSION = 1; // replaced by esbuild export const MULTISYNQ_VERSION = _MULTISYNQ_VERSION_ || "<unknown>"; const NODE = _IS_NODE_; // use dev reflectors for pre-release SDKs, unless dev=false given // (only needed for periods when code changes below require dev reflectors, // comment out once deployed to production reflectors) // if (!("dev" in urlOptions) && (MULTISYNQ_VERSION === "<unknown>" || MULTISYNQ_VERSION.includes('-'))) urlOptions.dev = true; // dev reflectors are used for pages served from /dev // everything else uses api.croquet.io/reflector/v1 // ...unless overridden by a "backend" url option // ...unless overridden by a "reflector=<url|region>" url option, which sets the specified url or region const OLD_UPLOAD_SERVER = "https://croquet.io/files/v1";    // url base of files created before we had API keys const OLD_DOWNLOAD_SERVER = "https://files.croquet.io";     // downloads from old bucket (rewritten from old upload url) export const OLD_DATA_SERVER = OLD_DOWNLOAD_SERVER; let DEBUG = null; function initOptions() {     // to capture whatever was passed to the latest Session.join({debug:...})     // call we simply redo this every time establishSession() is called     // TODO: turn this into a reasonable API     DEBUG = {         messages: urlOptions.has("debug", "messages", false),               // received messages         sends: urlOptions.has("debug", "sends", false),                     // sent messages         publish: urlOptions.has("debug", "publish", false),                 // published events         events: urlOptions.has("debug", "events", false),                   // subscribed events         ticks: urlOptions.has("debug", "ticks", false),                     // received ticks         pong: urlOptions.has("debug", "pong", false),                       // received PONGs         snapshot: urlOptions.has("debug", "snapshot", false),               // snapshotting, uploading etc         session: urlOptions.has("debug", "session", false),                 // session logging         initsnapshot: urlOptions.has("debug", "initsnapshot", true),        // check snapshotting after initFn         reflector: urlOptions.has("debug", "reflector", false),             // use dev reflector         offline: urlOptions.has("debug", "offline", false),                 // short-circuit all requests     };     if (DEBUG.offline) App.showMessage(`${App.libName}: offline mode enabled, no multiuser`, { level: "warning"});     if (urlOptions.box) {         let url = new URL(urlOptions.box, window.location).href;         if (!url.endsWith("/")) url += "/";         urlOptions.reflector = url + "reflector";         urlOptions.files = url + "files";     } } function setDebug(options={}) {     if (!DEBUG) initOptions();     if (typeof options === "string") {         options = Object.fromEntries(options.split(",").map(option => [option.replace(/^no/, ""), !options.startsWith("no")]));     }     for (const [key, value] of Object.entries(options)) {         if (key in DEBUG) DEBUG[key] = value;         else App.showMessage(`${App.libName}: unknown debug option "${key}"`, { level: "warning", only: "once" });     }     return DEBUG; } /* function isLocalUrl(hostname) {     // copied from devauth/signurl/urlMatcher.js     const LOCAL_PATTERNS = [         /localhost/,         /.*\.local/,         /.*\.ngrok.io/,         // 10.0.0.0 - 10.255.255.255         /10(?:\.\d{1,3}){3}/,         // 127.0.0.0 - 127.255.255.255         /127(?:\.\d{1,3}){3}/,         // 169.254.1.0 - 169.254.254.255         /169\.254\.([1-9]|1?\d\d|2[0-4]\d|25[0-4])\.\d{1,3}/,         // 172.16.0.0 - 172.31.255.255         /(172\.1[6-9]|172\.2\d|172\.3[01])(?:\.\d{1,3}){2}/,         // 192.168.0.0 - 192.168.255.255         /192\.168(?:\.\d{1,3}){2}/,         // fc00::/7         /\[f[cd][\da-f]{2}(:?:[\da-f]{1,4}){1,7}\]/,         // fe80::/10         /\[fe[89ab][\da-f](:?:[\da-f]{1,4}){1,7}\]/,         // ::1         /\[::1\]/,         // ::ffff:7f00:1         /\[::ffff:7f00:1\]/,     ];     // Concat all RegExes from above into one     const LOCAL_PATTERNS_RE = new RegExp(         `^(${LOCAL_PATTERNS.map(re => re.source).join('|')})$`,     );     const isLocal = LOCAL_PATTERNS_RE.test(hostname);     return isLocal; } / /*     Query string parameters for DePIN (on Node, specify in the form --depin=foo):         depin        (means wss://api.multisynq.io/depin)         or         depin=dev    (means wss://api.multisynq.dev/depin)         or         depin=local  (means ws://localhost:8787)         or         depin=<websocket url>         or         depin=false  (to revert to websocket network)
+
+
+### `DEPIN_API_DEV`
+
+**Value:** `'wss://api.multisynq.dev/depin'`
+
+
+### `DEPIN_API_LOCAL`
+
+**Value:** `'ws://localhost:8787'`
+
+
+### `DEPIN_API_DEFAULT`
+
+**Value:** `DEPIN_API_PROD`
+
+
+### `SNAPSHOT_AFTER_CPU`
+
+**Value:** `5000`
+
+
+### `DEPIN_SNAPSHOT_AFTER_TEATIME`
+
+**Value:** `5 * 60 * 1000`
+
+
+### `SNAPSHOT_POLL_DEBOUNCE`
+
+**Value:** `5000`
+
+
+### `EXTERNAL_MESSAGE_CPU_PENALTY`
+
+**Value:** `5`
+
+
+### `JOIN_FAILED_DELAY`
+
+**Value:** `5000`
+
+
+### `SYNCED_MIN`
+
+**Value:** `200`
+
+
+### `SYNCED_MIN_FACTOR`
+
+**Value:** `0.1`
+
+
+### `SYNCED_MAX`
+
+**Value:** `2000`
+
+
+### `SYNCED_MAX_FACTOR`
+
+**Value:** `0.2`
+
+
+### `SYNCED_ANNOUNCE_DELAY`
+
+**Value:** `200`
+
+
+### `MAX_SIMULATION_MS`
+
+**Value:** `200`
+
+
+### `LOAD_BALANCE_FRAMES`
+
+**Value:** `4`
+
+
+### `ANIMATION_CHECK_FRAMES`
+
+**Value:** `4`
+
+
+### `ANIMATION_REASONABLE_FRAME_GAP`
+
+**Value:** `100`
+
+
+### `ANIMATION_EXCESSIVE_FRAME_GAP`
+
+**Value:** `ANIMATION_REASONABLE_FRAME_GAP * 2`
+
+
+### `PAYLOAD_LIMIT_RECOMMENDED`
+
+**Value:** `4 * 1024`
+
+
+### `PAYLOAD_LIMIT_MAX`
+
+**Value:** `16 * 1024`
+
+
+### `KEEP_ALIVE_INTERVAL`
+
+**Value:** `100`
+
+@type {VirtualMachine} */         this.vm = null;         /** @type {Session} the session object as returned from Session.join, set in session.js. Not to be used here but only so that View.session can find it. Needs redesign. */         this.session = null;         /**  @type {Connection} our websocket connection for talking to the reflector */         this.connection = this.connection || new Connection(this);         /** the messages received from reflector */         this.networkQueue = [];         /** the time stamp of last message received from reflector, or internal tick */         this.reflectorTime = 0;         /** ms between expected ticks */         this.msPerTick = this.msPerTick || 0;         /** multiply reflector ticks if > 1 (a.k.a. "cheat beats") */         this.tickMultiplier = this.tickMultiplier || 1;         /** the local time at which we received the last time stamp, minus that time stamp */         this.extrapolatedTimeBase = Date.now();         /** key generated from password, shared by all clients in session */         this.key = this.key || null;         /** encrypted message used to verify all clients actually use the same key */         this.tove = this.tove || null;         /** @type {String} the client id (different in each replica, but stays the same on reconnect) */         this.viewId = this.viewId || randomString(); // todo: have reflector assign unique ids         /** @type {String} payload for view-join  */         this.viewDataEncrypted = this.viewDataEncrypted || null;         /** @type {String} stateless reflectors always start new session, this is the only way to notice that */         this.timeline = "";         // just to be safe ...         if (this.rejoinTimeout) clearTimeout(this.rejoinTimeout);         /** timeout rejoin if rejoinLimit has been requested */         this.rejoinTimeout = 0;         /** @type {Function[]} buffered sends to reflector while reconnecting */         this.sendBuffer = [];         /** the number of concurrent users in our vm (excluding spectators) */         this.users = 0;         /** the number of concurrent users in our vm (including spectators) */         this.usersTotal = 0;         /** CPU time spent simulating since last snapshot */         this.cpuTime = 0;         /** CPU time spent at the point when we realised a snapshot is needed */         this.triggeringCpuTime = null;         /** record of teatime for debouncing our snapshot requests */         this.lastSnapshotRequest = 0;         /** @type {Boolean} backlog was below SYNCED_MIN */         this.synced = null; // null indicates never synced before         /** last measured latency in ms */         this.latency = 0;         // only collect latency history if asked for         if (this.latencyHistory) {             /** @type {Array<Number>} */             this.latencyHistory = [];         }         // make sure we have no residual "multiply" ticks         if (this.localTicker) {             globalThis.clearInterval(this.localTicker);             delete this.localTicker;         }         // in case we were still waiting for sync         if (this.syncTimer) {             globalThis.clearTimeout(this.syncTimer);             delete this.syncTimer;         }         /** @type {Array} recent TUTTI sends and their payloads, for matching up with incoming votes and divergence alerts */         this.tuttiHistory = [];         // stats relevant to DePIN         this.auditStats = {             /** track total reported users in this work unit */             lastUsers: -1, // will be initialised by first 'users' message             minUsers: -1,  // ditto             maxUsers: -1,  // ditto             /** cumulative total size of message payloads received in this work unit */             payloadTally: 0,         };         /** Date.now() at end of last stepSession triggered by animation */         this.lastAnimationEnd = 0;         /** array of gaps between animation end and the next start.  replaced with the value true once rapid animation has been detected. */         this.animationGapCheck = [];         /** socket send times of recent events */         this.rateLimitedSendTimes = [];         /** events held back and bundled to avoid exceeding instantaneous send rate */         this.rateLimitBuffer = [];         this.rateLimitSoftWarned = false;         this.rateLimitBufferWarned = false;         this.rateLimitLastLogged = 0;         this.payloadSizeWarned = false;         // controller (only) gets to subscribe to events using the shared viewId as the "subscriber" argument         viewDomain.removeAllSubscriptionsFor(this.viewId); // in case we're recycling         viewDomain.addSubscription(this.viewId, "__views__", this.viewId, count => displayStatus(`users now ${count}`), "oncePerFrameWhileSynced");         // "leaving" is set in session.js if we are leaving by user's request (rather than going dormant/reconnecting), or in controller.closeConnectionWithError in the case of an unrecoverable error being thrown.         if (!this.leaving) App.showSyncWait(true); // enable (i.e., not synced)     }     /** @type {String} the session id (same for all replicas running with same options on the same app version) */     get id() { return this.vm ? this.vm.id : this.sessionSpec.id; }     /** @type {String} the persistent id (same for all replicas with same options across app versions) */     get persistentId() { return this.sessionSpec.persistentId; }     /** @type {String} identifies Multisynq version and app code */     get versionId() { return this.sessionSpec.codeHash; }     /** @type {Number} the reflector time extrapolated beyond last received tick */     get extrapolatedTime() { return Date.now() - this.extrapolatedTimeBase; }     /** @type {Boolean} if true, sends to the reflector are disabled */     get viewOnly() { return this.sessionSpec.viewOnly; }     /**  @type {Number} how many ms need to be simulated to catch up to latest time from the reflector */     get backlog() { return this.vm ? this.reflectorTime - this.vm.time : 0; }     /** @type {Number} how many ms passed since we received something from reflector */     get starvation() { return Date.now() - this.lastReceived; }     /**  @type {Number} how many ms the simulation is lagging behind extrapolated time, beyond expected tick interval */     get lag() { return this.vm ? Math.max(0, this.extrapolatedTime - this.vm.time - this.msPerTick): 0; }     /** @type {Number} how many ms passed since we sent a message via the reflector */     get activity() { return Date.now() - this.lastSent; }     /** @type {Boolean} true if our root view is up */     get viewed() {         return !!(this.session && this.session.view);     }     /** @type {Boolean} true if our connection is fine */     get connected() { return this.connection.connected; }     /** @type {Boolean} should the connection call leave() when disconnected? */     get shouldLeaveWhenDisconnected() { return this.leaving || !this.canRejoinSeamlessly || this.sessionSpec.rejoinLimit === 0; }     /** @type {Boolean} does the reflector support seamless rejoin? */     get canRejoinSeamlessly() { return !!this.timeline; }     /** @type {Boolean} did we load a snapshot that we did not write? */     get migratingOldSnapshot() {         // if session was started with hashOverride         // we will load old snapshots but refuse to save them         if (!this.sessionSpec) return false;         const { codeHash, computedCodeHash} = this.sessionSpec;         return codeHash !== computedCodeHash;     }     checkForConnection(force) { this.connection.checkForConnection(force); }     dormantDisconnect() {         if (!this.connected) return;         this.connection.dormantDisconnect();     }     /** Initialise the controller from the sessionSpec assembled in Session.join() - the vm/session id is created from `name` and   a hash of registered options and source code
+
+
+### `PULSE_TIMEOUT`
+
+**Value:** `25000`
+
+if we haven't sent anything to the reflector for this long, send a PULSE to reassure it
+
+
+### `REFLECTOR_ALIVE_TIMEOUT`
+
+**Value:** `50000`
+
+if we haven't heard anything from the reflector for this long, try reconnecting
+
+
+### `UNSENT_TIMEOUT`
+
+**Value:** `500`
+
+warn about unsent outgoing bytes after this many ms
+
+
+### `RECONNECT_DELAY_MAX`
+
+**Value:** `30000`
+
+increase reconnect timeout exponentially up to this many ms

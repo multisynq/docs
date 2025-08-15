@@ -1,0 +1,166 @@
+---
+title: 'Session'
+description: 'API reference for Session class'
+---
+
+# Session
+
+## Methods
+
+### Instance Methods
+
+#### `join(parameters, parameters, parameters, parameters, parameters, parameters, parameters, parameters, parameters, parameters, parameters, parameters, parameters, parameters, parameters, parameters, parameters, parameters)`
+
+**Join a Multisynq session.** Joins a session by instantiating the root model (for a new session) or resuming from a snapshot, then constructs the view root instance. The `appId` identifies each Multisynq app. It must be a globally unique identifier following the [Android convention](https://developer.android.com/studio/build/application-id), e.g. `"com.example.myapp"`. Each dot-separated segment must start with a letter, and only letters, digits, and underscores are allowed. The session `name` identifies individual sessions within an app. You can use it for example to create different sessions for different users. That is, a user in session `"ABC"` will not see a user in `"DEF"`. One simple way to create unique sessions is via `Multisynq.App.autoSession()` which will use or generate a random name in the query part (`?...`) of the current url. (If you use a constant, then all users will end up in the same session. This is what we do in some of our tutorials for simplicity, but actual apps should manage sessions.) The session `password` is used for end-to-end encryption of all data leaving the client. If your app does not need to protect user data, you will still have to provide a constant dummy password. One simple way to have individual passwords is via `Multisynq.App.autoPassword()` which will use or generate a random password in the hash part (`#...`) of the current url. A [session id][Model#sessionId](#model#sessionid) is created from the given session `name` and `options`, and a hash of all the [registered][Model.register](#model.register) Model classes and [Constants](#constants). This ensures that only users running the exact same source code end up in the same session, which is a prerequisite for perfectly synchronized computation. The session id is used to connect to a reflector. If there is no ongoing session, an instance of the `model` class is [created][Model.create](#model.create) (which in turn typically creates a number of submodels). Otherwise, the previously stored [modelRoot][Model#beWellKnownAs](#model#bewellknownas) is deserialized from the snapshot, along with all additional models. That root model instance is passed to the [constructor][View](#view) of your root `view` class. The root view should set up the input and output operations of your application, and create any additional views as to match the application state as found in the models. Then the Multisynq **main loop** is started (unless you pass in a `step: "manual"` parameter, e.g. for WebXR, see example below). This uses [requestAnimationFrame()](https://developer.mozilla.org/docs/Web/API/window/requestAnimationFrame) for continuous updating. Each step of the main loop executes in three phases: 1. _Simulation:_ the models execute the events received via the reflector,    and the [future messages][Model#future](#model#future) up to the latest time stamp received from the reflector.    The [events][Model#publish](#model#publish) generated in this phase are put in a queue for the views to consume. 2. _Event Processing:_ the queued events are processed by calling the view's [event handlers][View#subscribe](#view#subscribe).    The views typically use these events to modify some view state, e.g. moving a DOM element or setting some    attribute of a Three.js object. 3. _Updating/Rendering:_ The view root's [update()][View#update](#view#update) method is called after all the queued events have been processed.    In some applications, the update method will do nothing (e.g. DOM elements are rendered after returning control to the browser).    When using other UI frameworks (e.g. Three.js), this is the place to perform the actual rendering.    Also, polling input and other tasks that should happen in every frame should be placed here.
+
+**Parameters:**
+
+- `parameters` (`Object`) - * @param {String} parameters.apiKey - API key (from multisynq.io/coder)
+- `parameters` (`String`) - .appId - unique application identifier as [dot-separated words](https://developer.android.com/studio/build/application-id) (e.g. `"com.example.myapp"`)
+- `parameters` (`String?`) - .name - a name for this session (e.g. `"123abc"`)
+- `parameters` (`String?`) - .password - a password for this session (used for end-to-end encryption of messages and snapshots)
+- `parameters` (`Model`) - .model - the root Model class for your app
+- `parameters` (`View?`) - .view - the root View class for your app
+- `parameters` (`Object?`) - .options - options passed into the root model's [init()]{@link Model#init} function (no default)
+- `parameters` (`Object?`) - .viewOptions - options passed into the root views's [constructor()]{@link View#constructor} (no default)
+- `parameters` (`Object?`) - .viewData - data passed as additional payload to the [`"view-join"` event]{@link event:view-join} and [`"view-exit"` event]{@link event:view-exit} (no default)
+- `parameters` (`String?`) - .step - `"auto"` (default) for automatic stepping via [requestAnimationFrame()](https://developer.mozilla.org/docs/Web/API/window/requestAnimationFrame), or `"manual"` to leave it as the application's responsibility to call the session's `step()` function regularly (see WebXR example below)
+- `parameters` (`Number?`) - .tps - ticks per second generated by reflector when no messages are sent by any user (a value of `1/30` or below will result in one tick every 30s; max `60` per second; default `20`)
+- `parameters` (`(Number|Boolean)?`) - .autoSleep - number of seconds of app being hidden (e.g., in a tab that is behind others) before it should go dormant - disconnecting from the reflector, and staying that way until it is made visible again (`0` or `false` mean the app will never voluntarily go dormant; `true` means default value of `10`s; otherwise any non-negative number)
+- `parameters` (`Number?`) - .rejoinLimit - time in milliseconds until view is destroyed after a disconnection, to allow for short network glitches to be smoothly passed over (default `1000`)
+- `parameters` (`Number?`) - .eventRateLimit - maximum number of events (single or bundled) sent to reflector per second (`1` to `60`; default `20`)
+- `parameters` (`String?`) - .reflector - URL of the reflector to use (default is the public reflector)
+- `parameters` (`String?`) - .files - URL of the file server to use (default is the public file server)
+- `parameters` (`String?`) - .box - reflector-in-a-box server to use (reflector + file server)
+- `parameters` (`String|String[]`) - .debug - array, or comma-separated string, containing one or more of the following values to enable console logging of the corresponding details
+
+**Returns:** `Promise` - Promise that resolves to an object describing the session:
+
+**Example:**
+
+```javascript
+<caption>auto name, password, and main loop</caption>
+Multisynq.Session.join({
+    apiKey: "your_api_key",                 // paste from multisynq.io/coder
+    appId: "com.example.myapp",             // namespace for session names
+    name: Multisynq.App.autoSession(),        // session via URL arg
+    password: Multisynq.App.autoPassword(),   // password via URL arg
+    model: MyRootModel,
+    view: MyRootView,
+    debug: ["session"],
+});
+```
+
+```javascript
+<caption>manual name, password, and WebXR main loop</caption>
+Multisynq.Session.join({ apiKey: "your_api_key", appId: "com.example.myapp", name: "abc", password: "password", model: MyRootModel, view: MyRootView, step: "manual"}).then(session => {
+    function xrAnimFrame(time, xrFrame) {
+        session.step(time);
+        ...
+        xrSession.requestAnimationFrame(xrAnimFrame);
+    }
+    xrSession.requestAnimationFrame(xrAnimFrame);
+});
+```
+
+#### `catch(err)`
+
+**Parameters:**
+
+- `err` (`any`) - 
+
+#### `join_impl(parameters)`
+
+**Parameters:**
+
+- `parameters` (`any`) - 
+
+#### `if(!parameters.name)`
+
+**Parameters:**
+
+- `!parameters.name` (`any`) - 
+
+#### `for(const [k, v] of Object.entries(parameters))`
+
+**Parameters:**
+
+- `const [k` (`any`) - 
+- `v] of Object.entries(parameters)` (`any`) - 
+
+#### `if(v instanceof Promise)`
+
+**Parameters:**
+
+- `v instanceof Promise` (`any`) - 
+
+#### `inherits(A, B)`
+
+**Parameters:**
+
+- `A` (`any`) - 
+- `B` (`any`) - 
+
+#### `if(parameters.box)`
+
+**Parameters:**
+
+- `parameters.box` (`any`) - 
+
+#### `if(!parameters.reflector || !parameters.files)`
+
+**Parameters:**
+
+- `!parameters.reflector || !parameters.files` (`any`) - 
+
+#### `for(const key of ['reflector', 'synchronizer', 'files', 'backend', 'box'])`
+
+**Parameters:**
+
+- `const key of ['reflector'` (`any`) - 
+- `'synchronizer'` (`any`) - 
+- `'files'` (`any`) - 
+- `'backend'` (`any`) - 
+- `'box']` (`any`) - 
+
+#### `if(NODE && parameters.step !)`
+
+**Parameters:**
+
+- `NODE && parameters.step !` (`any`) - 
+
+#### `if("rejoinLimit" in parameters)`
+
+**Parameters:**
+
+- `"rejoinLimit" in parameters` (`any`) - 
+
+#### `if(typeof parameters.rejoinLimit !)`
+
+**Parameters:**
+
+- `typeof parameters.rejoinLimit !` (`any`) - 
+
+#### `if("eventRateLimit" in parameters)`
+
+**Parameters:**
+
+- `"eventRateLimit" in parameters` (`any`) - 
+
+#### `if(typeof parameters.eventRateLimit !)`
+
+**Parameters:**
+
+- `typeof parameters.eventRateLimit !` (`any`) - 
+
+#### `if(parameters.heraldUrl)`
+
+**Parameters:**
+
+- `parameters.heraldUrl` (`any`) - 
+
+#### `if(parameters.hashOverride)`
+
+**Parameters:**
+
+- `parameters.hashOverride` (`any`) - 

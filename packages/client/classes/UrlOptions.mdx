@@ -1,0 +1,40 @@
+---
+title: 'UrlOptions'
+description: 'API reference for UrlOptions class'
+---
+
+# UrlOptions
+
+## Methods
+
+### Instance Methods
+
+#### `has(key, item, defaultValue)`
+
+- has("debug", "recv", false) matches debug=recv and debug=send,recv - has("debug", "recv", true) matches debug=norecv and debug=send,norecv - has("debug", "recv", "localhost") defaults to true on localhost, false otherwise
+
+**Parameters:**
+
+- `key` (`String`) - key for list of items
+- `item` (`String`) - value to look for in list of items
+- `defaultValue` (`Boolean|String`) - if string, true on that hostname, false otherwise
+
+#### `isHost(hostname)`
+
+**Parameters:**
+
+- `hostname` (`any`) - 
+
+#### `isLocalhost()`
+
+#### `parseOptions(target)`
+
+**Parameters:**
+
+- `target` (`any`) - 
+
+#### `for(const key of Object.keys(argObj))`
+
+**Parameters:**
+
+- `const key of Object.keys(argObj)` (`any`) - 

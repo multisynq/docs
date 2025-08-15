@@ -157,7 +157,30 @@
           {
             "group": "Multisynq Client",
             "pages": [
-              "packages/client/index"
+              "packages/client/index",
+              {
+                "group": "Classes",
+                "pages": [
+                  "packages/client/classes/Model",
+                  "packages/client/classes/View",
+                  "packages/client/classes/Session",
+                  "packages/client/classes/Data",
+                  "packages/client/classes/Controller"
+                ]
+              },
+              "packages/client/events",
+              {
+                "group": "Tutorials",
+                "pages": [
+                  "tutorials/hello-world",
+                  "tutorials/simple-animation",
+                  "tutorials/multiuser-chat",
+                  "tutorials/view-smoothing",
+                  "tutorials/3d-animation",
+                  "tutorials/multiblaster-game"
+                ]
+              },
+              "packages/client/global"
             ]
           },
           {
@@ -265,6 +288,10 @@
       "destination": "/examples/demos/vibecoded-gallery.html"
     },
     {
+      "source": "/api-reference/react-together",
+      "destination": "/packages/react-together/index"
+    },
+    {
       "source": "/client/Model.html",
       "destination": "/packages/client/index#model"
     },
@@ -367,14 +394,6 @@
     {
       "source": "/api-reference/client",
       "destination": "/packages/client/index"
-    },
-    {
-      "source": "/api-reference/react",
-      "destination": "/packages/react/index"
-    },
-    {
-      "source": "/api-reference/react-together",
-      "destination": "/packages/react-together/index"
     }
   ],
   "contextual": {

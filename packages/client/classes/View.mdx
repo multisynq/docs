@@ -1,0 +1,212 @@
+---
+title: 'View'
+description: 'Views are the local, non-synchronized part of a Multisynq Application'
+---
+
+# View
+
+Views are the local, non-synchronized part of a Multisynq Application. Each device and browser window creates its own independent local view. The view [subscribes][View#subscribe](#view#subscribe) to events [published][Model#publish](#model#publish) by the synchronized model, so it stays up to date in real time. What the view is showing, however, is completely up to the application developer. The view can adapt to the device it's running on and show very different things. **Multisynq makes no assumptions about the UI framework you use** - be it plain HTML or Three.js or React or whatever. Multisynq only provides the publish/subscribe mechanism to hook into the synchronized model simulation. It's possible for a single view instance to handle all the events, you don't event have to subclass Multisynq.View for that. That being said, a common pattern is to make a hierarchy of `Multisynq.View` subclasses to mimic your hierarchy of [Model](#model) subclasses.
+
+## Methods
+
+### Static Methods
+
+#### `static displayStatus(msg, options)`
+
+**Parameters:**
+
+- `msg` (`any`) - 
+- `options` (`any`) - 
+
+#### `static displayWarning(msg, options)`
+
+**Parameters:**
+
+- `msg` (`any`) - 
+- `options` (`any`) - 
+
+#### `static displayError(msg, options)`
+
+**Parameters:**
+
+- `msg` (`any`) - 
+- `options` (`any`) - 
+
+### Instance Methods
+
+#### `if(!realm || !realm.isViewRealm())`
+
+**Parameters:**
+
+- `!realm || !realm.isViewRealm()` (`any`) - 
+
+#### `if(session.view)`
+
+**Parameters:**
+
+- `session.view` (`any`) - 
+
+#### `if(false)`
+
+**Parameters:**
+
+- `false` (`any`) - 
+
+#### `detach()`
+
+Each view has an id which can be used to scope [events][View#publish](#view#publish) between views. It is unique within the session for each user. **Note:** The `id` is **not** currently guaranteed to be unique for different users. Views on multiple devices may or may not be given the same id. This property is read-only. It is assigned in the view's constructor. There will be an error if you try to assign to it.
+
+**Example:**
+
+```javascript
+this.publish(this.id, "changed");
+```
+
+```javascript
+removeChild(child) {
+   const index = this.children.indexOf(child);
+   this.children.splice(index, 1);
+   child.detach();
+}
+```
+
+#### `reattach()`
+
+#### `publish(scope, event, data)`
+
+**Publish an event to a scope.** Events are the main form of communication between models and views in Multisynq. Both models and views can publish events, and subscribe to each other's events. Model-to-model and view-to-view subscriptions are possible, too. See [Model.subscribe][Model#subscribe](#model#subscribe) for a discussion of **scopes** and **event names**. Optionally, you can pass some **data** along with the event. For events published by a view and received by a model, the data needs to be serializable, because it will be sent via the reflector to all users. For view-to-view events it can be any value or object. Note that there is no way of testing whether subscriptions exist or not (because models can exist independent of views). Publishing an event that has no subscriptions is about as cheap as that test would be, so feel free to always publish, there is very little overhead.
+
+**Parameters:**
+
+- `scope` (`String`) - see [subscribe]{@link Model#subscribe}()
+- `event` (`String`) - see [subscribe]{@link Model#subscribe}()
+- `data` (`*=`) - can be any value or object (for view-to-model, must be serializable)
+
+**Example:**
+
+```javascript
+this.publish("input", "keypressed", {key: 'A'});
+this.publish(this.model.id, "move-to", this.pos);
+```
+
+#### `subscribe(scope, eventSpec, eventSpec, eventSpec, handler)`
+
+**Register an event handler for an event published to a scope.** Both `scope` and `event` can be arbitrary strings. Typically, the scope would select the object (or groups of objects) to respond to the event, and the event name would select which operation to perform. A commonly used scope is `this.id` (in a model) and `model.id` (in a view) to establish a communication channel between a model and its corresponding view. Unlike in a model's [subscribe][Model#subscribe](#model#subscribe) method, you can specify when the event should be handled: - **Queued:** The handler will be called on the next run of the [main loop][Session.join](#session.join),   the same number of times this event was published.   This is useful if you need each piece of data that was passed in each [publish][Model#publish](#model#publish) call.   An example would be log entries generated in the model that the view is supposed to print.   Even if more than one log event is published in one render frame, the view needs to receive each one.   **`{ event: "name", handling: "queued" }` is the default.  Simply specify `"name"` instead.** - **Once Per Frame:** The handler will be called only _once_ during the next run of the [main loop][Session.join](#session.join).   If [publish][Model#publish](#model#publish) was called multiple times, the handler will only be invoked once,   passing the data of only the last `publish` call.   For example, a view typically would only be interested in the current position of a model to render it.   Since rendering only happens once per frame, it should subscribe using the `oncePerFrame` option.   The event typically would be published only once per frame anyways, however,   while the model is catching up when joining a session, this would be fired rapidly.   **`{ event: "name", handling: "oncePerFrame" }` is the most efficient option, you should use it whenever possible.** - **Immediate:** The handler will be invoked _synchronously_ during the [publish][Model#publish](#model#publish) call.   This will tie the view code very closely to the model simulation, which in general is undesirable.   However, if the event handler needs to set up another subscription,   immediate execution ensures that a subsequent publish will be properly handled   (especially when rapidly replaying events for a new user).   Similarly, if the view needs to know the exact state of the model at the time the event was published,   before execution in the model proceeds, then this is the facility to allow this without having to copy model state.   Pass `{event: "name", handling: "immediate"}` to enforce this behavior. The `handler` can be any callback function. Unlike a model's [handler][Model#subscribe](#model#subscribe) which must be a method of that model, a view's handler can be any function, including fat-arrow functions declared in-line. Passing a method like in the model is allowed too, it will be bound to `this` in the subscribe call.
+
+**Parameters:**
+
+- `scope` (`String`) - the event scope (to distinguish between events of the same name used by different objects)
+- `eventSpec` (`String|Object`) - the event name (user-defined or system-defined), or an event handling spec object
+- `eventSpec` (`String`) - .event - the event name (user-defined or system-defined)
+- `eventSpec` (`String`) - .handling - `"queued"` (default), `"oncePerFrame"`, or `"immediate"`
+- `handler` (`Function`) - the event handler (can be any function)
+
+**Returns:** `this` - * @public
+
+**Example:**
+
+```javascript
+this.subscribe("something", "changed", this.update); // "queued" handling implied
+this.subscribe(this.id, {event: "moved", handling: "oncePerFrame"}, pos => this.sceneObject.setPosition(pos.x, pos.y, pos.z));
+```
+
+#### `unsubscribe(scope, event, handler)`
+
+Unsubscribes this view's handler(s) for the given event in the given scope. To unsubscribe only a specific handler, pass it as the third argument.
+
+**Parameters:**
+
+- `scope` (`String`) - see [subscribe]{@link View#subscribe}
+- `event` (`String`) - see [subscribe]{@link View#subscribe}
+- `handler` (`Function?`) - (optional) the handler to unsubscribe (added in 1.1)
+
+**Example:**
+
+```javascript
+this.unsubscribe("something", "changed");
+this.unsubscribe("something", "changed", this.handleMove);
+```
+
+#### `unsubscribeAll()`
+
+Unsubscribes all of this view's handlers for any event in any scope.
+
+#### `future(tOffset)`
+
+Scope, event, and source of the currently executing subscription handler.
+
+**Parameters:**
+
+- `tOffset` (`Number`) - time offset in milliseconds
+
+**Returns:** `Object` - `{scope, event, source}` or `undefined` if not in a subscription handler.
+
+**Example:**
+
+```javascript
+// this.subscribe("*", "*", this.logEvents)
+logEvents(data) {
+    const {scope, event, source} = this.activeSubscription;
+    console.log(`Event in view from ${source} ${scope}:${event} with`, data);
+}
+```
+
+#### `random()`
+
+**Answers [Math.random()][https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random](#https://developer.mozilla.org/docs/web/javascript/reference/global_objects/math/random)** This method is here purely for symmetry with [Model.random][Model#random](#model#random).
+
+**Returns:** `Number` - [Math.random()]{@link https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Math/random}
+
+#### `now()`
+
+**The model's current time** This is the time of how far the model has been simulated. Normally this corresponds roughly to real-world time, since the reflector is generating time stamps based on real-world time. If there is [backlog][View#externalNow](#view#externalnow) however (e.g while a newly joined user is catching up), this time will advance much faster than real time. The unit is milliseconds (1/1000 second) but the value can be fractional, it is a floating-point value.
+
+**Returns:** `Number` - the model's time in milliseconds since the first user created the session.
+
+#### `externalNow()`
+
+**The latest timestamp received from reflector** Timestamps are received asynchronously from the reflector at the specified tick rate. [Model time][View#now](#view#now) however only advances synchronously on every iteration of the [main loop][Session.join](#session.join). Usually `now == externalNow`, but if the model has not caught up yet, then `now < externalNow`. We call the difference "backlog". If the backlog is too large, Multisynq will put an overlay on the scene, and remove it once the model simulation has caught up. The [`"synced"` event][event:synced](#event:synced) is sent when that happens. The `externalNow` value is rarely used by apps but may be useful if you need to synchronize views to real-time (but note that [extrapolatedNow()][View#extrapolatedNow](#view#extrapolatednow) is usually more useful for that).
+
+**Returns:** `number` - the latest timestamp in milliseconds received from the reflector
+
+**Example:**
+
+```javascript
+const backlog = this.externalNow() - this.now();
+```
+
+#### `extrapolatedNow()`
+
+**The model time extrapolated beyond latest timestamp received from reflector** Timestamps are received asynchronously from the reflector at the specified tick rate. In-between ticks or messages, neither [now()][View#now](#view#now) nor [externalNow()][View#externalNow](#view#externalnow) advances. `extrapolatedNow` is `externalNow` plus the local time elapsed since that timestamp was received, so it always advances. `extrapolatedNow()` will always be >= `now()` and `externalNow()`. However, it is only guaranteed to be monotonous in-between time stamps received from the reflector (there is no "smoothing" to reconcile local time with reflector time).
+
+**Returns:** `number` - milliseconds based on local `Date.now()` but same epoch as model time
+
+#### `update(time)`
+
+Called on the root view from [main loop][Session.join](#session.join) once per frame. Default implementation does nothing. Override to add your own view-side input polling, rendering, etc. If you want this to be called for other views than the root view, you will have to call those methods from the root view's `update()`. The `time` received is related to the local real-world time. If you need to access the model's time, use [`this.now()`][View#now](#view#now).
+
+**Parameters:**
+
+- `time` (`Number`) - this frame's time stamp in milliseconds, as received by
+
+#### `wellKnownModel(name)`
+
+Access a model that was registered previously using  [beWellKnownAs()][Model#beWellKnownAs](#model#bewellknownas). Note: The instance of your root Model class is automatically made well-known as `"modelRoot"` and passed to the [constructor][View](#view) of your root View during [Session.join](#session.join).
+
+**Parameters:**
+
+- `name` (`String`) - the name given in [beWellKnownAs()]{@link Model#beWellKnownAs}
+
+**Returns:** `Model` - the model if found, or `undefined`
+
+**Example:**
+
+```javascript
+const topModel = this.wellKnownModel("modelRoot");
+```
+
+#### `sessionId()`
+
+#### `session()`
+
+#### `viewId()`

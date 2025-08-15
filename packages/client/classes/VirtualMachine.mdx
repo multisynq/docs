@@ -1,0 +1,707 @@
+---
+title: 'VirtualMachine'
+description: 'API reference for VirtualMachine class'
+---
+
+# VirtualMachine
+
+## Methods
+
+### Static Methods
+
+#### `static current()`
+
+#### `static hasCurrent()`
+
+#### `static evaluate(fn)`
+
+exposed as Model.evaluate()
+
+**Parameters:**
+
+- `fn` (`any`) - 
+
+### Instance Methods
+
+#### `scheduleExternalMessage(msgData)`
+
+all the models in this vm by id */                 this.models = {};                 /** named models (initially only 'modelRoot') */                 this.namedModels = {};                 /** future/pending external messages, sorted by time and sequence number */                 this.messages = new PriorityQueue((a, b) => a.before(b));                 /** @type {{"scope:event": Array<String>}} model subscriptions, maps topic to handlers */                 this.subscriptions = {};                 /** @type {Map<String, Set<String>>} maps models to subscribed topics. Excluded from snapshot */                 this.subscribers = new Map();                 /** @type {Array<{topic,handler}>} generic subscriptions, i.e. subscribe('*', ...) */                 this.genericSubscriptions = [];                 /** @type {string} meta data for currently executing subscription handler */                 this.currentEvent = "";                 /** @type {boolean} true if the currentEvent was published by a model */                 this.currentEventFromModel = false;                 /** @type {boolean} true if event logging is enabled */                 this.debugEvents = debugEvents;                 /** @type {{[id:string]: {extraConnections?: Number, data?: object, loc?: object}}} active reflector connections */                 this.views = {};                 /** @type {SeedRandom} our synced pseudo random stream */                 this._random = () => { throw Error("You must not use random when applying state!"); };                 /** @type {String} session ID */                 this.id = snapshot.id; // the controller always provides an ID                 /** @type {Number} how far simulation has progressed */                 this.time = 0;                 /** @type {Number} sequence number of last executed external message */                 this.seq = INITIAL_SEQ;       // 0xFFFFFFF0 provokes 32 bit rollover soon                 /** @type {Number} timestamp of last scheduled external message */                 this.externalTime = 0;                 /** @type {Number} sequence number of last scheduled external message */                 this.externalSeq = this.seq;                 /** @type {Number} sequence number for disambiguating future messages with same timestamp */                 this.futureSeq = 0;                 /** @type {Number} simulation time when last snapshot poll was taken */                 this.lastSnapshotPoll = 0;                 /** @type {Number} simulation time when last persistence poll was requested */                 this.lastPersistencePoll = 0;                 /** @type {Boolean} true when a future persistence poll has been scheduled */                 this.inPersistenceCoolOff = false;                 /** @type {String} hash of last persistent data upload */                 this.persisted = "";                 /** @type {Number} number for giving ids to model */                 this.modelsId = 0;                 /** @type {Map<String, Array<String>} if session diverged, maps timestamps to snapshot urls */                 this.diverged = null;                 /** @type {Controller} our controller, for sending messages. Excluded from snapshot */                 this.controller = null;                 if (snapshot.models) {                     // read vm from snapshot                     const reader = VMReader.newOrRecycled(this);                     const vmData = reader.readVM(snapshot, "VM", compat);                     let staticInitializers = [];                     let messages = [];                     // only read keys declared above                     for (const key of Object.keys(vmData)) {                         if (key === "meta") continue;                         else if (key === "staticInitializers") staticInitializers = vmData[key];                         else if (!(key in this)) console.warn(`Ignoring property snapshot.${key}`);                         else if (key === "_random") this[key] = new SeedRandom(null, { state: vmData[key] });                         else if (key === "messages") messages = vmData.messages;                         else this[key] = vmData[key];                     }                     // execute initializers of static class properties                     for (const staticInitializer of staticInitializers) staticInitializer();                     // add messages array to priority queue                     for (const msg of messages) this.messages.add(msg);                     // recreate subscribers from subscriptions                     for (const [topic, handlers] of Object.entries(this.subscriptions)) {                         for (const handler of handlers) {                             const [modelId] = handler.split('.');                             let topics = this.subscribers.get(modelId);                             if (!topics) this.subscribers.set(modelId, topics = new Set());                             topics.add(topic);                         }                     }                 } else {                     // seed with session id so different sessions get different random streams                     this._random = new SeedRandom(snapshot.id, { state: true });                     this.addSubscription(this, "__VM__", "__peers__", this.generateJoinExit);                     this.addSubscription(this, "__VM__", "__diverged__", this.handleSessionDiverged);                     // creates root model and makes it well-known as 'modelRoot'                     initFn(this);                 }             });         });     }     registerModel(model, id) {         if (CurrentVM !== this) throw Error("You can only create models from model code!");         if (!id) id = "M" + ++this.modelsId;         this.models[id] = model;         // not assigning the id here catches missing super calls in init() and load()         return id;     }     deregisterModel(id) {         if (CurrentVM !== this) throw Error("You can only destroy models from model code!");         const model = this.models;         delete this.models[id];         for (const [name, value] of Object.entries(this.namedModels)) {             if (model === value) delete this.namedModels[name];         }         this.messages.removeMany(msg => msg.hasReceiver(id));     }     lookUpModel(id) {         if (id === "_") return this;         let model = this.models[id];         if (model) return model;         const [_, modelID, partId] = id.match(/^([^#]+)#(.*)$/) || [];         model = this.models[modelID];         return model && model.lookUp(partId);     }     get(modelName) {         const model = this.namedModels[modelName];         if (CurrentVM !== this && DEBUG.write && model) return this.debugWriteProxy(this, model, model.id);         return model;     }     set(modelName, model) {         if (CurrentVM !== this) throw Error("You can only make a model well-known from model code!");         this.namedModels[modelName] = model;     }     debugWriteProxy(vm, object, path) {         if (typeof object !== "object" || object === null || object[DEBUG_WRITE_TARGET]) return object;         if (object instanceof Model) path = object.id;         if (!this.$debugWriteProxyHandler) {             if (!DEBUG_WRITE_PROXIES) DEBUG_WRITE_PROXIES = new WeakMap();             function writeError(what, obj, prop) {                 if (prop) what += ` ${prop} of`;                 const objPath = DEBUG_WRITE_PROXIES.get(obj).path;                 console.warn(`write-debug: non-model code is ${what} ${objPath}:`, obj);                 if (prop && prop[0] !== "$") throw Error(`write-debug: Attempt to modify ${App.libName} model state from outside!`);             }             this.$debugWriteProxyHandler = {                 set(target, property, value) {                     if (CurrentVM !== vm) writeError("assigning", target, property);                     else { console.warn(`${App.libName} debug write protection inside model - this should not happen!`); }                     target[property] = value;                 },                 deleteProperty(target, property) {                     if (CurrentVM !== vm) writeError("deleting", target, property);                     else { console.warn(`${App.libName} debug write protection inside model - this should not happen!`); }                     delete target[property];                 },                 get(target, property) {                     if (property === DEBUG_WRITE_TARGET) return target;                     const value = target[property];                     if (value && value[DEBUG_WRITE_TARGET]) return value;                     if (CurrentVM !== vm) {                         if (typeof value === "object" && value !== null) {                             const targetPath = DEBUG_WRITE_PROXIES.get(target).path;                             if (value instanceof Map) {                                 const map = new Map([...value.entries()].map(([key, val], i) => {                                     return [                                         vm.debugWriteProxy(vm, key, `${targetPath}.key#${i}`),                                         vm.debugWriteProxy(vm, val, `${targetPath}.value#${i}`)                                     ];                                 }));                                 map[DEBUG_WRITE_TARGET] = value;                                 map.set = () => writeError("setting an item in", value);                                 map.delete = () => writeError("deleting from", value);                                 map.clear = () => writeError("clearing", value);                                 DEBUG_WRITE_PROXIES.set(value, { proxy: map, path: targetPath + propertyAccessor(value, property) });                                 return map;                             }                             if (value instanceof Set) {                                 const set = new Set([...value.values()].map((val, i) => vm.debugWriteProxy(vm, val, `${targetPath}.item#${i}`)));                                 set[DEBUG_WRITE_TARGET] = value;                                 set.add = () => writeError("adding to", value);                                 set.delete = () => writeError("deleting from", value);                                 set.clear = () => writeError("clearing", value);                                 DEBUG_WRITE_PROXIES.set(value, { proxy: set, path: targetPath + propertyAccessor(value, property) });                                 return set;                             }                             // TODO: Proxies for TypedArrays, DataView, ArrayBuffer, etc                             // (Array appears to work, it internally calls proxy.get() for e.g. slice())                             return vm.debugWriteProxy(vm, value, targetPath + propertyAccessor(value, property));                         }                     } else { console.warn(`${App.libName} debug write protection inside model - this should not happen!`); }                     return value;                 }             };         }         let proxy = DEBUG_WRITE_PROXIES.get(object);         if (!proxy) {             proxy = {                 proxy: new Proxy(object, this.$debugWriteProxyHandler),                 path             };             DEBUG_WRITE_PROXIES.set(object, proxy);         }         return proxy.proxy;     }     // used in Controller.convertReflectorMessage()     noop() {}     // generate perfectly paired view-join and view-exit events     // from imperfectly paired reflector messages     // e.g. nobody is there to receive an exit event for the last view     // leaving a session so we generate those when the first view resumes a session     // keeping track of views in the currently not exposed this.views property     generateJoinExit({entered, exited, count, total}) {         // for DePIN accounting, we want to track the moments when the synchronizer's         // 'user' messages convey a change in the number of users.         this.controller.handleUserTotalForAccounting(total);         // if the app passed viewData to Session.join() then the controller         // sent { id, data } as user instead of a plain viewId string. If location was         // also requested then the reflector may have added the location as         // { id, data, location: {region, city: {name, lat, lng}} }         // if location was enabled (but no viewData) then controller.join() sent         // a [viewId] array as user instead of a plain viewId string, so the reflector         // may have added the location as [viewId, {region, city: {name, lat, lng}}],         // see JOIN() in reflector.js         const newViews = {};         for (const user of entered) {             if (typeof user === "string") continue; // only viewId             let viewId, loc, data;             if (Array.isArray(user)) [ viewId, loc ] = user;             else { viewId = user.id; data = user.data; loc = user.location; }             newViews[viewId] = {};             if (data) newViews[viewId].data = data;             if (loc) {                 if (loc.region) {                     loc.country = loc.region.slice(0, 2);                     loc.region = loc.region.slice(2);                 }                 newViews[viewId].loc = loc;             }         }         entered = entered.map(user => typeof user === "string" ? user : Array.isArray(user) ? user[0] : user.id);         exited = exited.map(user => typeof user === "string" ? user : Array.isArray(user) ? user[0] : user.id);         // if entered length == count then the reflector just resumed the session         // synthesize exit events for old views stored in snapshot         if (entered.length === count) {             exited = Object.keys(this.views);             // all connections gone             for (const id of exited) this.views[id].extraConnections = 0;         }         // reflector may send join+exit for same view in one event         // in which case we remove it from both lists to avoid         // generating an exit immediately followed by a join         if (entered.length > 0 && exited.length > 0 && entered.some(id => exited.includes(id))) {             // it's possible that either array contains the same view twice             // so we remove them in pairs to keep the count correct             for (let enterIndex = 0; enterIndex < entered.length; enterIndex++) {                 const id = entered[enterIndex];                 const exitIndex = exited.indexOf(id);                 if (exitIndex >= 0) {                     entered.splice(enterIndex, 1);                     exited.splice(exitIndex, 1);                     enterIndex--; // we removed this id, check the same index again                 }             }             // if there are no events left then there's nothing to do             if (entered.length + exited.length === 0) return;         }         // join/exit event payload is either "viewId" or { viewId, viewData }         // depending on whether the session was joined with a viewData         const viewInfo = id => {             const { data, loc } = this.views[id];             if (!data) return id;             const info = { viewId: id, viewData: data };             if (loc) info.location = loc; // location only if requested             return info;         };         // process exits first         for (const id of exited) {             if (this.views[id]) {                 // ignore exit for multiple connections (see below)                 if (this.views[id].extraConnections) {                     this.views[id].extraConnections--;                     if (DEBUG.session) console.log(this.id, `@${this.time}#${this.seq} view ${id} closed extra connection`);                     continue;                 }                 // otherwise this is a real exit                 const payload = viewInfo(id);                 delete this.views[id];                 this.publishFromModelOnly(this.id, "view-exit", payload);             } else {                 // there is no way this could ever happen. If it does, something is seriously broken.                 const { time, seq } = this;                 console.error(`${this.id} @${time}#${seq} view ${id} exited without being present - this should not happen`);                 Promise.resolve().then(() => {                     this.controller.sendLog(`view-exit-mismatch @${time}#${seq} ${id} left without being present`);                 });             }         }         // then joins         for (const id of entered) {             if (this.views[id]) {                 // this happens if a client rejoins but the reflector is still holding                 // onto the old connection                 if (DEBUG.session) console.log(this.id, `@${this.time}#${this.seq} view ${id} opened another connection`);                 this.views[id].extraConnections = (this.views[id].extraConnections||0) + 1;             } else {                 // otherwise this is a real join                 this.views[id] = newViews[id] || {};                 const payload = viewInfo(id);                 this.publishFromModelOnly(this.id, "view-join", payload);             }         }         // sanity check: the active number of connections on the reflector should match our count         const connections = Object.values(this.views).reduce((n, view) => n + 1 + (view.extraConnections || 0), 0);         if (count !== connections) {             const { time, seq } = this;             console.error(`@${time}#${seq} view count mismatch (model: ${connections}, reflector: ${count}) - this should not happen`);             Promise.resolve().then(() => {                 this.controller.sendLog(`view-exit-mismatch @${time}#${seq} connections model: ${connections} reflector: ${count}`);             });         }     }     /** decode msgData and sort it into future queue
+
+**Parameters:**
+
+- `msgData` (`MessageData`) - encoded message
+
+**Returns:** `Message` - decoded message
+
+#### `verifyExternal(msg)`
+
+limit the methods that can be triggered directly via reflector
+
+**Parameters:**
+
+- `msg` (`any`) - 
+
+#### `futureSend(tOffset, receiverID, selector, args)`
+
+**Parameters:**
+
+- `tOffset` (`any`) - 
+- `receiverID` (`any`) - 
+- `selector` (`any`) - 
+- `args` (`any`) - 
+
+#### `cancelFuture(model, methodOrMessage)`
+
+**Parameters:**
+
+- `model` (`any`) - 
+- `methodOrMessage` (`any`) - 
+
+#### `if(typeof methodOrMessage.time)`
+
+**Parameters:**
+
+- `typeof methodOrMessage.time` (`any`) - 
+
+#### `if(methodOrMessage)`
+
+**Parameters:**
+
+- `methodOrMessage` (`any`) - 
+
+#### `if(isQFuncFuture(methodName))`
+
+**Parameters:**
+
+- `isQFuncFuture(methodName)` (`any`) - 
+
+#### `futureRepeat(tOffset, receiverID, selector, args)`
+
+**Parameters:**
+
+- `tOffset` (`any`) - 
+- `receiverID` (`any`) - 
+- `selector` (`any`) - 
+- `args` (`any`) - 
+
+#### `futureExecAndRepeat(tOffset, receiverID, selector, args)`
+
+**Parameters:**
+
+- `tOffset` (`any`) - 
+- `receiverID` (`any`) - 
+- `selector` (`any`) - 
+- `args` (`any`) - 
+
+#### `if(typeof model[selector])`
+
+**Parameters:**
+
+- `typeof model[selector]` (`any`) - 
+
+#### `catch(error)`
+
+**Parameters:**
+
+- `error` (`any`) - 
+
+#### `catch(error)`
+
+**Parameters:**
+
+- `error` (`any`) - 
+
+#### `future(model, tOffset, methodNameOrCallback, methodArgs)`
+
+**Parameters:**
+
+- `model` (`any`) - 
+- `tOffset` (`any`) - 
+- `methodNameOrCallback` (`any`) - 
+- `methodArgs` (`any`) - 
+
+#### `if(methodNameOrCallback)`
+
+**Parameters:**
+
+- `methodNameOrCallback` (`any`) - 
+
+#### `get(_target, property)`
+
+**Parameters:**
+
+- `_target` (`any`) - 
+- `property` (`any`) - 
+
+#### `advanceTo(newTime, deadline)`
+
+Process pending messages for this vm and advance simulation time. Must only be sent by controller!
+
+**Parameters:**
+
+- `newTime` (`Number`) - simulate at most up to this time
+- `deadline` (`Number`) - CPU time deadline for interrupting simulation
+
+**Returns:** `Boolean` - true if finished simulation before deadline
+
+#### `while((message)`
+
+**Parameters:**
+
+- `(message` (`any`) - 
+
+#### `if(seq & 1)`
+
+**Parameters:**
+
+- `seq & 1` (`any`) - 
+
+#### `asMethodName(model, func, what, topic)`
+
+**Parameters:**
+
+- `model` (`any`) - 
+- `func` (`any`) - 
+- `what` (`any`) - 
+- `topic` (`any`) - 
+
+#### `if(typeof func)`
+
+**Parameters:**
+
+- `typeof func` (`any`) - 
+
+#### `if(func[QFUNC] && topic)`
+
+**Parameters:**
+
+- `func[QFUNC] && topic` (`any`) - 
+
+#### `while(obj !)`
+
+**Parameters:**
+
+- `obj !` (`any`) - 
+
+#### `for(const [name, desc] of Object.entries(Object.getOwnPropertyDescriptors(obj)))`
+
+**Parameters:**
+
+- `const [name` (`any`) - 
+- `desc] of Object.entries(Object.getOwnPropertyDescriptors(obj))` (`any`) - 
+
+#### `if(desc.value)`
+
+**Parameters:**
+
+- `desc.value` (`any`) - 
+
+#### `if(obj)`
+
+**Parameters:**
+
+- `obj` (`any`) - 
+
+#### `if(!shouldRegisterQFuncMethod(what))`
+
+**Parameters:**
+
+- `!shouldRegisterQFuncMethod(what)` (`any`) - 
+
+#### `asFuncString(fn)`
+
+**Parameters:**
+
+- `fn` (`any`) - 
+
+#### `compileFuncString(str, model)`
+
+**Parameters:**
+
+- `str` (`any`) - 
+- `model` (`any`) - 
+
+#### `if(!fn)`
+
+**Parameters:**
+
+- `!fn` (`any`) - 
+
+#### `addSubscription(model, scope, event, methodNameOrCallback)`
+
+**Parameters:**
+
+- `model` (`any`) - 
+- `scope` (`any`) - 
+- `event` (`any`) - 
+- `methodNameOrCallback` (`any`) - 
+
+#### `if(typeof methodName !)`
+
+**Parameters:**
+
+- `typeof methodName !` (`any`) - 
+
+#### `if(methodName.indexOf('.') < 0 && typeof model[methodName] !)`
+
+**Parameters:**
+
+- `methodName.indexOf('.') < 0 && typeof model[methodName] !` (`any`) - 
+
+#### `if(scope)`
+
+**Parameters:**
+
+- `scope` (`any`) - 
+
+#### `if(this.subscriptions[topic].indexOf(handler) !)`
+
+**Parameters:**
+
+- `this.subscriptions[topic].indexOf(handler) !` (`any`) - 
+
+#### `removeSubscription(model, scope, event, methodName)`
+
+**Parameters:**
+
+- `model` (`any`) - 
+- `scope` (`any`) - 
+- `event` (`any`) - 
+- `methodName` (`any`) - 
+
+#### `if(scope)`
+
+**Parameters:**
+
+- `scope` (`any`) - 
+
+#### `if(handlers)`
+
+**Parameters:**
+
+- `handlers` (`any`) - 
+
+#### `if(methodName)`
+
+**Parameters:**
+
+- `methodName` (`any`) - 
+
+#### `for(let i)`
+
+**Parameters:**
+
+- `let i` (`any`) - 
+
+#### `if(handlers[i].startsWith(handlerPrefix))`
+
+**Parameters:**
+
+- `handlers[i].startsWith(handlerPrefix)` (`any`) - 
+
+#### `if(typeof nameString !)`
+
+**Parameters:**
+
+- `typeof nameString !` (`any`) - 
+
+#### `if(indexToRemove !)`
+
+**Parameters:**
+
+- `indexToRemove !` (`any`) - 
+
+#### `if(handlers.find(h)`
+
+**Parameters:**
+
+- `handlers.find(h` (`any`) - 
+
+#### `addGenericSubscription(topic, handler)`
+
+**Parameters:**
+
+- `topic` (`any`) - 
+- `handler` (`any`) - 
+
+#### `removeGenericSubscription(model, scope, event, methodName)`
+
+**Parameters:**
+
+- `model` (`any`) - 
+- `scope` (`any`) - 
+- `event` (`any`) - 
+- `methodName` (`any`) - 
+
+#### `for(let i)`
+
+**Parameters:**
+
+- `let i` (`any`) - 
+
+#### `if(subscription.topic)`
+
+**Parameters:**
+
+- `subscription.topic` (`any`) - 
+
+#### `if(methodName)`
+
+**Parameters:**
+
+- `methodName` (`any`) - 
+
+#### `removeAllSubscriptionsFor(model)`
+
+**Parameters:**
+
+- `model` (`any`) - 
+
+#### `if(topics)`
+
+**Parameters:**
+
+- `topics` (`any`) - 
+
+#### `for(const topic of topics)`
+
+**Parameters:**
+
+- `const topic of topics` (`any`) - 
+
+#### `for(let i)`
+
+**Parameters:**
+
+- `let i` (`any`) - 
+
+#### `if(handlers[i].startsWith(handlerPrefix))`
+
+**Parameters:**
+
+- `handlers[i].startsWith(handlerPrefix)` (`any`) - 
+
+#### `publishFromModel(scope, event, data)`
+
+**Parameters:**
+
+- `scope` (`any`) - 
+- `event` (`any`) - 
+- `data` (`any`) - 
+
+#### `publishFromModelOnly(scope, event, data)`
+
+**Parameters:**
+
+- `scope` (`any`) - 
+- `event` (`any`) - 
+- `data` (`any`) - 
+
+#### `publishFromView(scope, event, data)`
+
+**Parameters:**
+
+- `scope` (`any`) - 
+- `event` (`any`) - 
+- `data` (`any`) - 
+
+#### `handleBundledEvents(events)`
+
+**Parameters:**
+
+- `events` (`any`) - 
+
+#### `for(const msgState of events)`
+
+**Parameters:**
+
+- `const msgState of events` (`any`) - 
+
+#### `handleModelEventInModel(topic, data, reflect)`
+
+**Parameters:**
+
+- `topic` (`any`) - 
+- `data` (`any`) - 
+- `reflect` (`any`) - 
+
+#### `if(reflect)`
+
+**Parameters:**
+
+- `reflect` (`any`) - 
+
+#### `if(this.genericSubscriptions.length > 0)`
+
+**Parameters:**
+
+- `this.genericSubscriptions.length > 0` (`any`) - 
+
+#### `if(this.subscriptions[topic])`
+
+**Parameters:**
+
+- `this.subscriptions[topic]` (`any`) - 
+
+#### `invokeHandlers(liveHandlers, topic, data)`
+
+**Parameters:**
+
+- `liveHandlers` (`any`) - 
+- `topic` (`any`) - 
+- `data` (`any`) - 
+
+#### `for(let i)`
+
+**Parameters:**
+
+- `let i` (`any`) - 
+
+#### `if(handler !)`
+
+**Parameters:**
+
+- `handler !` (`any`) - 
+
+#### `invokeGenericHandlers(topic, data)`
+
+**Parameters:**
+
+- `topic` (`any`) - 
+- `data` (`any`) - 
+
+#### `for(const subscription of this.genericSubscriptions)`
+
+**Parameters:**
+
+- `const subscription of this.genericSubscriptions` (`any`) - 
+
+#### `invokeHandler(handler, topic, data)`
+
+**Parameters:**
+
+- `handler` (`any`) - 
+- `topic` (`any`) - 
+- `data` (`any`) - 
+
+#### `if(!model)`
+
+**Parameters:**
+
+- `!model` (`any`) - 
+
+#### `if(methodName[0])`
+
+**Parameters:**
+
+- `methodName[0]` (`any`) - 
+
+#### `catch(error)`
+
+**Parameters:**
+
+- `error` (`any`) - 
+
+#### `if(methodName.indexOf('.') >)`
+
+**Parameters:**
+
+- `methodName.indexOf('.') >` (`any`) - 
+
+#### `catch(error)`
+
+**Parameters:**
+
+- `error` (`any`) - 
+
+#### `if(typeof model[methodName] !)`
+
+**Parameters:**
+
+- `typeof model[methodName] !` (`any`) - 
+
+#### `catch(error)`
+
+**Parameters:**
+
+- `error` (`any`) - 
+
+#### `handleViewEventInModel(topic, data)`
+
+**Parameters:**
+
+- `topic` (`any`) - 
+- `data` (`any`) - 
+
+#### `if(this.subscriptions[topic])`
+
+**Parameters:**
+
+- `this.subscriptions[topic]` (`any`) - 
+
+#### `handleModelEventInView(topic, data)`
+
+**Parameters:**
+
+- `topic` (`any`) - 
+- `data` (`any`) - 
+
+#### `handleViewEventInView(topic, data)`
+
+**Parameters:**
+
+- `topic` (`any`) - 
+- `data` (`any`) - 
+
+#### `handleTuttiDivergence(divergenceTopic, data)`
+
+**Parameters:**
+
+- `divergenceTopic` (`any`) - 
+- `data` (`any`) - 
+
+#### `handleSessionDiverged(data)`
+
+**Parameters:**
+
+- `data` (`any`) - 
+
+#### `debugDiverged(key)`
+
+**Parameters:**
+
+- `key` (`any`) - 
+
+#### `processModelViewEvents(isInAnimationStep)`
+
+**Parameters:**
+
+- `isInAnimationStep` (`any`) - 
+
+#### `handlePollForSnapshot()`
+
+#### `if(sinceLast < SNAPSHOT_MIN_POLL_GAP)`
+
+**Parameters:**
+
+- `sinceLast < SNAPSHOT_MIN_POLL_GAP` (`any`) - 
+
+#### `handleTuttiResult(data)`
+
+**Parameters:**
+
+- `data` (`any`) - 
+
+#### `handleSnapshotVote(data)`
+
+**Parameters:**
+
+- `data` (`any`) - 
+
+#### `handlePersistVote(data)`
+
+**Parameters:**
+
+- `data` (`any`) - 
+
+#### `handleAuditRequest(data)`
+
+**Parameters:**
+
+- `data` (`any`) - 
+
+#### `snapshot()`
+
+#### `getSummaryHash()`
+
+#### `debug(options)`
+
+**Parameters:**
+
+- `options` (`any`) - 
+
+#### `forceSnapshot()`
+
+#### `persist(model, persistentDataFunc)`
+
+**Parameters:**
+
+- `model` (`any`) - 
+- `persistentDataFunc` (`any`) - 
+
+#### `if(urlOptions.forcePersist)`
+
+**Parameters:**
+
+- `urlOptions.forcePersist` (`any`) - 
+
+#### `if(this.inPersistenceCoolOff)`
+
+**Parameters:**
+
+- `this.inPersistenceCoolOff` (`any`) - 
+
+#### `if(timeUntilReady > 0)`
+
+**Parameters:**
+
+- `timeUntilReady > 0` (`any`) - 
+
+#### `triggerPersistencePoll()`
+
+#### `if(this.controller.synced)`
+
+**Parameters:**
+
+- `this.controller.synced` (`any`) - 
+
+#### `random()`
+
+#### `randomID()`
+
+#### `for(let i)`
+
+**Parameters:**
+
+- `let i` (`any`) - 
+
+#### `toString()`
+
+#### `encode(receiver, selector, args)`
+
+**Parameters:**
+
+- `receiver` (`any`) - 
+- `selector` (`any`) - 
+- `args` (`any`) - 
+
+#### `if(receiver)`
+
+**Parameters:**
+
+- `receiver` (`any`) - 
+
+#### `if(args.length > 0)`
+
+**Parameters:**
+
+- `args.length > 0` (`any`) - 
+
+#### `decode(payload, vm)`
+
+**Parameters:**
+
+- `payload` (`any`) - 
+- `vm` (`any`) - 
+
+#### `if(payload.length)`
+
+**Parameters:**
+
+- `payload.length` (`any`) - 
+
+#### `if(argString)`
+
+**Parameters:**
+
+- `argString` (`any`) - 

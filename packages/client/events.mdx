@@ -1,0 +1,83 @@
+---
+title: 'Events'
+description: 'Event system and publish/subscribe patterns in Multisynq'
+icon: 'bolt'
+---
+
+# Events
+
+Multisynq uses an event-driven architecture to communicate between models and views.
+
+## Core Events
+
+### `synced`
+
+Fired when the view has synchronized with the model state.
+
+**Usage:**
+```javascript
+view.subscribe("synced", () => {
+    console.log("View is synchronized");
+});
+```
+
+### `view-join`
+
+Fired when a new view joins the session.
+
+**Parameters:**
+- `viewId` (string) - The ID of the joining view
+
+**Usage:**
+```javascript
+model.subscribe("view-join", viewId => {
+    console.log(`View ${viewId} joined`);
+});
+```
+
+### `view-exit`
+
+Fired when a view leaves the session.
+
+**Parameters:**
+- `viewId` (string) - The ID of the exiting view
+
+**Usage:**
+```javascript
+model.subscribe("view-exit", viewId => {
+    console.log(`View ${viewId} left`);
+});
+```
+
+## Custom Events
+
+You can create and use custom events:
+
+```javascript
+// In the model
+this.publish("my-custom-event", { data: "value" });
+
+// In the view
+this.subscribe("my-custom-event", data => {
+    console.log("Received:", data);
+});
+```
+
+## Event Handling Options
+
+### Queued (Default)
+```javascript
+view.subscribe("event-name", handler);
+// or explicitly:
+view.subscribe({ event: "event-name", handling: "queued" }, handler);
+```
+
+### Once Per Frame
+```javascript
+view.subscribe({ event: "event-name", handling: "oncePerFrame" }, handler);
+```
+
+### Immediate
+```javascript
+view.subscribe({ event: "event-name", handling: "immediate" }, handler);
+```

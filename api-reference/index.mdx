@@ -884,14 +884,14 @@ Unlike in a model's [subscribe](#modelsubscribe)(#modelsubscribe) method, you ca
 
 - **Once Per Frame:** The handler will be called only _once_ during the next run of the [main loop](#sessionjoin)(#sessionjoin).
   If [publish](#modelpublish)(#modelpublish) was called multiple times, the handler will only be invoked once,
-  passing the data of only the last `publish\`` call.
+  passing the data of only the last `publish` call.
 
   For example, a view typically would only be interested in the current position of a model to render it.
-  Since rendering only happens once per frame, it should subscribe using the `oncePerFrame\`` option.
+  Since rendering only happens once per frame, it should subscribe using the `oncePerFrame` option.
   The event typically would be published only once per frame anyways, however,
   while the model is catching up when joining a session, this would be fired rapidly.
 
-  **`{ event: "name", handling: "oncePerFrame" }\`` is the most efficient option, you should use it whenever possible.**
+  **`{ event: "name", handling: "oncePerFrame" }` is the most efficient option, you should use it whenever possible.**
 
 - **Immediate:** The handler will be invoked _synchronously_ during the [publish](#modelpublish)(#modelpublish) call.
   This will tie the view code very closely to the model simulation, which in general is undesirable.
